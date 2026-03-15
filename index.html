@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LATINA – Quiz</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- TOPBAR -->
+<header class="topbar">
+  <div class="logo">LATINA</div>
+  <button class="admin-btn" onclick="App.openAdmin()">Admin</button>
+</header>
+
+<!-- HERO / HOME -->
+<main id="page-home" class="page active">
+  <div class="hero">
+    <div class="hero-label">Latein lernen</div>
+    <h1 class="hero-title">Wähle dein<br /><span class="accent">Quiz</span></h1>
+    <p class="hero-sub">Deklinationen, Pronomina und mehr – direkt im Browser üben.</p>
+  </div>
+  <div class="quiz-grid" id="quiz-grid">
+    <!-- filled by JS -->
+  </div>
+  <div class="empty-hint" id="empty-hint" style="display:none;">
+    Noch keine Quize vorhanden. Melde dich als Admin an, um ein Quiz zu erstellen.
+  </div>
+</main>
+
+<!-- QUIZ SETUP (phase selection) -->
+<main id="page-setup" class="page">
+  <div class="back-row">
+    <button class="back-btn" onclick="App.goHome()">← Zurück</button>
+  </div>
+  <div class="setup-card">
+    <div class="setup-title" id="setup-title">Quiz Name</div>
+    <div class="setup-desc" id="setup-desc"></div>
+    <div class="phase-section">
+      <div class="phase-label">Welche Phasen möchtest du üben?</div>
+      <div class="phase-options">
+        <label class="phase-opt">
+          <input type="checkbox" name="phase" value="1" checked />
+          <span class="phase-box"><span class="phase-num">1</span><span class="phase-name">Singular</span></span>
+        </label>
+        <label class="phase-opt">
+          <input type="checkbox" name="phase" value="2" />
+          <span class="phase-box"><span class="phase-num">2</span><span class="phase-name">Plural</span></span>
+        </label>
+        <label class="phase-opt">
+          <input type="checkbox" name="phase" value="3" />
+          <span class="phase-box"><span class="phase-num">3</span><span class="phase-name">Gemischt</span></span>
+        </label>
+        <label class="phase-opt">
+          <input type="checkbox" name="phase" value="4" />
+          <span class="phase-box"><span class="phase-num">4</span><span class="phase-name">Deutsch → Latein</span></span>
+        </label>
+      </div>
+    </div>
+    <button class="start-btn" onclick="App.startQuiz()">Quiz starten →</button>
+  </div>
+</main>
+
+<!-- QUIZ PLAY -->
+<main id="page-quiz" class="page">
+  <div class="back-row">
+    <button class="back-btn" onclick="App.goHome()">← Abbrechen</button>
+    <div class="phase-badge" id="quiz-phase-badge">Phase 1</div>
+    <div class="quiz-progress-text" id="quiz-progress-text">1 / 10</div>
+  </div>
+  <div class="quiz-area">
+    <div class="progress-bar-wrap"><div class="progress-bar-fill" id="progress-bar"></div></div>
+    <div class="q-card">
+      <div class="q-label" id="q-label">Nominativ – Maskulinum (Sg.)</div>
+      <div class="q-subtext" id="q-subtext"></div>
+    </div>
+    <div class="answer-wrap">
+      <input type="text" id="answer-input" class="answer-input" placeholder="Antwort eingeben…" autocomplete="off" />
+      <button class="check-btn" id="check-btn" onclick="Quiz.check()">Prüfen</button>
+    </div>
+    <div class="feedback-box hidden" id="feedback-box"></div>
+    <button class="next-btn hidden" id="next-btn" onclick="Quiz.next()">Weiter →</button>
+  </div>
+</main>
+
+<!-- RESULTS -->
+<main id="page-result" class="page">
+  <div class="result-wrap">
+    <div class="result-icon" id="result-icon">🏛️</div>
+    <div class="result-score" id="result-score">0/0</div>
+    <div class="result-label">richtig beantwortet</div>
+    <div class="result-msg" id="result-msg"></div>
+    <div class="result-btns">
+      <button class="start-btn" onclick="App.goHome()">Zum Menü</button>
+      <button class="outline-btn" onclick="App.replaySetup()">Nochmal</button>
+    </div>
+  </div>
+</main>
+
+<!-- ADMIN MODAL -->
+<div class="modal-overlay hidden" id="admin-overlay" onclick="App.closeAdmin(event)">
+  <div class="modal" id="admin-modal">
+    <button class="modal-close" onclick="App.closeAdmin()">✕</button>
+
+    <!-- Login view -->
+    <div id="admin-login-view">
+      <div class="modal-title">Admin-Login</div>
+      <div class="field-group">
+        <label>Benutzername</label>
+        <input type="text" id="admin-username" class="modal-input" placeholder="admin" />
+      </div>
+      <div class="field-group">
+        <label>Passwort</label>
+        <input type="password" id="admin-password" class="modal-input" placeholder="••••••••" />
+      </div>
+      <div class="login-error hidden" id="login-error">Falscher Benutzername oder Passwort.</div>
+      <button class="start-btn" onclick="App.adminLogin()">Einloggen</button>
+    </div>
+
+    <!-- Admin dashboard view -->
+    <div id="admin-dash-view" class="hidden">
+      <div class="modal-title">Admin-Bereich</div>
+      <div class="admin-section-title">Vorhandene Quize</div>
+      <div id="admin-quiz-list" class="admin-quiz-list"></div>
+      <hr class="divider" />
+      <div class="admin-section-title">Neues Quiz erstellen</div>
+      <div class="field-group">
+        <label>Quiz-Name</label>
+        <input type="text" id="new-quiz-name" class="modal-input" placeholder="z.B. idem / eadem / idem" />
+      </div>
+      <div class="field-group">
+        <label>Beschreibung (optional)</label>
+        <input type="text" id="new-quiz-desc" class="modal-input" placeholder="z.B. Pronomen 'derselbe'" />
+      </div>
+
+      <div class="admin-section-title" style="margin-top:1.2rem;">Singular-Formen</div>
+      <div class="forms-grid" id="sg-grid"></div>
+
+      <div class="admin-section-title" style="margin-top:1.2rem;">Plural-Formen</div>
+      <div class="forms-grid" id="pl-grid"></div>
+
+      <div class="admin-section-title" style="margin-top:1.2rem;">Deutsche Entsprechungen (Singular)</div>
+      <div class="forms-grid" id="de-sg-grid"></div>
+
+      <div class="admin-section-title" style="margin-top:1.2rem;">Deutsche Entsprechungen (Plural)</div>
+      <div class="forms-grid" id="de-pl-grid"></div>
+
+      <div class="create-error hidden" id="create-error">Bitte fülle alle Felder aus.</div>
+      <div style="display:flex;gap:10px;margin-top:1.2rem;">
+        <button class="start-btn" onclick="App.createQuiz()">Quiz speichern</button>
+        <button class="outline-btn" onclick="App.adminLogout()">Ausloggen</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
