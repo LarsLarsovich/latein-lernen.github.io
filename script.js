@@ -4,17 +4,29 @@ const ADMIN_USER  = 'admin';
 const ADMIN_PASS  = 'latina2024';
 const STORAGE_KEY = 'latina_quizes';
 
-const CASES      = [1, 2, 3, 4, 6];
-const CASE_NAMES = { 1:'Nominativ', 2:'Genitiv', 3:'Dativ', 4:'Akkusativ', 6:'Ablativ' };
-const GENDERS    = ['M', 'W', 'N'];
+const CASES       = [1, 2, 3, 4, 6];
+const CASE_NAMES  = { 1:'Nominativ', 2:'Genitiv', 3:'Dativ', 4:'Akkusativ', 6:'Ablativ' };
+const GENDERS     = ['M', 'W', 'N'];
 const GENDER_NAMES  = { M:'Maskulinum (m.)', W:'Femininum (f.)', N:'Neutrum (n.)' };
 const GENDER_SHORT  = { M:'m.', W:'f.', N:'n.' };
 const GENDER_LABEL  = { M:'Maskulinum', W:'Femininum', N:'Neutrum' };
 const GENDER_CLASS  = { M:'m', W:'f', N:'n' };
-const ICONS = ['📜','🏺','⚡','🌿','🗿','🔱','⚔️','🌙','🪐','🦅'];
+
+// Parse "iis/eis" or "iis, eis" into multiple accepted answers
+function parseAnswers(raw) {
+  return raw.toLowerCase()
+    .split(/[\/,]/)
+    .map(s => s.trim())
+    .filter(Boolean);
+}
+
+function isCorrect(input, raw) {
+  const accepted = parseAnswers(raw);
+  return accepted.includes(input.trim().toLowerCase());
+}
 
 const DEFAULT_QUIZ = {
-  id: 'idem', name: 'idem / eadem / idem', desc: 'Pronomen „derselbe / dieselbe / dasselbe"', icon: '🏛️',
+  id: 'idem', name: 'idem / eadem / idem', desc: 'Pronomen „derselbe / dieselbe / dasselbe"',
   sg: {
     M: {1:'idem',    2:'eiusdem', 3:'eidem',  4:'eundem', 6:'eodem' },
     W: {1:'eadem',   2:'eiusdem', 3:'eidem',  4:'eandem', 6:'eadem' },
@@ -37,18 +49,17 @@ const DEFAULT_QUIZ = {
   }
 };
 
-// ── State ────────────────────────────────────────────────────
 let state = {
   quizes: [],
   adminLoggedIn: false,
   currentQuiz: null,
   selectedPhases: [],
+  shuffleWithin: false,
   lastQuizId: null,
-  editingQuizId: null,   // null = new, else id of quiz being edited
+  editingQuizId: null,
   cardActionQuizId: null
 };
 
-// ── Storage ──────────────────────────────────────────────────
 function saveQuizes() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state.quizes)); }
 function loadQuizes() {
   try { const r = localStorage.getItem(STORAGE_KEY); if (r) state.quizes = JSON.parse(r); } catch(e) { state.quizes = []; }
@@ -63,11 +74,14 @@ const App = {
     this.renderHome();
   },
 
-  showPage(id) {
+  showPage(id, quizName) {
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     const el = document.getElementById('page-' + id);
     if (el) el.classList.add('active');
     window.scrollTo(0, 0);
+    // topbar center: show quiz name during quiz, empty otherwise
+    const center = document.getElementById('topbar-center');
+    center.textContent = quizName || '';
   },
 
   goHome() {
@@ -94,22 +108,19 @@ const App = {
         </div>` : '';
 
       card.innerHTML = `
-        <span class="quiz-card-icon">${q.icon || '📜'}</span>
         <div class="quiz-card-name">${q.name}</div>
         <div class="quiz-card-desc">${q.desc || ''}</div>
         ${overlayHTML}
       `;
 
-      // Normal click only triggers quiz setup if not admin
       card.addEventListener('click', () => {
         if (!state.adminLoggedIn) App.openSetup(q.id);
       });
-
       grid.appendChild(card);
     });
   },
 
-  // ── Quiz Flow ───────────────────────────────────────────────
+  // ── Quiz Flow ─────────────────────────────────────────────
   openSetup(quizId) {
     const q = state.quizes.find(x => x.id === quizId);
     if (!q) return;
@@ -118,14 +129,16 @@ const App = {
     document.getElementById('setup-title').textContent = q.name;
     document.getElementById('setup-desc').textContent = q.desc || '';
     document.querySelectorAll('input[name="phase"]').forEach(cb => { cb.checked = cb.value === '1'; });
-    this.showPage('setup');
+    document.getElementById('shuffle-within').checked = false;
+    this.showPage('setup', q.name);
   },
 
   startQuiz() {
     const checked = [...document.querySelectorAll('input[name="phase"]:checked')];
     if (!checked.length) { alert('Bitte wähle mindestens eine Phase aus.'); return; }
     state.selectedPhases = checked.map(c => parseInt(c.value));
-    Quiz.start(state.currentQuiz, state.selectedPhases);
+    state.shuffleWithin  = document.getElementById('shuffle-within').checked;
+    Quiz.start(state.currentQuiz, state.selectedPhases, state.shuffleWithin);
   },
 
   replaySetup() {
@@ -133,12 +146,13 @@ const App = {
     else this.goHome();
   },
 
-  // ── Admin Auth ──────────────────────────────────────────────
+  // ── Admin ─────────────────────────────────────────────────
   handleAdminBtn() {
     if (state.adminLoggedIn) {
-      // Logout
       state.adminLoggedIn = false;
-      document.getElementById('admin-topbtn').classList.remove('active');
+      const btn = document.getElementById('admin-topbtn');
+      btn.classList.remove('active');
+      btn.textContent = 'Admin';
       document.getElementById('add-btn').classList.add('hidden');
       this.renderHome();
     } else {
@@ -159,14 +173,19 @@ const App = {
     document.getElementById('login-overlay').classList.add('hidden');
   },
 
+  closeLoginForced() {
+    document.getElementById('login-overlay').classList.add('hidden');
+  },
+
   adminLogin() {
     const u = document.getElementById('admin-username').value.trim();
     const p = document.getElementById('admin-password').value;
     if (u === ADMIN_USER && p === ADMIN_PASS) {
       state.adminLoggedIn = true;
       document.getElementById('login-overlay').classList.add('hidden');
-      document.getElementById('admin-topbtn').classList.add('active');
-      document.getElementById('admin-topbtn').textContent = 'Ausloggen';
+      const btn = document.getElementById('admin-topbtn');
+      btn.classList.add('active');
+      btn.textContent = 'Ausloggen';
       document.getElementById('add-btn').classList.remove('hidden');
       this.renderHome();
     } else {
@@ -174,12 +193,11 @@ const App = {
     }
   },
 
-  // ── Card Action Modal ────────────────────────────────────────
+  // ── Card Action Modal ─────────────────────────────────────
   confirmDelete(quizId) {
     const q = state.quizes.find(x => x.id === quizId);
     if (!q) return;
     state.cardActionQuizId = quizId;
-    document.getElementById('card-action-icon').textContent = q.icon || '📜';
     document.getElementById('card-action-title').textContent = q.name;
     document.getElementById('card-action-desc').textContent = q.desc || '';
     document.getElementById('card-action-overlay').classList.remove('hidden');
@@ -193,29 +211,27 @@ const App = {
 
   editFromModal() {
     const id = state.cardActionQuizId;
-    this.closeCardAction();
+    document.getElementById('card-action-overlay').classList.add('hidden');
+    state.cardActionQuizId = null;
     this.openEditor(id);
   },
 
   deleteFromModal() {
     const id = state.cardActionQuizId;
     if (!id) return;
-    this.closeCardAction();
+    document.getElementById('card-action-overlay').classList.add('hidden');
+    state.cardActionQuizId = null;
     state.quizes = state.quizes.filter(q => q.id !== id);
     saveQuizes();
     this.renderHome();
   },
 
-  // ── Editor ───────────────────────────────────────────────────
+  // ── Editor ───────────────────────────────────────────────
   buildEditorGrids() {
-    const sections = [
-      { id:'sg-columns',    label:'Singular' },
-      { id:'pl-columns',    label:'Plural' },
-      { id:'de-sg-columns', label:'Singular' },
-      { id:'de-pl-columns', label:'Plural' },
-    ];
+    const sections = ['sg-columns','pl-columns','de-sg-columns','de-pl-columns'];
     sections.forEach(sec => {
-      const wrap = document.getElementById(sec.id);
+      const wrap = document.getElementById(sec);
+      if (!wrap) return;
       wrap.innerHTML = '';
       GENDERS.forEach(g => {
         const col = document.createElement('div');
@@ -226,7 +242,7 @@ const App = {
           field.className = 'genus-field';
           field.innerHTML = `
             <label>${CASE_NAMES[c]}</label>
-            <input type="text" id="${sec.id}_${g}_${c}" placeholder="${CASE_NAMES[c].substring(0,3).toLowerCase()}. ${GENDER_SHORT[g]}" />
+            <input type="text" id="${sec}_${g}_${c}" placeholder="${CASE_NAMES[c].substring(0,3).toLowerCase()}." />
           `;
           col.appendChild(field);
         });
@@ -244,7 +260,6 @@ const App = {
     if (isNew) {
       document.getElementById('new-quiz-name').value = '';
       document.getElementById('new-quiz-desc').value = '';
-      // clear all inputs
       ['sg-columns','pl-columns','de-sg-columns','de-pl-columns'].forEach(sec => {
         GENDERS.forEach(g => CASES.forEach(c => {
           const el = document.getElementById(`${sec}_${g}_${c}`);
@@ -264,24 +279,21 @@ const App = {
         }));
       });
     }
-    this.showPage('editor');
+    this.showPage('editor', isNew ? 'Neues Quiz' : 'Bearbeiten');
   },
 
   saveQuiz() {
-    const name = document.getElementById('new-quiz-name').value.trim();
-    const desc = document.getElementById('new-quiz-desc').value.trim();
+    const name  = document.getElementById('new-quiz-name').value.trim();
+    const desc  = document.getElementById('new-quiz-desc').value.trim();
     const errEl = document.getElementById('create-error');
 
-    if (!name) {
-      errEl.textContent = 'Bitte gib einen Quiz-Namen ein.';
-      errEl.classList.remove('hidden'); return;
-    }
+    if (!name) { errEl.textContent = 'Bitte gib einen Quiz-Namen ein.'; errEl.classList.remove('hidden'); return; }
 
     const readSection = (prefix) => {
       const result = {};
       GENDERS.forEach(g => {
         result[g] = {};
-        CASES.forEach(c => { result[g][c] = (document.getElementById(`${prefix}_${g}_${c}`)?.value.trim()) || ''; });
+        CASES.forEach(c => { result[g][c] = document.getElementById(`${prefix}_${g}_${c}`)?.value.trim() || ''; });
       });
       return result;
     };
@@ -295,23 +307,13 @@ const App = {
     [sg, pl, de_sg, de_pl].forEach(obj => {
       GENDERS.forEach(g => CASES.forEach(c => { if (!obj[g][c]) allFilled = false; }));
     });
-    if (!allFilled) {
-      errEl.textContent = 'Bitte fülle alle Felder aus.';
-      errEl.classList.remove('hidden'); return;
-    }
+    if (!allFilled) { errEl.textContent = 'Bitte fülle alle Felder aus.'; errEl.classList.remove('hidden'); return; }
 
     if (state.editingQuizId) {
-      // update existing
       const idx = state.quizes.findIndex(q => q.id === state.editingQuizId);
-      if (idx !== -1) {
-        state.quizes[idx] = { ...state.quizes[idx], name, desc, sg, pl, de_sg, de_pl };
-      }
+      if (idx !== -1) state.quizes[idx] = { ...state.quizes[idx], name, desc, sg, pl, de_sg, de_pl };
     } else {
-      state.quizes.push({
-        id: 'quiz_' + Date.now(), name, desc,
-        icon: ICONS[Math.floor(Math.random() * ICONS.length)],
-        sg, pl, de_sg, de_pl
-      });
+      state.quizes.push({ id: 'quiz_' + Date.now(), name, desc, sg, pl, de_sg, de_pl });
     }
     saveQuizes();
     this.goHome();
@@ -322,66 +324,140 @@ const App = {
 const Quiz = {
   questions: [], idx: 0, score: 0, answered: false,
 
-  start(quiz, phases) {
-    this.questions = this.build(quiz, phases);
+  start(quiz, phases, shuffle) {
+    this.questions = this.build(quiz, phases, shuffle);
     this.idx = 0; this.score = 0; this.answered = false;
-    App.showPage('quiz');
+    App.showPage('quiz', quiz.name);
     this.render();
   },
 
-  build(q, phases) {
+  build(q, phases, shuffle) {
     let qs = [];
+
+    // Phase 1 – Singular: Kasus+Genus → lateinische Singularform
     if (phases.includes(1)) {
-      GENDERS.forEach(g => CASES.forEach(c => qs.push({
-        phase:1, label:`${CASE_NAMES[c]} – ${GENDER_NAMES[g]}`, question:'Singular',
-        answer:(q.sg[g][c]||'').toLowerCase()
+      let p = [];
+      GENDERS.forEach(g => CASES.forEach(c => p.push({
+        phase: 1,
+        meta: `${CASE_NAMES[c]}  ·  ${GENDER_NAMES[g]}  ·  Singular`,
+        main: 'Lateinische Form?',
+        placeholder: 'Latein eingeben…',
+        answer: q.sg[g][c] || '',
+        answerDisplay: q.sg[g][c] || ''
       })));
+      qs = [...qs, ...(shuffle ? p.sort(() => Math.random() - 0.5) : p)];
     }
+
+    // Phase 2 – Plural: Kasus+Genus → lateinische Pluralform
     if (phases.includes(2)) {
-      GENDERS.forEach(g => CASES.forEach(c => qs.push({
-        phase:2, label:`${CASE_NAMES[c]} – ${GENDER_NAMES[g]}`, question:'Plural',
-        answer:(q.pl[g][c]||'').toLowerCase()
+      let p = [];
+      GENDERS.forEach(g => CASES.forEach(c => p.push({
+        phase: 2,
+        meta: `${CASE_NAMES[c]}  ·  ${GENDER_NAMES[g]}  ·  Plural`,
+        main: 'Lateinische Form?',
+        placeholder: 'Latein eingeben…',
+        answer: q.pl[g][c] || '',
+        answerDisplay: q.pl[g][c] || ''
       })));
+      qs = [...qs, ...(shuffle ? p.sort(() => Math.random() - 0.5) : p)];
     }
+
+    // Phase 3 – Gemischt: zufällig Sg oder Pl
     if (phases.includes(3)) {
-      let p3 = [];
+      let p = [];
       GENDERS.forEach(g => CASES.forEach(c => {
-        const sg = Math.random() > 0.5;
-        p3.push({
-          phase:3, label:`${CASE_NAMES[c]} – ${GENDER_NAMES[g]} (${sg?'Sg.':'Pl.'})`,
-          question:sg?'Singular':'Plural',
-          answer:((sg?q.sg:q.pl)[g][c]||'').toLowerCase()
+        const isSg = Math.random() > 0.5;
+        const form = isSg ? q.sg[g][c] : q.pl[g][c];
+        p.push({
+          phase: 3,
+          meta: `${CASE_NAMES[c]}  ·  ${GENDER_NAMES[g]}  ·  ${isSg ? 'Singular' : 'Plural'}`,
+          main: 'Lateinische Form?',
+          placeholder: 'Latein eingeben…',
+          answer: form || '',
+          answerDisplay: form || ''
         });
       }));
-      qs = [...qs, ...p3.sort(() => Math.random() - 0.5)];
+      qs = [...qs, ...p.sort(() => Math.random() - 0.5)];
     }
+
+    // Phase 4 – Deutsch → Latein: deutsches Wort groß anzeigen
     if (phases.includes(4)) {
-      let p4 = [];
+      let p = [];
       GENDERS.forEach(g => CASES.forEach(c => {
-        p4.push({ phase:4, label:'Deutsch → Latein',
-          question:`„${q.de_sg[g][c]}"  (Sg., ${CASE_NAMES[c]}, ${GENDER_SHORT[g]})`,
-          answer:(q.sg[g][c]||'').toLowerCase() });
-        p4.push({ phase:4, label:'Deutsch → Latein',
-          question:`„${q.de_pl[g][c]}"  (Pl., ${CASE_NAMES[c]}, ${GENDER_SHORT[g]})`,
-          answer:(q.pl[g][c]||'').toLowerCase() });
+        // Singular
+        p.push({
+          phase: 4,
+          meta: `Deutsch → Latein  ·  ${CASE_NAMES[c]}  ·  ${GENDER_NAMES[g]}  ·  Singular`,
+          main: q.de_sg[g][c] || '?',
+          placeholder: 'Latein eingeben…',
+          answer: q.sg[g][c] || '',
+          answerDisplay: q.sg[g][c] || ''
+        });
+        // Plural
+        p.push({
+          phase: 4,
+          meta: `Deutsch → Latein  ·  ${CASE_NAMES[c]}  ·  ${GENDER_NAMES[g]}  ·  Plural`,
+          main: q.de_pl[g][c] || '?',
+          placeholder: 'Latein eingeben…',
+          answer: q.pl[g][c] || '',
+          answerDisplay: q.pl[g][c] || ''
+        });
       }));
-      qs = [...qs, ...p4.sort(() => Math.random() - 0.5).slice(0,20)];
+      p = p.sort(() => Math.random() - 0.5);
+      if (!shuffle) p = p.slice(0, 20);
+      qs = [...qs, ...p];
     }
+
+    // Phase 5 – Latein → Deutsch: lateinisches Wort groß anzeigen
+    if (phases.includes(5)) {
+      let p = [];
+      GENDERS.forEach(g => CASES.forEach(c => {
+        // Singular
+        p.push({
+          phase: 5,
+          meta: `Latein → Deutsch  ·  ${CASE_NAMES[c]}  ·  ${GENDER_NAMES[g]}  ·  Singular`,
+          main: q.sg[g][c] || '?',
+          placeholder: 'Deutsch eingeben…',
+          answer: q.de_sg[g][c] || '',
+          answerDisplay: q.de_sg[g][c] || ''
+        });
+        // Plural
+        p.push({
+          phase: 5,
+          meta: `Latein → Deutsch  ·  ${CASE_NAMES[c]}  ·  ${GENDER_NAMES[g]}  ·  Plural`,
+          main: q.pl[g][c] || '?',
+          placeholder: 'Deutsch eingeben…',
+          answer: q.de_pl[g][c] || '',
+          answerDisplay: q.de_pl[g][c] || ''
+        });
+      }));
+      p = p.sort(() => Math.random() - 0.5);
+      if (!shuffle) p = p.slice(0, 20);
+      qs = [...qs, ...p];
+    }
+
     return qs;
   },
 
   render() {
-    const q = this.questions[this.idx];
+    const q     = this.questions[this.idx];
     const total = this.questions.length;
-    const phaseLabels = {1:'Phase 1 – Singular',2:'Phase 2 – Plural',3:'Phase 3 – Gemischt',4:'Phase 4 – Deutsch → Latein'};
+    const phaseLabels = {
+      1: 'Phase 1 – Singular',
+      2: 'Phase 2 – Plural',
+      3: 'Phase 3 – Gemischt',
+      4: 'Phase 4 – Deutsch → Latein',
+      5: 'Phase 5 – Latein → Deutsch'
+    };
 
-    document.getElementById('quiz-phase-badge').textContent    = phaseLabels[q.phase] || '';
-    document.getElementById('quiz-progress-text').textContent  = `${this.idx+1} / ${total}`;
-    document.getElementById('progress-bar').style.width        = (this.idx / total * 100) + '%';
-    document.getElementById('q-label').textContent             = q.label;
-    document.getElementById('q-subtext').textContent           = q.question;
+    document.getElementById('quiz-phase-badge').textContent   = phaseLabels[q.phase] || '';
+    document.getElementById('quiz-progress-text').textContent = `${this.idx + 1} / ${total}`;
+    document.getElementById('progress-bar').style.width       = (this.idx / total * 100) + '%';
+    document.getElementById('q-meta').textContent             = q.meta;
+    document.getElementById('q-main').textContent             = q.main;
 
     const input = document.getElementById('answer-input');
+    input.placeholder = q.placeholder || 'Antwort eingeben…';
     input.value = ''; input.disabled = false;
     input.focus();
     document.getElementById('feedback-box').className = 'feedback-box hidden';
@@ -392,21 +468,27 @@ const Quiz = {
   check() {
     if (this.answered) return;
     const input = document.getElementById('answer-input');
-    const val = input.value.trim().toLowerCase();
+    const val   = input.value.trim();
     if (!val) return;
     this.answered = true;
     input.disabled = true;
-    const q = this.questions[this.idx];
+
+    const q  = this.questions[this.idx];
     const fb = document.getElementById('feedback-box');
-    if (val === q.answer) {
+    const correct = isCorrect(val, q.answer);
+
+    if (correct) {
       this.score++;
       fb.textContent = '✓ Richtig!';
       fb.className = 'feedback-box correct';
     } else {
-      fb.textContent = `✗ Falsch. Richtig wäre: ${q.answer}`;
+      // show all accepted answers if multiple
+      const accepted = parseAnswers(q.answer);
+      const display  = accepted.length > 1 ? accepted.join(' / ') : q.answerDisplay;
+      fb.textContent = `✗ Falsch. Richtig: ${display}`;
       fb.className = 'feedback-box wrong';
     }
-    document.getElementById('progress-bar').style.width = ((this.idx+1) / this.questions.length * 100) + '%';
+    document.getElementById('progress-bar').style.width = ((this.idx + 1) / this.questions.length * 100) + '%';
     document.getElementById('next-btn').classList.remove('hidden');
   },
 
@@ -418,14 +500,14 @@ const Quiz = {
 
   showResult() {
     const total = this.questions.length;
-    const pct = Math.round(this.score / total * 100);
+    const pct   = Math.round(this.score / total * 100);
     document.getElementById('result-score').textContent = `${this.score}/${total}`;
     let msg, icon;
-    if (pct===100) { msg='Perfekt! Absolut fehlerfrei.'; icon='🏆'; }
-    else if (pct>=80) { msg='Sehr gut! Fast alles richtig.'; icon='🏛️'; }
-    else if (pct>=60) { msg='Gut! Noch etwas üben.'; icon='📜'; }
-    else if (pct>=40) { msg='Es geht. Mehr Übung hilft!'; icon='⚡'; }
-    else { msg='Weiter üben – du schaffst das!'; icon='🌿'; }
+    if (pct === 100) { msg = 'Perfekt! Absolut fehlerfrei.';       icon = '🏆'; }
+    else if (pct >= 80) { msg = 'Sehr gut! Fast alles richtig.';   icon = '🏛️'; }
+    else if (pct >= 60) { msg = 'Gut! Noch etwas üben.';           icon = '📜'; }
+    else if (pct >= 40) { msg = 'Es geht. Mehr Übung hilft!';      icon = '⚡'; }
+    else                { msg = 'Weiter üben – du schaffst das!';  icon = '🌿'; }
     document.getElementById('result-icon').textContent = icon;
     document.getElementById('result-msg').textContent  = msg;
     App.showPage('result');
@@ -435,10 +517,13 @@ const Quiz = {
 // ── Keyboard shortcuts ───────────────────────────────────────
 document.addEventListener('keydown', e => {
   if (e.key !== 'Enter') return;
-  const quizActive = document.getElementById('page-quiz').classList.contains('active');
-  if (quizActive) { if (!Quiz.answered) Quiz.check(); else Quiz.next(); return; }
-  const loginOpen = !document.getElementById('login-overlay').classList.contains('hidden');
-  if (loginOpen) App.adminLogin();
+  if (document.getElementById('page-quiz').classList.contains('active')) {
+    if (!Quiz.answered) Quiz.check(); else Quiz.next();
+    return;
+  }
+  if (!document.getElementById('login-overlay').classList.contains('hidden')) {
+    App.adminLogin();
+  }
 });
 
 App.init();

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>LATINA – Quiz</title>
+  <title>Latein – Quiz</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
@@ -11,7 +11,8 @@
 <body>
 
 <header class="topbar">
-  <div class="logo">LATINA</div>
+  <div class="logo">Latein</div>
+  <div class="topbar-center" id="topbar-center"></div>
   <div class="topbar-right">
     <button class="add-btn hidden" id="add-btn" onclick="App.openEditor(null)" title="Neues Quiz erstellen">+</button>
     <button class="admin-btn" id="admin-topbtn" onclick="App.handleAdminBtn()">Admin</button>
@@ -46,6 +47,13 @@
         <label class="phase-opt"><input type="checkbox" name="phase" value="2" /><span class="phase-box"><span class="phase-num">2</span><span class="phase-name">Plural</span></span></label>
         <label class="phase-opt"><input type="checkbox" name="phase" value="3" /><span class="phase-box"><span class="phase-num">3</span><span class="phase-name">Gemischt</span></span></label>
         <label class="phase-opt"><input type="checkbox" name="phase" value="4" /><span class="phase-box"><span class="phase-num">4</span><span class="phase-name">Deutsch → Latein</span></span></label>
+        <label class="phase-opt"><input type="checkbox" name="phase" value="5" /><span class="phase-box"><span class="phase-num">5</span><span class="phase-name">Latein → Deutsch</span></span></label>
+      </div>
+      <div class="shuffle-option">
+        <label class="shuffle-opt">
+          <input type="checkbox" id="shuffle-within" />
+          <span class="shuffle-box">Karten innerhalb der Kategorien mischen</span>
+        </label>
       </div>
     </div>
     <button class="start-btn" onclick="App.startQuiz()">Quiz starten →</button>
@@ -62,8 +70,8 @@
   <div class="quiz-area">
     <div class="progress-bar-wrap"><div class="progress-bar-fill" id="progress-bar"></div></div>
     <div class="q-card">
-      <div class="q-label" id="q-label"></div>
-      <div class="q-subtext" id="q-subtext"></div>
+      <div class="q-meta" id="q-meta"></div>
+      <div class="q-main" id="q-main"></div>
     </div>
     <div class="answer-wrap">
       <input type="text" id="answer-input" class="answer-input" placeholder="Antwort eingeben…" autocomplete="off" />
@@ -129,7 +137,7 @@
 <!-- MODAL: LOGIN -->
 <div class="modal-overlay hidden" id="login-overlay" onclick="App.closeLogin(event)">
   <div class="modal login-modal">
-    <button class="modal-close" onclick="App.closeLogin()">✕</button>
+    <button class="modal-close" onclick="App.closeLoginForced()">✕</button>
     <div class="modal-title">Admin-Login</div>
     <div class="field-group">
       <label>Benutzername</label>
@@ -144,11 +152,10 @@
   </div>
 </div>
 
-<!-- MODAL: QUIZ AKTIONEN -->
+<!-- MODAL: QUIZ AKTIONEN (Admin) -->
 <div class="modal-overlay hidden" id="card-action-overlay" onclick="App.closeCardAction(event)">
   <div class="modal card-action-modal">
     <button class="modal-close" onclick="App.closeCardAction()">✕</button>
-    <div class="card-action-icon" id="card-action-icon">📜</div>
     <div class="modal-title" id="card-action-title"></div>
     <div class="card-action-desc" id="card-action-desc"></div>
     <div class="card-action-btns">
