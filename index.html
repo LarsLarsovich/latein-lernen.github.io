@@ -19,7 +19,6 @@
   </div>
 </header>
 
-<!-- Loading screen -->
 <div id="loading-screen" class="loading-screen">
   <div class="loading-spinner"></div>
   <div class="loading-text">Wird geladen…</div>
@@ -32,9 +31,22 @@
     <h1 class="hero-title">Wähle dein<br /><span class="accent">Quiz</span></h1>
     <p class="hero-sub">Deklinationen, Pronomina und mehr – direkt im Browser üben.</p>
   </div>
+
+  <!-- Draft section (admin only) -->
+  <div id="draft-section" class="hidden">
+    <div class="section-header">
+      <div class="section-label">Entwürfe</div>
+      <div class="section-hint">Nur für dich sichtbar – noch nicht veröffentlicht</div>
+    </div>
+    <div class="quiz-grid" id="draft-grid"></div>
+    <div class="empty-hint" id="draft-empty" style="display:none;">Keine Entwürfe vorhanden.</div>
+    <div class="section-divider"></div>
+    <div class="section-label" style="margin-bottom:1rem;">Veröffentlicht</div>
+  </div>
+
   <div class="quiz-grid" id="quiz-grid"></div>
   <div class="empty-hint" id="empty-hint" style="display:none;">
-    Noch keine Quize vorhanden. Als Admin einloggen und ein Quiz erstellen.
+    Noch keine Quize veröffentlicht.
   </div>
 </main>
 
@@ -112,11 +124,11 @@
     <div class="editor-meta">
       <div class="field-group">
         <label>Quiz-Name</label>
-        <input type="text" id="new-quiz-name" class="modal-input" placeholder="z.B. idem / eadem / idem" />
+        <input type="text" id="new-quiz-name" class="modal-input" placeholder="z.B. hic / haec / hoc" />
       </div>
       <div class="field-group">
         <label>Beschreibung (optional)</label>
-        <input type="text" id="new-quiz-desc" class="modal-input" placeholder="z.B. Pronomen 'derselbe'" />
+        <input type="text" id="new-quiz-desc" class="modal-input" placeholder="z.B. Demonstrativpronomen" />
       </div>
     </div>
     <div class="forms-section-title">Lateinische Formen – Singular</div>
@@ -129,7 +141,8 @@
     <div class="genus-columns" id="de-pl-columns"></div>
     <div class="create-error hidden" id="create-error"></div>
     <div class="editor-actions">
-      <button class="start-btn" id="save-btn" onclick="App.saveQuiz()">Speichern</button>
+      <button class="draft-btn" id="draft-btn" onclick="App.saveDraft()">Als Entwurf speichern</button>
+      <button class="start-btn" id="publish-btn" onclick="App.publishQuiz()">Veröffentlichen</button>
       <button class="outline-btn" onclick="App.goHome()">Abbrechen</button>
     </div>
   </div>
@@ -153,7 +166,7 @@
   </div>
 </div>
 
-<!-- MODAL: QUIZ AKTIONEN -->
+<!-- MODAL: QUIZ AKTIONEN (veröffentlicht) -->
 <div class="modal-overlay hidden" id="card-action-overlay" onclick="App.closeCardAction(event)">
   <div class="modal card-action-modal">
     <button class="modal-close" onclick="App.closeCardAction()">✕</button>
@@ -167,6 +180,25 @@
   </div>
 </div>
 
-<script type="module" src="script.js"></script>
+<!-- MODAL: DRAFT AKTIONEN -->
+<div class="modal-overlay hidden" id="draft-action-overlay" onclick="App.closeDraftAction(event)">
+  <div class="modal card-action-modal">
+    <button class="modal-close" onclick="App.closeDraftAction()">✕</button>
+    <div class="modal-title" id="draft-action-title"></div>
+    <div class="card-action-desc" id="draft-action-desc"></div>
+    <div class="draft-status-badge">Entwurf</div>
+    <div class="card-action-btns" style="margin-top:1rem;">
+      <button class="start-btn" onclick="App.publishDraftFromModal()">Veröffentlichen</button>
+      <button class="outline-btn" onclick="App.editDraftFromModal()">Bearbeiten</button>
+      <button class="danger-btn" onclick="App.deleteDraftFromModal()">Löschen</button>
+      <button class="outline-btn" onclick="App.closeDraftAction()">Abbrechen</button>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase (compat version – works without type=module) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="script.js"></script>
 </body>
 </html>

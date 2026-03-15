@@ -235,6 +235,36 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
 .login-error { font-size: 13px; color: #d47070; background: var(--danger-bg); border: 1px solid #4a1e1e; border-radius: var(--radius); padding: 8px 12px; margin-bottom: 1rem; }
 .login-error.hidden { display: none; }
 
+/* ── Draft / publish styles ── */
+.section-header { margin-bottom: 0.8rem; }
+.section-label { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); font-weight: 600; }
+.section-hint { font-size: 12px; color: var(--text3); margin-top: 2px; }
+.section-divider { border: none; border-top: 1px solid var(--border); margin: 1.8rem 0 1.4rem; }
+
+.draft-card { border-color: var(--accent-dim) !important; }
+.draft-pill {
+  display: inline-block; font-size: 10px; font-weight: 600; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--accent); background: rgba(224,123,42,0.12);
+  border: 1px solid var(--accent-dim); border-radius: 20px; padding: 2px 8px; margin-bottom: 6px;
+}
+.draft-status-badge {
+  display: inline-block; font-size: 11px; font-weight: 600; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--accent); background: rgba(224,123,42,0.12);
+  border: 1px solid var(--accent-dim); border-radius: 20px; padding: 4px 12px; margin-bottom: 0.2rem;
+}
+.card-overlay-pub {
+  background: transparent; color: #8adc9e; border: 1px solid #1e4a30;
+}
+.card-overlay-pub:hover { background: #0e2318; }
+
+.draft-btn {
+  background: transparent; color: var(--text2);
+  font-family: var(--font-body); font-size: 14px; font-weight: 500;
+  border: 1px solid var(--accent-dim); color: var(--accent);
+  border-radius: var(--radius); padding: 10px 20px; cursor: pointer; transition: all 0.2s;
+}
+.draft-btn:hover { background: rgba(224,123,42,0.08); }
+
 /* ── Loading screen ── */
 .loading-screen {
   position: fixed; inset: 0; background: var(--bg);

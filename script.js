@@ -1,55 +1,55 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, doc, getDocs, setDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+'use strict';
 
-// ── Firebase config ──────────────────────────────────────────
+// ── Firebase init (compat SDK – no import/module needed) ─────
 const firebaseConfig = {
-  apiKey: "AIzaSyDfIOQMo95TufbHY_f1EXHKhgP8FCu2PR4",
-  authDomain: "latein-lernen.firebaseapp.com",
-  projectId: "latein-lernen",
-  storageBucket: "latein-lernen.firebasestorage.app",
+  apiKey:            "AIzaSyDfIOQMo95TufbHY_f1EXHKhgP8FCu2PR4",
+  authDomain:        "latein-lernen.firebaseapp.com",
+  projectId:         "latein-lernen",
+  storageBucket:     "latein-lernen.firebasestorage.app",
   messagingSenderId: "976723559385",
-  appId: "1:976723559385:web:efcf9b5176fa84676c8fc8"
+  appId:             "1:976723559385:web:efcf9b5176fa84676c8fc8"
 };
-
-const firebaseApp = initializeApp(firebaseConfig);
-const db = getFirestore(firebaseApp);
-const quizesCol = collection(db, "quizes");
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
 
 // ── Constants ────────────────────────────────────────────────
-const ADMIN_USER    = 'admin';
-const ADMIN_PASS    = 'latina2024';
-const CASES         = [1, 2, 3, 4, 6];
-const CASE_NAMES    = { 1:'Nominativ', 2:'Genitiv', 3:'Dativ', 4:'Akkusativ', 6:'Ablativ' };
-const GENDERS       = ['M', 'W', 'N'];
-const GENDER_NAMES  = { M:'Maskulinum (m.)', W:'Femininum (f.)', N:'Neutrum (n.)' };
-const GENDER_SHORT  = { M:'m.', W:'f.', N:'n.' };
-const GENDER_LABEL  = { M:'Maskulinum', W:'Femininum', N:'Neutrum' };
-const GENDER_CLASS  = { M:'m', W:'f', N:'n' };
+const ADMIN_USER   = 'admin';
+const ADMIN_PASS   = 'latina2024';
+const DRAFT_KEY    = 'latein_drafts';
+const CASES        = [1, 2, 3, 4, 6];
+const CASE_NAMES   = { 1:'Nominativ', 2:'Genitiv', 3:'Dativ', 4:'Akkusativ', 6:'Ablativ' };
+const GENDERS      = ['M', 'W', 'N'];
+const GENDER_NAMES = { M:'Maskulinum (m.)', W:'Femininum (f.)', N:'Neutrum (n.)' };
+const GENDER_SHORT = { M:'m.', W:'f.', N:'n.' };
+const GENDER_LABEL = { M:'Maskulinum', W:'Femininum', N:'Neutrum' };
+const GENDER_CLASS = { M:'m', W:'f', N:'n' };
 
-const DEFAULT_QUIZ = {
-  id: 'idem', name: 'idem / eadem / idem', desc: 'Pronomen „derselbe / dieselbe / dasselbe"',
-  order: 0,
-  sg: {
-    M: {1:'idem',    2:'eiusdem', 3:'eidem',  4:'eundem', 6:'eodem' },
-    W: {1:'eadem',   2:'eiusdem', 3:'eidem',  4:'eandem', 6:'eadem' },
-    N: {1:'idem',    2:'eiusdem', 3:'eidem',  4:'idem',   6:'eodem' }
-  },
-  pl: {
-    M: {1:'iidem',   2:'eorundem', 3:'iisdem', 4:'eosdem', 6:'iisdem'},
-    W: {1:'eaedem',  2:'eorundem', 3:'iisdem', 4:'easdem', 6:'iisdem'},
-    N: {1:'eadem',   2:'eorundem', 3:'iisdem', 4:'eadem',  6:'iisdem'}
-  },
-  de_sg: {
-    M: {1:'derselbe',  2:'desselben', 3:'demselben', 4:'denselben', 6:'demselben'},
-    W: {1:'dieselbe',  2:'derselben', 3:'derselben', 4:'dieselbe',  6:'derselben'},
-    N: {1:'dasselbe',  2:'desselben', 3:'demselben', 4:'dasselbe',  6:'demselben'}
-  },
-  de_pl: {
-    M: {1:'dieselben', 2:'derselben', 3:'denselben', 4:'dieselben', 6:'denselben'},
-    W: {1:'dieselben', 2:'derselben', 3:'denselben', 4:'dieselben', 6:'denselben'},
-    N: {1:'dieselben', 2:'derselben', 3:'denselben', 4:'dieselben', 6:'denselben'}
+// ── Built-in quizes as drafts on first load ──────────────────
+const BUILTIN_DRAFTS = [
+  {
+    id: 'draft_idem', name: 'idem / eadem / idem', desc: 'Pronomen „derselbe / dieselbe / dasselbe"',
+    sg: {
+      M: {1:'idem',    2:'eiusdem', 3:'eidem',  4:'eundem', 6:'eodem' },
+      W: {1:'eadem',   2:'eiusdem', 3:'eidem',  4:'eandem', 6:'eadem' },
+      N: {1:'idem',    2:'eiusdem', 3:'eidem',  4:'idem',   6:'eodem' }
+    },
+    pl: {
+      M: {1:'iidem',   2:'eorundem', 3:'iisdem', 4:'eosdem', 6:'iisdem'},
+      W: {1:'eaedem',  2:'eorundem', 3:'iisdem', 4:'easdem', 6:'iisdem'},
+      N: {1:'eadem',   2:'eorundem', 3:'iisdem', 4:'eadem',  6:'iisdem'}
+    },
+    de_sg: {
+      M: {1:'derselbe',  2:'desselben', 3:'demselben', 4:'denselben', 6:'demselben'},
+      W: {1:'dieselbe',  2:'derselben', 3:'derselben', 4:'dieselbe',  6:'derselben'},
+      N: {1:'dasselbe',  2:'desselben', 3:'demselben', 4:'dasselbe',  6:'demselben'}
+    },
+    de_pl: {
+      M: {1:'dieselben', 2:'derselben', 3:'denselben', 4:'dieselben', 6:'denselben'},
+      W: {1:'dieselben', 2:'derselben', 3:'denselben', 4:'dieselben', 6:'denselben'},
+      N: {1:'dieselben', 2:'derselben', 3:'denselben', 4:'dieselben', 6:'denselben'}
+    }
   }
-};
+];
 
 // ── Helpers ──────────────────────────────────────────────────
 function parseAnswers(raw) {
@@ -58,74 +58,80 @@ function parseAnswers(raw) {
 function isCorrect(input, raw) {
   return parseAnswers(raw).includes(input.trim().toLowerCase());
 }
+function loadDrafts() {
+  try {
+    const r = localStorage.getItem(DRAFT_KEY);
+    return r ? JSON.parse(r) : null;
+  } catch(e) { return null; }
+}
+function saveDraftsToStorage(drafts) {
+  localStorage.setItem(DRAFT_KEY, JSON.stringify(drafts));
+}
 
 // ── State ────────────────────────────────────────────────────
 let state = {
-  quizes: [],
+  published: [],          // from Firestore
+  drafts: [],             // from localStorage
   adminLoggedIn: false,
   currentQuiz: null,
   selectedPhases: [],
   shuffleWithin: false,
   lastQuizId: null,
-  editingQuizId: null,
-  cardActionQuizId: null
+  lastQuizSource: null,   // 'published' | 'draft'
+  editingId: null,
+  editingSource: null,    // 'published' | 'draft' | null (new)
+  cardActionId: null,
+  cardActionSource: null
 };
-
-// ── Firebase helpers ─────────────────────────────────────────
-async function loadQuizesFromDB() {
-  const snap = await getDocs(quizesCol);
-  let quizes = [];
-  snap.forEach(d => quizes.push({ id: d.id, ...d.data() }));
-  // sort by order field, fallback to name
-  quizes.sort((a, b) => (a.order ?? 999) - (b.order ?? 999) || a.name.localeCompare(b.name));
-
-  // Seed default quiz if collection is empty
-  if (quizes.length === 0) {
-    await setDoc(doc(db, "quizes", DEFAULT_QUIZ.id), DEFAULT_QUIZ);
-    quizes = [DEFAULT_QUIZ];
-  }
-  return quizes;
-}
-
-async function saveQuizToDB(quiz) {
-  await setDoc(doc(db, "quizes", quiz.id), quiz);
-}
-
-async function deleteQuizFromDB(id) {
-  await deleteDoc(doc(db, "quizes", id));
-}
 
 // ── App ──────────────────────────────────────────────────────
 const App = {
+
   async init() {
     this.buildEditorGrids();
-    // Show loading screen while fetching
-    document.getElementById('loading-screen').style.display = 'flex';
 
-    try {
-      state.quizes = await loadQuizesFromDB();
-    } catch(e) {
-      console.error('Firebase Fehler:', e);
-      document.getElementById('loading-screen').innerHTML =
-        '<div class="loading-text" style="color:#d47070;">Verbindungsfehler. Bitte Seite neu laden.</div>';
-      return;
+    // Load drafts from localStorage
+    const stored = loadDrafts();
+    if (stored === null) {
+      // First time: seed builtin drafts
+      state.drafts = BUILTIN_DRAFTS;
+      saveDraftsToStorage(state.drafts);
+    } else {
+      state.drafts = stored;
+      // Merge builtin drafts if not already present
+      BUILTIN_DRAFTS.forEach(bd => {
+        if (!state.drafts.find(d => d.id === bd.id)) {
+          state.drafts.unshift(bd);
+        }
+      });
+      saveDraftsToStorage(state.drafts);
     }
 
-    document.getElementById('loading-screen').style.display = 'none';
+    // Load published from Firestore
+    const loading = document.getElementById('loading-screen');
+    loading.style.display = 'flex';
+
+    try {
+      const snap = await db.collection('quizes').orderBy('order').get();
+      state.published = [];
+      snap.forEach(d => state.published.push({ id: d.id, ...d.data() }));
+    } catch(e) {
+      console.warn('Firestore Fehler (möglicherweise leer):', e.message);
+      state.published = [];
+    }
+
+    loading.style.display = 'none';
     this.renderHome();
     this.showPage('home');
 
-    // Live updates: wenn jemand anderes ein Quiz hinzufügt/löscht
-    onSnapshot(quizesCol, (snap) => {
-      let quizes = [];
-      snap.forEach(d => quizes.push({ id: d.id, ...d.data() }));
-      quizes.sort((a, b) => (a.order ?? 999) - (b.order ?? 999) || a.name.localeCompare(b.name));
-      state.quizes = quizes;
-      // nur neu rendern wenn man gerade auf der Startseite ist
+    // Live updates for published quizes
+    db.collection('quizes').orderBy('order').onSnapshot(snap => {
+      state.published = [];
+      snap.forEach(d => state.published.push({ id: d.id, ...d.data() }));
       if (document.getElementById('page-home').classList.contains('active')) {
         this.renderHome();
       }
-    });
+    }, err => console.warn('Snapshot error:', err.message));
   },
 
   showPage(id, quizName) {
@@ -138,57 +144,105 @@ const App = {
 
   goHome() {
     this.closeCardAction();
+    this.closeDraftAction();
     this.renderHome();
     this.showPage('home');
   },
 
   renderHome() {
+    const isAdmin = state.adminLoggedIn;
+
+    // Draft section visibility
+    const draftSection = document.getElementById('draft-section');
+    draftSection.classList.toggle('hidden', !isAdmin);
+
+    // Render drafts
+    if (isAdmin) {
+      const draftGrid  = document.getElementById('draft-grid');
+      const draftEmpty = document.getElementById('draft-empty');
+      draftGrid.innerHTML = '';
+      if (!state.drafts.length) {
+        draftEmpty.style.display = 'block';
+      } else {
+        draftEmpty.style.display = 'none';
+        state.drafts.forEach(q => {
+          const card = document.createElement('div');
+          card.className = 'quiz-card admin-mode draft-card';
+          card.innerHTML = `
+            <div class="draft-pill">Entwurf</div>
+            <div class="quiz-card-name">${q.name}</div>
+            <div class="quiz-card-desc">${q.desc || ''}</div>
+            <div class="card-admin-overlay">
+              <button class="card-overlay-btn card-overlay-edit" data-id="${q.id}">Bearbeiten</button>
+              <button class="card-overlay-btn card-overlay-pub"  data-id="${q.id}">Veröffentlichen</button>
+              <button class="card-overlay-btn card-overlay-del"  data-id="${q.id}">Löschen</button>
+            </div>
+          `;
+          card.querySelector('.card-overlay-edit').addEventListener('click', e => {
+            e.stopPropagation(); App.openEditor(q.id, 'draft');
+          });
+          card.querySelector('.card-overlay-pub').addEventListener('click', e => {
+            e.stopPropagation(); App.publishDraft(q.id);
+          });
+          card.querySelector('.card-overlay-del').addEventListener('click', e => {
+            e.stopPropagation(); App.deleteDraft(q.id);
+          });
+          card.addEventListener('click', () => App.openSetup(q.id, 'draft'));
+          draftGrid.appendChild(card);
+        });
+      }
+    }
+
+    // Render published
     const grid  = document.getElementById('quiz-grid');
     const empty = document.getElementById('empty-hint');
     grid.innerHTML = '';
-    if (!state.quizes.length) { empty.style.display = 'block'; return; }
-    empty.style.display = 'none';
-
-    state.quizes.forEach(q => {
-      const card = document.createElement('div');
-      card.className = 'quiz-card' + (state.adminLoggedIn ? ' admin-mode' : '');
-
-      const overlayHTML = state.adminLoggedIn ? `
-        <div class="card-admin-overlay">
-          <button class="card-overlay-btn card-overlay-edit" data-id="${q.id}">Bearbeiten</button>
-          <button class="card-overlay-btn card-overlay-del"  data-id="${q.id}">Löschen</button>
-        </div>` : '';
-
-      card.innerHTML = `
-        <div class="quiz-card-name">${q.name}</div>
-        <div class="quiz-card-desc">${q.desc || ''}</div>
-        ${overlayHTML}
-      `;
-
-      if (state.adminLoggedIn) {
-        card.querySelector('.card-overlay-edit').addEventListener('click', e => {
-          e.stopPropagation(); App.openEditor(q.id);
+    if (!state.published.length) {
+      empty.style.display = 'block';
+    } else {
+      empty.style.display = 'none';
+      state.published.forEach(q => {
+        const card = document.createElement('div');
+        card.className = 'quiz-card' + (isAdmin ? ' admin-mode' : '');
+        const overlayHTML = isAdmin ? `
+          <div class="card-admin-overlay">
+            <button class="card-overlay-btn card-overlay-edit" data-id="${q.id}">Bearbeiten</button>
+            <button class="card-overlay-btn card-overlay-del"  data-id="${q.id}">Löschen</button>
+          </div>` : '';
+        card.innerHTML = `
+          <div class="quiz-card-name">${q.name}</div>
+          <div class="quiz-card-desc">${q.desc || ''}</div>
+          ${overlayHTML}
+        `;
+        if (isAdmin) {
+          card.querySelector('.card-overlay-edit').addEventListener('click', e => {
+            e.stopPropagation(); App.openEditor(q.id, 'published');
+          });
+          card.querySelector('.card-overlay-del').addEventListener('click', e => {
+            e.stopPropagation(); App.confirmDelete(q.id, 'published');
+          });
+        }
+        card.addEventListener('click', () => {
+          if (!isAdmin) App.openSetup(q.id, 'published');
         });
-        card.querySelector('.card-overlay-del').addEventListener('click', e => {
-          e.stopPropagation(); App.confirmDelete(q.id);
-        });
-      } else {
-        card.addEventListener('click', () => App.openSetup(q.id));
-      }
-      grid.appendChild(card);
-    });
+        grid.appendChild(card);
+      });
+    }
   },
 
   // ── Quiz Flow ─────────────────────────────────────────────
-  openSetup(quizId) {
-    const q = state.quizes.find(x => x.id === quizId);
+  openSetup(id, source) {
+    const q = source === 'draft'
+      ? state.drafts.find(x => x.id === id)
+      : state.published.find(x => x.id === id);
     if (!q) return;
-    state.currentQuiz = q;
-    state.lastQuizId  = quizId;
+    state.currentQuiz    = q;
+    state.lastQuizId     = id;
+    state.lastQuizSource = source;
     document.getElementById('setup-title').textContent = q.name;
     document.getElementById('setup-desc').textContent  = q.desc || '';
     document.querySelectorAll('input[name="phase"]').forEach(cb => { cb.checked = cb.value === '1'; });
-    document.getElementById('shuffle-within').checked  = false;
+    document.getElementById('shuffle-within').checked = false;
     this.showPage('setup', q.name);
   },
 
@@ -201,7 +255,7 @@ const App = {
   },
 
   replaySetup() {
-    if (state.lastQuizId) this.openSetup(state.lastQuizId);
+    if (state.lastQuizId) this.openSetup(state.lastQuizId, state.lastQuizSource);
     else this.goHome();
   },
 
@@ -252,11 +306,14 @@ const App = {
     }
   },
 
-  // ── Card Action Modal ─────────────────────────────────────
-  confirmDelete(quizId) {
-    const q = state.quizes.find(x => x.id === quizId);
+  // ── Card action modals ────────────────────────────────────
+  confirmDelete(id, source) {
+    const q = source === 'draft'
+      ? state.drafts.find(x => x.id === id)
+      : state.published.find(x => x.id === id);
     if (!q) return;
-    state.cardActionQuizId = quizId;
+    state.cardActionId     = id;
+    state.cardActionSource = source;
     document.getElementById('card-action-title').textContent = q.name;
     document.getElementById('card-action-desc').textContent  = q.desc || '';
     document.getElementById('card-action-overlay').classList.remove('hidden');
@@ -265,27 +322,82 @@ const App = {
   closeCardAction(e) {
     if (e && e.target !== document.getElementById('card-action-overlay')) return;
     document.getElementById('card-action-overlay').classList.add('hidden');
-    state.cardActionQuizId = null;
   },
 
   editFromModal() {
-    const id = state.cardActionQuizId;
+    const id = state.cardActionId, src = state.cardActionSource;
     document.getElementById('card-action-overlay').classList.add('hidden');
-    state.cardActionQuizId = null;
-    this.openEditor(id);
+    this.openEditor(id, src);
   },
 
   async deleteFromModal() {
-    const id = state.cardActionQuizId;
-    if (!id) return;
+    const id = state.cardActionId, src = state.cardActionSource;
     document.getElementById('card-action-overlay').classList.add('hidden');
-    state.cardActionQuizId = null;
+    if (src === 'published') {
+      try {
+        await db.collection('quizes').doc(id).delete();
+        state.published = state.published.filter(q => q.id !== id);
+      } catch(e) { alert('Fehler beim Löschen.'); return; }
+    } else {
+      state.drafts = state.drafts.filter(q => q.id !== id);
+      saveDraftsToStorage(state.drafts);
+    }
+    this.renderHome();
+  },
+
+  closeDraftAction(e) {
+    if (e && e.target !== document.getElementById('draft-action-overlay')) return;
+    document.getElementById('draft-action-overlay').classList.add('hidden');
+  },
+
+  publishDraftFromModal() {
+    const id = state.cardActionId;
+    document.getElementById('draft-action-overlay').classList.add('hidden');
+    this.publishDraft(id);
+  },
+
+  editDraftFromModal() {
+    const id = state.cardActionId;
+    document.getElementById('draft-action-overlay').classList.add('hidden');
+    this.openEditor(id, 'draft');
+  },
+
+  deleteDraftFromModal() {
+    const id = state.cardActionId;
+    document.getElementById('draft-action-overlay').classList.add('hidden');
+    this.deleteDraft(id);
+  },
+
+  // ── Draft operations ──────────────────────────────────────
+  deleteDraft(id) {
+    if (!confirm('Entwurf löschen?')) return;
+    state.drafts = state.drafts.filter(q => q.id !== id);
+    saveDraftsToStorage(state.drafts);
+    this.renderHome();
+  },
+
+  async publishDraft(id) {
+    const draft = state.drafts.find(q => q.id === id);
+    if (!draft) return;
+
+    const btn = event && event.target;
+    if (btn) { btn.textContent = '…'; btn.disabled = true; }
+
+    const published = {
+      ...draft,
+      id: 'pub_' + Date.now(),
+      order: Date.now()
+    };
+
     try {
-      await deleteQuizFromDB(id);
-      state.quizes = state.quizes.filter(q => q.id !== id);
+      await db.collection('quizes').doc(published.id).set(published);
+      state.published.push(published);
+      state.drafts = state.drafts.filter(q => q.id !== id);
+      saveDraftsToStorage(state.drafts);
       this.renderHome();
     } catch(e) {
-      alert('Fehler beim Löschen. Bitte nochmal versuchen.');
+      alert('Fehler beim Veröffentlichen: ' + e.message);
+      if (btn) { btn.textContent = 'Veröffentlichen'; btn.disabled = false; }
     }
   },
 
@@ -313,9 +425,10 @@ const App = {
     });
   },
 
-  openEditor(quizId) {
-    state.editingQuizId = quizId;
-    const isNew = !quizId;
+  openEditor(id, source) {
+    state.editingId     = id;
+    state.editingSource = source || null;
+    const isNew = !id;
     document.getElementById('editor-page-title').textContent = isNew ? 'Neues Quiz' : 'Quiz bearbeiten';
     document.getElementById('create-error').classList.add('hidden');
 
@@ -329,7 +442,9 @@ const App = {
         }));
       });
     } else {
-      const q = state.quizes.find(x => x.id === quizId);
+      const q = source === 'draft'
+        ? state.drafts.find(x => x.id === id)
+        : state.published.find(x => x.id === id);
       if (!q) return;
       document.getElementById('new-quiz-name').value = q.name;
       document.getElementById('new-quiz-desc').value = q.desc || '';
@@ -344,13 +459,9 @@ const App = {
     this.showPage('editor', isNew ? 'Neues Quiz' : 'Bearbeiten');
   },
 
-  async saveQuiz() {
+  _readEditorData() {
     const name  = document.getElementById('new-quiz-name').value.trim();
     const desc  = document.getElementById('new-quiz-desc').value.trim();
-    const errEl = document.getElementById('create-error');
-
-    if (!name) { errEl.textContent = 'Bitte gib einen Quiz-Namen ein.'; errEl.classList.remove('hidden'); return; }
-
     const readSection = (prefix) => {
       const result = {};
       GENDERS.forEach(g => {
@@ -359,42 +470,83 @@ const App = {
       });
       return result;
     };
+    return { name, desc,
+      sg:    readSection('sg-columns'),
+      pl:    readSection('pl-columns'),
+      de_sg: readSection('de-sg-columns'),
+      de_pl: readSection('de-pl-columns')
+    };
+  },
 
-    const sg    = readSection('sg-columns');
-    const pl    = readSection('pl-columns');
-    const de_sg = readSection('de-sg-columns');
-    const de_pl = readSection('de-pl-columns');
-
+  _validateEditor(data) {
+    const errEl = document.getElementById('create-error');
+    if (!data.name) { errEl.textContent = 'Bitte gib einen Quiz-Namen ein.'; errEl.classList.remove('hidden'); return false; }
     let allFilled = true;
-    [sg, pl, de_sg, de_pl].forEach(obj => {
+    [data.sg, data.pl, data.de_sg, data.de_pl].forEach(obj => {
       GENDERS.forEach(g => CASES.forEach(c => { if (!obj[g][c]) allFilled = false; }));
     });
-    if (!allFilled) { errEl.textContent = 'Bitte fülle alle Felder aus.'; errEl.classList.remove('hidden'); return; }
+    if (!allFilled) { errEl.textContent = 'Bitte fülle alle Felder aus.'; errEl.classList.remove('hidden'); return false; }
+    return true;
+  },
 
-    // Disable save button while saving
-    const saveBtn = document.getElementById('save-btn');
-    saveBtn.textContent = 'Speichert…';
-    saveBtn.disabled = true;
+  saveDraft() {
+    const data = this._readEditorData();
+    // Drafts können unvollständig sein – nur Name ist Pflicht
+    if (!data.name) {
+      const errEl = document.getElementById('create-error');
+      errEl.textContent = 'Bitte gib einen Quiz-Namen ein.';
+      errEl.classList.remove('hidden'); return;
+    }
+    document.getElementById('create-error').classList.add('hidden');
 
-    const quiz = state.editingQuizId
-      ? { ...state.quizes.find(q => q.id === state.editingQuizId), name, desc, sg, pl, de_sg, de_pl }
-      : { id: 'quiz_' + Date.now(), name, desc, order: Date.now(), sg, pl, de_sg, de_pl };
+    if (state.editingSource === 'draft' && state.editingId) {
+      // Update existing draft
+      const idx = state.drafts.findIndex(q => q.id === state.editingId);
+      if (idx !== -1) state.drafts[idx] = { ...state.drafts[idx], ...data };
+    } else if (state.editingSource === 'published' && state.editingId) {
+      // Save edited published quiz as new draft, keep original
+      state.drafts.push({ id: 'draft_' + Date.now(), ...data });
+    } else {
+      // New draft
+      state.drafts.push({ id: 'draft_' + Date.now(), ...data });
+    }
+    saveDraftsToStorage(state.drafts);
+    this.goHome();
+  },
+
+  async publishQuiz() {
+    const data = this._readEditorData();
+    if (!this._validateEditor(data)) return;
+
+    const btn = document.getElementById('publish-btn');
+    btn.textContent = 'Veröffentlicht…'; btn.disabled = true;
+
+    const isEditingPublished = state.editingSource === 'published' && state.editingId;
+    const docId = isEditingPublished ? state.editingId : 'pub_' + Date.now();
+    const quiz = { id: docId, order: isEditingPublished
+      ? (state.published.find(q => q.id === state.editingId)?.order || Date.now())
+      : Date.now(), ...data };
 
     try {
-      await saveQuizToDB(quiz);
-      if (state.editingQuizId) {
-        const idx = state.quizes.findIndex(q => q.id === state.editingQuizId);
-        if (idx !== -1) state.quizes[idx] = quiz;
+      await db.collection('quizes').doc(docId).set(quiz);
+      if (isEditingPublished) {
+        const idx = state.published.findIndex(q => q.id === state.editingId);
+        if (idx !== -1) state.published[idx] = quiz;
       } else {
-        state.quizes.push(quiz);
+        state.published.push(quiz);
+        // If we were editing a draft, remove it
+        if (state.editingSource === 'draft' && state.editingId) {
+          state.drafts = state.drafts.filter(q => q.id !== state.editingId);
+          saveDraftsToStorage(state.drafts);
+        }
       }
       this.goHome();
     } catch(e) {
-      errEl.textContent = 'Fehler beim Speichern. Bitte nochmal versuchen.';
+      const errEl = document.getElementById('create-error');
+      errEl.textContent = 'Firebase-Fehler: ' + e.message;
       errEl.classList.remove('hidden');
     } finally {
-      saveBtn.textContent = 'Speichern';
-      saveBtn.disabled = false;
+      btn.textContent = 'Veröffentlichen'; btn.disabled = false;
     }
   }
 };
@@ -416,102 +568,72 @@ const Quiz = {
     if (phases.includes(1)) {
       let p = [];
       GENDERS.forEach(g => CASES.forEach(c => p.push({
-        phase: 1,
-        meta: `${CASE_NAMES[c]}  ·  ${GENDER_NAMES[g]}  ·  Singular`,
-        main: 'Lateinische Form?',
-        placeholder: 'Latein eingeben…',
-        answer: q.sg[g][c] || '', answerDisplay: q.sg[g][c] || ''
+        phase:1, meta:`${CASE_NAMES[c]}  ·  ${GENDER_NAMES[g]}  ·  Singular`,
+        main:'Lateinische Form?', placeholder:'Latein eingeben…',
+        answer: q.sg[g][c]||'', answerDisplay: q.sg[g][c]||''
       })));
-      qs = [...qs, ...(shuffle ? p.sort(() => Math.random() - 0.5) : p)];
+      qs = [...qs, ...(shuffle ? p.sort(() => Math.random()-.5) : p)];
     }
-
     if (phases.includes(2)) {
       let p = [];
       GENDERS.forEach(g => CASES.forEach(c => p.push({
-        phase: 2,
-        meta: `${CASE_NAMES[c]}  ·  ${GENDER_NAMES[g]}  ·  Plural`,
-        main: 'Lateinische Form?',
-        placeholder: 'Latein eingeben…',
-        answer: q.pl[g][c] || '', answerDisplay: q.pl[g][c] || ''
+        phase:2, meta:`${CASE_NAMES[c]}  ·  ${GENDER_NAMES[g]}  ·  Plural`,
+        main:'Lateinische Form?', placeholder:'Latein eingeben…',
+        answer: q.pl[g][c]||'', answerDisplay: q.pl[g][c]||''
       })));
-      qs = [...qs, ...(shuffle ? p.sort(() => Math.random() - 0.5) : p)];
+      qs = [...qs, ...(shuffle ? p.sort(() => Math.random()-.5) : p)];
     }
-
     if (phases.includes(3)) {
       let p = [];
       GENDERS.forEach(g => CASES.forEach(c => {
-        const isSg = Math.random() > 0.5;
+        const isSg = Math.random() > .5;
         const form = isSg ? q.sg[g][c] : q.pl[g][c];
-        p.push({
-          phase: 3,
-          meta: `${CASE_NAMES[c]}  ·  ${GENDER_NAMES[g]}  ·  ${isSg ? 'Singular' : 'Plural'}`,
-          main: 'Lateinische Form?',
-          placeholder: 'Latein eingeben…',
-          answer: form || '', answerDisplay: form || ''
-        });
+        p.push({ phase:3, meta:`${CASE_NAMES[c]}  ·  ${GENDER_NAMES[g]}  ·  ${isSg?'Singular':'Plural'}`,
+          main:'Lateinische Form?', placeholder:'Latein eingeben…',
+          answer: form||'', answerDisplay: form||'' });
       }));
-      qs = [...qs, ...p.sort(() => Math.random() - 0.5)];
+      qs = [...qs, ...p.sort(() => Math.random()-.5)];
     }
-
     if (phases.includes(4)) {
       let p = [];
       GENDERS.forEach(g => CASES.forEach(c => {
-        p.push({
-          phase: 4,
-          meta: `Deutsch → Latein  ·  ${CASE_NAMES[c]}  ·  ${GENDER_NAMES[g]}  ·  Singular`,
-          main: q.de_sg[g][c] || '?', placeholder: 'Latein eingeben…',
-          answer: q.sg[g][c] || '', answerDisplay: q.sg[g][c] || ''
-        });
-        p.push({
-          phase: 4,
-          meta: `Deutsch → Latein  ·  ${CASE_NAMES[c]}  ·  ${GENDER_NAMES[g]}  ·  Plural`,
-          main: q.de_pl[g][c] || '?', placeholder: 'Latein eingeben…',
-          answer: q.pl[g][c] || '', answerDisplay: q.pl[g][c] || ''
-        });
+        p.push({ phase:4, meta:`Deutsch → Latein  ·  ${CASE_NAMES[c]}  ·  ${GENDER_NAMES[g]}  ·  Singular`,
+          main: q.de_sg[g][c]||'?', placeholder:'Latein eingeben…',
+          answer: q.sg[g][c]||'', answerDisplay: q.sg[g][c]||'' });
+        p.push({ phase:4, meta:`Deutsch → Latein  ·  ${CASE_NAMES[c]}  ·  ${GENDER_NAMES[g]}  ·  Plural`,
+          main: q.de_pl[g][c]||'?', placeholder:'Latein eingeben…',
+          answer: q.pl[g][c]||'', answerDisplay: q.pl[g][c]||'' });
       }));
-      p = p.sort(() => Math.random() - 0.5);
-      qs = [...qs, ...(shuffle ? p : p.slice(0, 20))];
+      p = p.sort(() => Math.random()-.5);
+      qs = [...qs, ...(shuffle ? p : p.slice(0,20))];
     }
-
     if (phases.includes(5)) {
       let p = [];
       GENDERS.forEach(g => CASES.forEach(c => {
-        p.push({
-          phase: 5,
-          meta: `Latein → Deutsch  ·  ${CASE_NAMES[c]}  ·  ${GENDER_NAMES[g]}  ·  Singular`,
-          main: q.sg[g][c] || '?', placeholder: 'Deutsch eingeben…',
-          answer: q.de_sg[g][c] || '', answerDisplay: q.de_sg[g][c] || ''
-        });
-        p.push({
-          phase: 5,
-          meta: `Latein → Deutsch  ·  ${CASE_NAMES[c]}  ·  ${GENDER_NAMES[g]}  ·  Plural`,
-          main: q.pl[g][c] || '?', placeholder: 'Deutsch eingeben…',
-          answer: q.de_pl[g][c] || '', answerDisplay: q.de_pl[g][c] || ''
-        });
+        p.push({ phase:5, meta:`Latein → Deutsch  ·  ${CASE_NAMES[c]}  ·  ${GENDER_NAMES[g]}  ·  Singular`,
+          main: q.sg[g][c]||'?', placeholder:'Deutsch eingeben…',
+          answer: q.de_sg[g][c]||'', answerDisplay: q.de_sg[g][c]||'' });
+        p.push({ phase:5, meta:`Latein → Deutsch  ·  ${CASE_NAMES[c]}  ·  ${GENDER_NAMES[g]}  ·  Plural`,
+          main: q.pl[g][c]||'?', placeholder:'Deutsch eingeben…',
+          answer: q.de_pl[g][c]||'', answerDisplay: q.de_pl[g][c]||'' });
       }));
-      p = p.sort(() => Math.random() - 0.5);
-      qs = [...qs, ...(shuffle ? p : p.slice(0, 20))];
+      p = p.sort(() => Math.random()-.5);
+      qs = [...qs, ...(shuffle ? p : p.slice(0,20))];
     }
-
     return qs;
   },
 
   render() {
-    const q     = this.questions[this.idx];
-    const total = this.questions.length;
-    const phaseLabels = {
-      1:'Phase 1 – Singular', 2:'Phase 2 – Plural', 3:'Phase 3 – Gemischt',
-      4:'Phase 4 – Deutsch → Latein', 5:'Phase 5 – Latein → Deutsch'
-    };
-    document.getElementById('quiz-phase-badge').textContent   = phaseLabels[q.phase] || '';
-    document.getElementById('quiz-progress-text').textContent = `${this.idx + 1} / ${total}`;
-    document.getElementById('progress-bar').style.width       = (this.idx / total * 100) + '%';
+    const q = this.questions[this.idx], total = this.questions.length;
+    const labels = {1:'Phase 1 – Singular',2:'Phase 2 – Plural',3:'Phase 3 – Gemischt',4:'Phase 4 – Deutsch → Latein',5:'Phase 5 – Latein → Deutsch'};
+    document.getElementById('quiz-phase-badge').textContent   = labels[q.phase]||'';
+    document.getElementById('quiz-progress-text').textContent = `${this.idx+1} / ${total}`;
+    document.getElementById('progress-bar').style.width       = (this.idx/total*100)+'%';
     document.getElementById('q-meta').textContent             = q.meta;
     document.getElementById('q-main').textContent             = q.main;
     const input = document.getElementById('answer-input');
-    input.placeholder = q.placeholder || 'Antwort eingeben…';
-    input.value = ''; input.disabled = false; input.focus();
-    document.getElementById('feedback-box').className = 'feedback-box hidden';
+    input.placeholder = q.placeholder||''; input.value=''; input.disabled=false; input.focus();
+    document.getElementById('feedback-box').className='feedback-box hidden';
     document.getElementById('next-btn').classList.add('hidden');
     this.answered = false;
   },
@@ -519,43 +641,37 @@ const Quiz = {
   check() {
     if (this.answered) return;
     const input = document.getElementById('answer-input');
-    const val   = input.value.trim();
-    if (!val) return;
-    this.answered = true;
-    input.disabled = true;
-    const q  = this.questions[this.idx];
-    const fb = document.getElementById('feedback-box');
+    const val = input.value.trim(); if (!val) return;
+    this.answered = true; input.disabled = true;
+    const q = this.questions[this.idx], fb = document.getElementById('feedback-box');
     if (isCorrect(val, q.answer)) {
       this.score++;
-      fb.textContent = '✓ Richtig!';
-      fb.className = 'feedback-box correct';
+      fb.textContent='✓ Richtig!'; fb.className='feedback-box correct';
     } else {
-      const accepted = parseAnswers(q.answer);
-      fb.textContent = `✗ Falsch. Richtig: ${accepted.length > 1 ? accepted.join(' / ') : q.answerDisplay}`;
-      fb.className = 'feedback-box wrong';
+      const acc = parseAnswers(q.answer);
+      fb.textContent=`✗ Falsch. Richtig: ${acc.length>1?acc.join(' / '):q.answerDisplay}`;
+      fb.className='feedback-box wrong';
     }
-    document.getElementById('progress-bar').style.width = ((this.idx + 1) / this.questions.length * 100) + '%';
+    document.getElementById('progress-bar').style.width=((this.idx+1)/this.questions.length*100)+'%';
     document.getElementById('next-btn').classList.remove('hidden');
   },
 
   next() {
     this.idx++;
-    if (this.idx >= this.questions.length) this.showResult();
-    else this.render();
+    if (this.idx >= this.questions.length) this.showResult(); else this.render();
   },
 
   showResult() {
-    const total = this.questions.length;
-    const pct   = Math.round(this.score / total * 100);
-    document.getElementById('result-score').textContent = `${this.score}/${total}`;
-    let msg, icon;
-    if (pct === 100)    { msg = 'Perfekt! Absolut fehlerfrei.';      icon = '🏆'; }
-    else if (pct >= 80) { msg = 'Sehr gut! Fast alles richtig.';     icon = '🏛️'; }
-    else if (pct >= 60) { msg = 'Gut! Noch etwas üben.';             icon = '📜'; }
-    else if (pct >= 40) { msg = 'Es geht. Mehr Übung hilft!';        icon = '⚡'; }
-    else                { msg = 'Weiter üben – du schaffst das!';    icon = '🌿'; }
-    document.getElementById('result-icon').textContent = icon;
-    document.getElementById('result-msg').textContent  = msg;
+    const total=this.questions.length, pct=Math.round(this.score/total*100);
+    document.getElementById('result-score').textContent=`${this.score}/${total}`;
+    let msg,icon;
+    if(pct===100){msg='Perfekt! Absolut fehlerfrei.';icon='🏆';}
+    else if(pct>=80){msg='Sehr gut! Fast alles richtig.';icon='🏛️';}
+    else if(pct>=60){msg='Gut! Noch etwas üben.';icon='📜';}
+    else if(pct>=40){msg='Es geht. Mehr Übung hilft!';icon='⚡';}
+    else{msg='Weiter üben – du schaffst das!';icon='🌿';}
+    document.getElementById('result-icon').textContent=icon;
+    document.getElementById('result-msg').textContent=msg;
     App.showPage('result');
   }
 };
@@ -564,17 +680,9 @@ const Quiz = {
 document.addEventListener('keydown', e => {
   if (e.key !== 'Enter') return;
   if (document.getElementById('page-quiz').classList.contains('active')) {
-    if (!Quiz.answered) Quiz.check(); else Quiz.next();
-    return;
+    if (!Quiz.answered) Quiz.check(); else Quiz.next(); return;
   }
-  if (!document.getElementById('login-overlay').classList.contains('hidden')) {
-    App.adminLogin();
-  }
+  if (!document.getElementById('login-overlay').classList.contains('hidden')) App.adminLogin();
 });
 
-// ── Make App/Quiz global for onclick handlers ────────────────
-window.App  = App;
-window.Quiz = Quiz;
-
-// ── Start ────────────────────────────────────────────────────
 App.init();
