@@ -19,8 +19,14 @@
   </div>
 </header>
 
+<!-- Loading screen -->
+<div id="loading-screen" class="loading-screen">
+  <div class="loading-spinner"></div>
+  <div class="loading-text">Wird geladen…</div>
+</div>
+
 <!-- HOME -->
-<main id="page-home" class="page active">
+<main id="page-home" class="page">
   <div class="hero">
     <div class="hero-label">Latein lernen</div>
     <h1 class="hero-title">Wähle dein<br /><span class="accent">Quiz</span></h1>
@@ -113,22 +119,17 @@
         <input type="text" id="new-quiz-desc" class="modal-input" placeholder="z.B. Pronomen 'derselbe'" />
       </div>
     </div>
-
     <div class="forms-section-title">Lateinische Formen – Singular</div>
     <div class="genus-columns" id="sg-columns"></div>
-
     <div class="forms-section-title">Lateinische Formen – Plural</div>
     <div class="genus-columns" id="pl-columns"></div>
-
     <div class="forms-section-title">Deutsche Entsprechungen – Singular</div>
     <div class="genus-columns" id="de-sg-columns"></div>
-
     <div class="forms-section-title">Deutsche Entsprechungen – Plural</div>
     <div class="genus-columns" id="de-pl-columns"></div>
-
     <div class="create-error hidden" id="create-error"></div>
     <div class="editor-actions">
-      <button class="start-btn" onclick="App.saveQuiz()">Speichern</button>
+      <button class="start-btn" id="save-btn" onclick="App.saveQuiz()">Speichern</button>
       <button class="outline-btn" onclick="App.goHome()">Abbrechen</button>
     </div>
   </div>
@@ -152,7 +153,7 @@
   </div>
 </div>
 
-<!-- MODAL: QUIZ AKTIONEN (Admin) -->
+<!-- MODAL: QUIZ AKTIONEN -->
 <div class="modal-overlay hidden" id="card-action-overlay" onclick="App.closeCardAction(event)">
   <div class="modal card-action-modal">
     <button class="modal-close" onclick="App.closeCardAction()">✕</button>
@@ -166,6 +167,6 @@
   </div>
 </div>
 
-<script src="script.js"></script>
+<script type="module" src="script.js"></script>
 </body>
 </html>

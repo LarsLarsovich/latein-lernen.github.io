@@ -1,32 +1,34 @@
-'use strict';
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, doc, getDocs, setDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-const ADMIN_USER  = 'admin';
-const ADMIN_PASS  = 'latina2024';
-const STORAGE_KEY = 'latina_quizes';
+// ── Firebase config ──────────────────────────────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyDfIOQMo95TufbHY_f1EXHKhgP8FCu2PR4",
+  authDomain: "latein-lernen.firebaseapp.com",
+  projectId: "latein-lernen",
+  storageBucket: "latein-lernen.firebasestorage.app",
+  messagingSenderId: "976723559385",
+  appId: "1:976723559385:web:efcf9b5176fa84676c8fc8"
+};
 
-const CASES       = [1, 2, 3, 4, 6];
-const CASE_NAMES  = { 1:'Nominativ', 2:'Genitiv', 3:'Dativ', 4:'Akkusativ', 6:'Ablativ' };
-const GENDERS     = ['M', 'W', 'N'];
+const firebaseApp = initializeApp(firebaseConfig);
+const db = getFirestore(firebaseApp);
+const quizesCol = collection(db, "quizes");
+
+// ── Constants ────────────────────────────────────────────────
+const ADMIN_USER    = 'admin';
+const ADMIN_PASS    = 'latina2024';
+const CASES         = [1, 2, 3, 4, 6];
+const CASE_NAMES    = { 1:'Nominativ', 2:'Genitiv', 3:'Dativ', 4:'Akkusativ', 6:'Ablativ' };
+const GENDERS       = ['M', 'W', 'N'];
 const GENDER_NAMES  = { M:'Maskulinum (m.)', W:'Femininum (f.)', N:'Neutrum (n.)' };
 const GENDER_SHORT  = { M:'m.', W:'f.', N:'n.' };
 const GENDER_LABEL  = { M:'Maskulinum', W:'Femininum', N:'Neutrum' };
 const GENDER_CLASS  = { M:'m', W:'f', N:'n' };
 
-// Parse "iis/eis" or "iis, eis" into multiple accepted answers
-function parseAnswers(raw) {
-  return raw.toLowerCase()
-    .split(/[\/,]/)
-    .map(s => s.trim())
-    .filter(Boolean);
-}
-
-function isCorrect(input, raw) {
-  const accepted = parseAnswers(raw);
-  return accepted.includes(input.trim().toLowerCase());
-}
-
 const DEFAULT_QUIZ = {
   id: 'idem', name: 'idem / eadem / idem', desc: 'Pronomen „derselbe / dieselbe / dasselbe"',
+  order: 0,
   sg: {
     M: {1:'idem',    2:'eiusdem', 3:'eidem',  4:'eundem', 6:'eodem' },
     W: {1:'eadem',   2:'eiusdem', 3:'eidem',  4:'eandem', 6:'eadem' },
@@ -49,6 +51,15 @@ const DEFAULT_QUIZ = {
   }
 };
 
+// ── Helpers ──────────────────────────────────────────────────
+function parseAnswers(raw) {
+  return (raw || '').toLowerCase().split(/[\/,]/).map(s => s.trim()).filter(Boolean);
+}
+function isCorrect(input, raw) {
+  return parseAnswers(raw).includes(input.trim().toLowerCase());
+}
+
+// ── State ────────────────────────────────────────────────────
 let state = {
   quizes: [],
   adminLoggedIn: false,
@@ -60,18 +71,61 @@ let state = {
   cardActionQuizId: null
 };
 
-function saveQuizes() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state.quizes)); }
-function loadQuizes() {
-  try { const r = localStorage.getItem(STORAGE_KEY); if (r) state.quizes = JSON.parse(r); } catch(e) { state.quizes = []; }
-  if (!state.quizes.find(q => q.id === 'idem')) { state.quizes.unshift(DEFAULT_QUIZ); saveQuizes(); }
+// ── Firebase helpers ─────────────────────────────────────────
+async function loadQuizesFromDB() {
+  const snap = await getDocs(quizesCol);
+  let quizes = [];
+  snap.forEach(d => quizes.push({ id: d.id, ...d.data() }));
+  // sort by order field, fallback to name
+  quizes.sort((a, b) => (a.order ?? 999) - (b.order ?? 999) || a.name.localeCompare(b.name));
+
+  // Seed default quiz if collection is empty
+  if (quizes.length === 0) {
+    await setDoc(doc(db, "quizes", DEFAULT_QUIZ.id), DEFAULT_QUIZ);
+    quizes = [DEFAULT_QUIZ];
+  }
+  return quizes;
+}
+
+async function saveQuizToDB(quiz) {
+  await setDoc(doc(db, "quizes", quiz.id), quiz);
+}
+
+async function deleteQuizFromDB(id) {
+  await deleteDoc(doc(db, "quizes", id));
 }
 
 // ── App ──────────────────────────────────────────────────────
 const App = {
-  init() {
-    loadQuizes();
+  async init() {
     this.buildEditorGrids();
+    // Show loading screen while fetching
+    document.getElementById('loading-screen').style.display = 'flex';
+
+    try {
+      state.quizes = await loadQuizesFromDB();
+    } catch(e) {
+      console.error('Firebase Fehler:', e);
+      document.getElementById('loading-screen').innerHTML =
+        '<div class="loading-text" style="color:#d47070;">Verbindungsfehler. Bitte Seite neu laden.</div>';
+      return;
+    }
+
+    document.getElementById('loading-screen').style.display = 'none';
     this.renderHome();
+    this.showPage('home');
+
+    // Live updates: wenn jemand anderes ein Quiz hinzufügt/löscht
+    onSnapshot(quizesCol, (snap) => {
+      let quizes = [];
+      snap.forEach(d => quizes.push({ id: d.id, ...d.data() }));
+      quizes.sort((a, b) => (a.order ?? 999) - (b.order ?? 999) || a.name.localeCompare(b.name));
+      state.quizes = quizes;
+      // nur neu rendern wenn man gerade auf der Startseite ist
+      if (document.getElementById('page-home').classList.contains('active')) {
+        this.renderHome();
+      }
+    });
   },
 
   showPage(id, quizName) {
@@ -79,9 +133,7 @@ const App = {
     const el = document.getElementById('page-' + id);
     if (el) el.classList.add('active');
     window.scrollTo(0, 0);
-    // topbar center: show quiz name during quiz, empty otherwise
-    const center = document.getElementById('topbar-center');
-    center.textContent = quizName || '';
+    document.getElementById('topbar-center').textContent = quizName || '';
   },
 
   goHome() {
@@ -103,8 +155,8 @@ const App = {
 
       const overlayHTML = state.adminLoggedIn ? `
         <div class="card-admin-overlay">
-          <button class="card-overlay-btn card-overlay-edit" onclick="event.stopPropagation();App.openEditor('${q.id}')">Bearbeiten</button>
-          <button class="card-overlay-btn card-overlay-del" onclick="event.stopPropagation();App.confirmDelete('${q.id}')">Löschen</button>
+          <button class="card-overlay-btn card-overlay-edit" data-id="${q.id}">Bearbeiten</button>
+          <button class="card-overlay-btn card-overlay-del"  data-id="${q.id}">Löschen</button>
         </div>` : '';
 
       card.innerHTML = `
@@ -113,9 +165,16 @@ const App = {
         ${overlayHTML}
       `;
 
-      card.addEventListener('click', () => {
-        if (!state.adminLoggedIn) App.openSetup(q.id);
-      });
+      if (state.adminLoggedIn) {
+        card.querySelector('.card-overlay-edit').addEventListener('click', e => {
+          e.stopPropagation(); App.openEditor(q.id);
+        });
+        card.querySelector('.card-overlay-del').addEventListener('click', e => {
+          e.stopPropagation(); App.confirmDelete(q.id);
+        });
+      } else {
+        card.addEventListener('click', () => App.openSetup(q.id));
+      }
       grid.appendChild(card);
     });
   },
@@ -125,11 +184,11 @@ const App = {
     const q = state.quizes.find(x => x.id === quizId);
     if (!q) return;
     state.currentQuiz = q;
-    state.lastQuizId = quizId;
+    state.lastQuizId  = quizId;
     document.getElementById('setup-title').textContent = q.name;
-    document.getElementById('setup-desc').textContent = q.desc || '';
+    document.getElementById('setup-desc').textContent  = q.desc || '';
     document.querySelectorAll('input[name="phase"]').forEach(cb => { cb.checked = cb.value === '1'; });
-    document.getElementById('shuffle-within').checked = false;
+    document.getElementById('shuffle-within').checked  = false;
     this.showPage('setup', q.name);
   },
 
@@ -199,7 +258,7 @@ const App = {
     if (!q) return;
     state.cardActionQuizId = quizId;
     document.getElementById('card-action-title').textContent = q.name;
-    document.getElementById('card-action-desc').textContent = q.desc || '';
+    document.getElementById('card-action-desc').textContent  = q.desc || '';
     document.getElementById('card-action-overlay').classList.remove('hidden');
   },
 
@@ -216,20 +275,23 @@ const App = {
     this.openEditor(id);
   },
 
-  deleteFromModal() {
+  async deleteFromModal() {
     const id = state.cardActionQuizId;
     if (!id) return;
     document.getElementById('card-action-overlay').classList.add('hidden');
     state.cardActionQuizId = null;
-    state.quizes = state.quizes.filter(q => q.id !== id);
-    saveQuizes();
-    this.renderHome();
+    try {
+      await deleteQuizFromDB(id);
+      state.quizes = state.quizes.filter(q => q.id !== id);
+      this.renderHome();
+    } catch(e) {
+      alert('Fehler beim Löschen. Bitte nochmal versuchen.');
+    }
   },
 
   // ── Editor ───────────────────────────────────────────────
   buildEditorGrids() {
-    const sections = ['sg-columns','pl-columns','de-sg-columns','de-pl-columns'];
-    sections.forEach(sec => {
+    ['sg-columns','pl-columns','de-sg-columns','de-pl-columns'].forEach(sec => {
       const wrap = document.getElementById(sec);
       if (!wrap) return;
       wrap.innerHTML = '';
@@ -282,7 +344,7 @@ const App = {
     this.showPage('editor', isNew ? 'Neues Quiz' : 'Bearbeiten');
   },
 
-  saveQuiz() {
+  async saveQuiz() {
     const name  = document.getElementById('new-quiz-name').value.trim();
     const desc  = document.getElementById('new-quiz-desc').value.trim();
     const errEl = document.getElementById('create-error');
@@ -309,14 +371,31 @@ const App = {
     });
     if (!allFilled) { errEl.textContent = 'Bitte fülle alle Felder aus.'; errEl.classList.remove('hidden'); return; }
 
-    if (state.editingQuizId) {
-      const idx = state.quizes.findIndex(q => q.id === state.editingQuizId);
-      if (idx !== -1) state.quizes[idx] = { ...state.quizes[idx], name, desc, sg, pl, de_sg, de_pl };
-    } else {
-      state.quizes.push({ id: 'quiz_' + Date.now(), name, desc, sg, pl, de_sg, de_pl });
+    // Disable save button while saving
+    const saveBtn = document.getElementById('save-btn');
+    saveBtn.textContent = 'Speichert…';
+    saveBtn.disabled = true;
+
+    const quiz = state.editingQuizId
+      ? { ...state.quizes.find(q => q.id === state.editingQuizId), name, desc, sg, pl, de_sg, de_pl }
+      : { id: 'quiz_' + Date.now(), name, desc, order: Date.now(), sg, pl, de_sg, de_pl };
+
+    try {
+      await saveQuizToDB(quiz);
+      if (state.editingQuizId) {
+        const idx = state.quizes.findIndex(q => q.id === state.editingQuizId);
+        if (idx !== -1) state.quizes[idx] = quiz;
+      } else {
+        state.quizes.push(quiz);
+      }
+      this.goHome();
+    } catch(e) {
+      errEl.textContent = 'Fehler beim Speichern. Bitte nochmal versuchen.';
+      errEl.classList.remove('hidden');
+    } finally {
+      saveBtn.textContent = 'Speichern';
+      saveBtn.disabled = false;
     }
-    saveQuizes();
-    this.goHome();
   }
 };
 
@@ -334,7 +413,6 @@ const Quiz = {
   build(q, phases, shuffle) {
     let qs = [];
 
-    // Phase 1 – Singular: Kasus+Genus → lateinische Singularform
     if (phases.includes(1)) {
       let p = [];
       GENDERS.forEach(g => CASES.forEach(c => p.push({
@@ -342,13 +420,11 @@ const Quiz = {
         meta: `${CASE_NAMES[c]}  ·  ${GENDER_NAMES[g]}  ·  Singular`,
         main: 'Lateinische Form?',
         placeholder: 'Latein eingeben…',
-        answer: q.sg[g][c] || '',
-        answerDisplay: q.sg[g][c] || ''
+        answer: q.sg[g][c] || '', answerDisplay: q.sg[g][c] || ''
       })));
       qs = [...qs, ...(shuffle ? p.sort(() => Math.random() - 0.5) : p)];
     }
 
-    // Phase 2 – Plural: Kasus+Genus → lateinische Pluralform
     if (phases.includes(2)) {
       let p = [];
       GENDERS.forEach(g => CASES.forEach(c => p.push({
@@ -356,13 +432,11 @@ const Quiz = {
         meta: `${CASE_NAMES[c]}  ·  ${GENDER_NAMES[g]}  ·  Plural`,
         main: 'Lateinische Form?',
         placeholder: 'Latein eingeben…',
-        answer: q.pl[g][c] || '',
-        answerDisplay: q.pl[g][c] || ''
+        answer: q.pl[g][c] || '', answerDisplay: q.pl[g][c] || ''
       })));
       qs = [...qs, ...(shuffle ? p.sort(() => Math.random() - 0.5) : p)];
     }
 
-    // Phase 3 – Gemischt: zufällig Sg oder Pl
     if (phases.includes(3)) {
       let p = [];
       GENDERS.forEach(g => CASES.forEach(c => {
@@ -373,67 +447,50 @@ const Quiz = {
           meta: `${CASE_NAMES[c]}  ·  ${GENDER_NAMES[g]}  ·  ${isSg ? 'Singular' : 'Plural'}`,
           main: 'Lateinische Form?',
           placeholder: 'Latein eingeben…',
-          answer: form || '',
-          answerDisplay: form || ''
+          answer: form || '', answerDisplay: form || ''
         });
       }));
       qs = [...qs, ...p.sort(() => Math.random() - 0.5)];
     }
 
-    // Phase 4 – Deutsch → Latein: deutsches Wort groß anzeigen
     if (phases.includes(4)) {
       let p = [];
       GENDERS.forEach(g => CASES.forEach(c => {
-        // Singular
         p.push({
           phase: 4,
           meta: `Deutsch → Latein  ·  ${CASE_NAMES[c]}  ·  ${GENDER_NAMES[g]}  ·  Singular`,
-          main: q.de_sg[g][c] || '?',
-          placeholder: 'Latein eingeben…',
-          answer: q.sg[g][c] || '',
-          answerDisplay: q.sg[g][c] || ''
+          main: q.de_sg[g][c] || '?', placeholder: 'Latein eingeben…',
+          answer: q.sg[g][c] || '', answerDisplay: q.sg[g][c] || ''
         });
-        // Plural
         p.push({
           phase: 4,
           meta: `Deutsch → Latein  ·  ${CASE_NAMES[c]}  ·  ${GENDER_NAMES[g]}  ·  Plural`,
-          main: q.de_pl[g][c] || '?',
-          placeholder: 'Latein eingeben…',
-          answer: q.pl[g][c] || '',
-          answerDisplay: q.pl[g][c] || ''
+          main: q.de_pl[g][c] || '?', placeholder: 'Latein eingeben…',
+          answer: q.pl[g][c] || '', answerDisplay: q.pl[g][c] || ''
         });
       }));
       p = p.sort(() => Math.random() - 0.5);
-      if (!shuffle) p = p.slice(0, 20);
-      qs = [...qs, ...p];
+      qs = [...qs, ...(shuffle ? p : p.slice(0, 20))];
     }
 
-    // Phase 5 – Latein → Deutsch: lateinisches Wort groß anzeigen
     if (phases.includes(5)) {
       let p = [];
       GENDERS.forEach(g => CASES.forEach(c => {
-        // Singular
         p.push({
           phase: 5,
           meta: `Latein → Deutsch  ·  ${CASE_NAMES[c]}  ·  ${GENDER_NAMES[g]}  ·  Singular`,
-          main: q.sg[g][c] || '?',
-          placeholder: 'Deutsch eingeben…',
-          answer: q.de_sg[g][c] || '',
-          answerDisplay: q.de_sg[g][c] || ''
+          main: q.sg[g][c] || '?', placeholder: 'Deutsch eingeben…',
+          answer: q.de_sg[g][c] || '', answerDisplay: q.de_sg[g][c] || ''
         });
-        // Plural
         p.push({
           phase: 5,
           meta: `Latein → Deutsch  ·  ${CASE_NAMES[c]}  ·  ${GENDER_NAMES[g]}  ·  Plural`,
-          main: q.pl[g][c] || '?',
-          placeholder: 'Deutsch eingeben…',
-          answer: q.de_pl[g][c] || '',
-          answerDisplay: q.de_pl[g][c] || ''
+          main: q.pl[g][c] || '?', placeholder: 'Deutsch eingeben…',
+          answer: q.de_pl[g][c] || '', answerDisplay: q.de_pl[g][c] || ''
         });
       }));
       p = p.sort(() => Math.random() - 0.5);
-      if (!shuffle) p = p.slice(0, 20);
-      qs = [...qs, ...p];
+      qs = [...qs, ...(shuffle ? p : p.slice(0, 20))];
     }
 
     return qs;
@@ -443,23 +500,17 @@ const Quiz = {
     const q     = this.questions[this.idx];
     const total = this.questions.length;
     const phaseLabels = {
-      1: 'Phase 1 – Singular',
-      2: 'Phase 2 – Plural',
-      3: 'Phase 3 – Gemischt',
-      4: 'Phase 4 – Deutsch → Latein',
-      5: 'Phase 5 – Latein → Deutsch'
+      1:'Phase 1 – Singular', 2:'Phase 2 – Plural', 3:'Phase 3 – Gemischt',
+      4:'Phase 4 – Deutsch → Latein', 5:'Phase 5 – Latein → Deutsch'
     };
-
     document.getElementById('quiz-phase-badge').textContent   = phaseLabels[q.phase] || '';
     document.getElementById('quiz-progress-text').textContent = `${this.idx + 1} / ${total}`;
     document.getElementById('progress-bar').style.width       = (this.idx / total * 100) + '%';
     document.getElementById('q-meta').textContent             = q.meta;
     document.getElementById('q-main').textContent             = q.main;
-
     const input = document.getElementById('answer-input');
     input.placeholder = q.placeholder || 'Antwort eingeben…';
-    input.value = ''; input.disabled = false;
-    input.focus();
+    input.value = ''; input.disabled = false; input.focus();
     document.getElementById('feedback-box').className = 'feedback-box hidden';
     document.getElementById('next-btn').classList.add('hidden');
     this.answered = false;
@@ -472,20 +523,15 @@ const Quiz = {
     if (!val) return;
     this.answered = true;
     input.disabled = true;
-
     const q  = this.questions[this.idx];
     const fb = document.getElementById('feedback-box');
-    const correct = isCorrect(val, q.answer);
-
-    if (correct) {
+    if (isCorrect(val, q.answer)) {
       this.score++;
       fb.textContent = '✓ Richtig!';
       fb.className = 'feedback-box correct';
     } else {
-      // show all accepted answers if multiple
       const accepted = parseAnswers(q.answer);
-      const display  = accepted.length > 1 ? accepted.join(' / ') : q.answerDisplay;
-      fb.textContent = `✗ Falsch. Richtig: ${display}`;
+      fb.textContent = `✗ Falsch. Richtig: ${accepted.length > 1 ? accepted.join(' / ') : q.answerDisplay}`;
       fb.className = 'feedback-box wrong';
     }
     document.getElementById('progress-bar').style.width = ((this.idx + 1) / this.questions.length * 100) + '%';
@@ -503,11 +549,11 @@ const Quiz = {
     const pct   = Math.round(this.score / total * 100);
     document.getElementById('result-score').textContent = `${this.score}/${total}`;
     let msg, icon;
-    if (pct === 100) { msg = 'Perfekt! Absolut fehlerfrei.';       icon = '🏆'; }
-    else if (pct >= 80) { msg = 'Sehr gut! Fast alles richtig.';   icon = '🏛️'; }
-    else if (pct >= 60) { msg = 'Gut! Noch etwas üben.';           icon = '📜'; }
-    else if (pct >= 40) { msg = 'Es geht. Mehr Übung hilft!';      icon = '⚡'; }
-    else                { msg = 'Weiter üben – du schaffst das!';  icon = '🌿'; }
+    if (pct === 100)    { msg = 'Perfekt! Absolut fehlerfrei.';      icon = '🏆'; }
+    else if (pct >= 80) { msg = 'Sehr gut! Fast alles richtig.';     icon = '🏛️'; }
+    else if (pct >= 60) { msg = 'Gut! Noch etwas üben.';             icon = '📜'; }
+    else if (pct >= 40) { msg = 'Es geht. Mehr Übung hilft!';        icon = '⚡'; }
+    else                { msg = 'Weiter üben – du schaffst das!';    icon = '🌿'; }
     document.getElementById('result-icon').textContent = icon;
     document.getElementById('result-msg').textContent  = msg;
     App.showPage('result');
@@ -526,4 +572,9 @@ document.addEventListener('keydown', e => {
   }
 });
 
+// ── Make App/Quiz global for onclick handlers ────────────────
+window.App  = App;
+window.Quiz = Quiz;
+
+// ── Start ────────────────────────────────────────────────────
 App.init();

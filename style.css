@@ -235,6 +235,21 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
 .login-error { font-size: 13px; color: #d47070; background: var(--danger-bg); border: 1px solid #4a1e1e; border-radius: var(--radius); padding: 8px 12px; margin-bottom: 1rem; }
 .login-error.hidden { display: none; }
 
+/* ── Loading screen ── */
+.loading-screen {
+  position: fixed; inset: 0; background: var(--bg);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 1rem; z-index: 300;
+}
+.loading-spinner {
+  width: 36px; height: 36px; border-radius: 50%;
+  border: 2px solid var(--border2);
+  border-top-color: var(--accent);
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-text { font-size: 14px; color: var(--text3); letter-spacing: 0.06em; }
+
 .hidden { display: none !important; }
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: var(--bg); }
