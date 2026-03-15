@@ -1,6 +1,6 @@
 'use strict';
 
-// ── Firebase init (compat SDK – no import/module needed) ─────
+// ── Firebase (compat SDK) ────────────────────────────────────
 const firebaseConfig = {
   apiKey:            "AIzaSyDfIOQMo95TufbHY_f1EXHKhgP8FCu2PR4",
   authDomain:        "latein-lernen.firebaseapp.com",
@@ -15,7 +15,7 @@ const db = firebase.firestore();
 // ── Constants ────────────────────────────────────────────────
 const ADMIN_USER   = 'admin';
 const ADMIN_PASS   = 'latina2024';
-const DRAFT_KEY    = 'latein_drafts';
+const DRAFT_KEY    = 'latein_drafts_v2';
 const CASES        = [1, 2, 3, 4, 6];
 const CASE_NAMES   = { 1:'Nominativ', 2:'Genitiv', 3:'Dativ', 4:'Akkusativ', 6:'Ablativ' };
 const GENDERS      = ['M', 'W', 'N'];
@@ -24,64 +24,60 @@ const GENDER_SHORT = { M:'m.', W:'f.', N:'n.' };
 const GENDER_LABEL = { M:'Maskulinum', W:'Femininum', N:'Neutrum' };
 const GENDER_CLASS = { M:'m', W:'f', N:'n' };
 
-// ── Built-in quizes as drafts on first load ──────────────────
-const BUILTIN_DRAFTS = [
-  {
-    id: 'draft_idem', name: 'idem / eadem / idem', desc: 'Pronomen „derselbe / dieselbe / dasselbe"',
-    sg: {
-      M: {1:'idem',    2:'eiusdem', 3:'eidem',  4:'eundem', 6:'eodem' },
-      W: {1:'eadem',   2:'eiusdem', 3:'eidem',  4:'eandem', 6:'eadem' },
-      N: {1:'idem',    2:'eiusdem', 3:'eidem',  4:'idem',   6:'eodem' }
-    },
-    pl: {
-      M: {1:'iidem',   2:'eorundem', 3:'iisdem', 4:'eosdem', 6:'iisdem'},
-      W: {1:'eaedem',  2:'eorundem', 3:'iisdem', 4:'easdem', 6:'iisdem'},
-      N: {1:'eadem',   2:'eorundem', 3:'iisdem', 4:'eadem',  6:'iisdem'}
-    },
-    de_sg: {
-      M: {1:'derselbe',  2:'desselben', 3:'demselben', 4:'denselben', 6:'demselben'},
-      W: {1:'dieselbe',  2:'derselben', 3:'derselben', 4:'dieselbe',  6:'derselben'},
-      N: {1:'dasselbe',  2:'desselben', 3:'demselben', 4:'dasselbe',  6:'demselben'}
-    },
-    de_pl: {
-      M: {1:'dieselben', 2:'derselben', 3:'denselben', 4:'dieselben', 6:'denselben'},
-      W: {1:'dieselben', 2:'derselben', 3:'denselben', 4:'dieselben', 6:'denselben'},
-      N: {1:'dieselben', 2:'derselben', 3:'denselben', 4:'dieselben', 6:'denselben'}
-    }
+// Built-in quiz – seeded as draft on first run
+const BUILTIN_DRAFTS = [{
+  id: 'draft_idem', name: 'idem / eadem / idem', desc: 'Pronomen „derselbe / dieselbe / dasselbe"',
+  sg: {
+    M:{1:'idem',2:'eiusdem',3:'eidem',4:'eundem',6:'eodem'},
+    W:{1:'eadem',2:'eiusdem',3:'eidem',4:'eandem',6:'eadem'},
+    N:{1:'idem',2:'eiusdem',3:'eidem',4:'idem',6:'eodem'}
+  },
+  pl: {
+    M:{1:'iidem',2:'eorundem',3:'iisdem',4:'eosdem',6:'iisdem'},
+    W:{1:'eaedem',2:'eorundem',3:'iisdem',4:'easdem',6:'iisdem'},
+    N:{1:'eadem',2:'eorundem',3:'iisdem',4:'eadem',6:'iisdem'}
+  },
+  de_sg: {
+    M:{1:'derselbe',2:'desselben',3:'demselben',4:'denselben',6:'demselben'},
+    W:{1:'dieselbe',2:'derselben',3:'derselben',4:'dieselbe',6:'derselben'},
+    N:{1:'dasselbe',2:'desselben',3:'demselben',4:'dasselbe',6:'demselben'}
+  },
+  de_pl: {
+    M:{1:'dieselben',2:'derselben',3:'denselben',4:'dieselben',6:'denselben'},
+    W:{1:'dieselben',2:'derselben',3:'denselben',4:'dieselben',6:'denselben'},
+    N:{1:'dieselben',2:'derselben',3:'denselben',4:'dieselben',6:'denselben'}
   }
-];
+}];
 
 // ── Helpers ──────────────────────────────────────────────────
 function parseAnswers(raw) {
-  return (raw || '').toLowerCase().split(/[\/,]/).map(s => s.trim()).filter(Boolean);
+  return (raw||'').toLowerCase().split(/[\/,]/).map(s=>s.trim()).filter(Boolean);
 }
 function isCorrect(input, raw) {
   return parseAnswers(raw).includes(input.trim().toLowerCase());
 }
-function loadDrafts() {
-  try {
-    const r = localStorage.getItem(DRAFT_KEY);
-    return r ? JSON.parse(r) : null;
-  } catch(e) { return null; }
+function loadDraftsFromStorage() {
+  try { const r=localStorage.getItem(DRAFT_KEY); return r?JSON.parse(r):null; }
+  catch(e){ return null; }
 }
-function saveDraftsToStorage(drafts) {
-  localStorage.setItem(DRAFT_KEY, JSON.stringify(drafts));
+function persistDrafts() {
+  localStorage.setItem(DRAFT_KEY, JSON.stringify(state.drafts));
 }
 
 // ── State ────────────────────────────────────────────────────
-let state = {
-  published: [],          // from Firestore
-  drafts: [],             // from localStorage
+const state = {
+  published: [],       // from Firestore – single source of truth via snapshot
+  drafts: [],          // from localStorage
   adminLoggedIn: false,
   currentQuiz: null,
-  selectedPhases: [],
-  shuffleWithin: false,
+  currentQuizSource: null,
   lastQuizId: null,
-  lastQuizSource: null,   // 'published' | 'draft'
+  lastQuizSource: null,
   editingId: null,
-  editingSource: null,    // 'published' | 'draft' | null (new)
-  cardActionId: null,
-  cardActionSource: null
+  editingSource: null,
+  actionId: null,
+  actionSource: null,
+  snapshotUnsub: null  // to avoid duplicate listeners
 };
 
 // ── App ──────────────────────────────────────────────────────
@@ -90,73 +86,86 @@ const App = {
   async init() {
     this.buildEditorGrids();
 
-    // Load drafts from localStorage
-    const stored = loadDrafts();
+    // Load drafts
+    const stored = loadDraftsFromStorage();
     if (stored === null) {
-      // First time: seed builtin drafts
-      state.drafts = BUILTIN_DRAFTS;
-      saveDraftsToStorage(state.drafts);
+      state.drafts = JSON.parse(JSON.stringify(BUILTIN_DRAFTS));
     } else {
       state.drafts = stored;
-      // Merge builtin drafts if not already present
+      // Add missing builtins
       BUILTIN_DRAFTS.forEach(bd => {
         if (!state.drafts.find(d => d.id === bd.id)) {
-          state.drafts.unshift(bd);
+          state.drafts.unshift(JSON.parse(JSON.stringify(bd)));
         }
       });
-      saveDraftsToStorage(state.drafts);
     }
+    persistDrafts();
 
-    // Load published from Firestore
-    const loading = document.getElementById('loading-screen');
-    loading.style.display = 'flex';
+    // Show loader
+    const loader = document.getElementById('loading-screen');
+    loader.style.display = 'flex';
 
+    // Load published once, then subscribe for live updates
+    // Use get() first so we can hide the loader reliably
     try {
-      const snap = await db.collection('quizes').orderBy('order').get();
+      const snap = await db.collection('quizes').get();
       state.published = [];
       snap.forEach(d => state.published.push({ id: d.id, ...d.data() }));
+      state.published.sort((a,b) => (a.order||0)-(b.order||0));
     } catch(e) {
-      console.warn('Firestore Fehler (möglicherweise leer):', e.message);
+      console.warn('Firestore initial load failed:', e.message);
       state.published = [];
     }
 
-    loading.style.display = 'none';
+    loader.style.display = 'none';
     this.renderHome();
     this.showPage('home');
 
-    // Live updates for published quizes
-    db.collection('quizes').orderBy('order').onSnapshot(snap => {
-      state.published = [];
-      snap.forEach(d => state.published.push({ id: d.id, ...d.data() }));
-      if (document.getElementById('page-home').classList.contains('active')) {
-        this.renderHome();
-      }
-    }, err => console.warn('Snapshot error:', err.message));
+    // Subscribe for live updates – replaces state.published completely each time
+    // so there can never be duplicates
+    if (state.snapshotUnsub) state.snapshotUnsub();
+    state.snapshotUnsub = db.collection('quizes')
+      .orderBy('order')
+      .onSnapshot(snap => {
+        state.published = [];
+        snap.forEach(d => state.published.push({ id: d.id, ...d.data() }));
+        // Only re-render home if we're on it
+        if (document.getElementById('page-home').classList.contains('active')) {
+          this.renderHome();
+        }
+      }, err => {
+        // Snapshot errors are non-fatal – ignore silently
+        console.warn('Snapshot error (non-fatal):', err.message);
+      });
   },
 
-  showPage(id, quizName) {
+  showPage(id, name) {
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     const el = document.getElementById('page-' + id);
     if (el) el.classList.add('active');
     window.scrollTo(0, 0);
-    document.getElementById('topbar-center').textContent = quizName || '';
+    document.getElementById('topbar-center').textContent = name || '';
   },
 
   goHome() {
-    this.closeCardAction();
-    this.closeDraftAction();
+    this._closeAllModals();
     this.renderHome();
     this.showPage('home');
+  },
+
+  _closeAllModals() {
+    ['card-action-overlay','draft-action-overlay','login-overlay'].forEach(id => {
+      document.getElementById(id)?.classList.add('hidden');
+    });
   },
 
   renderHome() {
     const isAdmin = state.adminLoggedIn;
 
-    // Draft section visibility
+    // Draft section
     const draftSection = document.getElementById('draft-section');
     draftSection.classList.toggle('hidden', !isAdmin);
 
-    // Render drafts
     if (isAdmin) {
       const draftGrid  = document.getElementById('draft-grid');
       const draftEmpty = document.getElementById('draft-empty');
@@ -165,69 +174,63 @@ const App = {
         draftEmpty.style.display = 'block';
       } else {
         draftEmpty.style.display = 'none';
-        state.drafts.forEach(q => {
-          const card = document.createElement('div');
-          card.className = 'quiz-card admin-mode draft-card';
-          card.innerHTML = `
-            <div class="draft-pill">Entwurf</div>
-            <div class="quiz-card-name">${q.name}</div>
-            <div class="quiz-card-desc">${q.desc || ''}</div>
-            <div class="card-admin-overlay">
-              <button class="card-overlay-btn card-overlay-edit" data-id="${q.id}">Bearbeiten</button>
-              <button class="card-overlay-btn card-overlay-pub"  data-id="${q.id}">Veröffentlichen</button>
-              <button class="card-overlay-btn card-overlay-del"  data-id="${q.id}">Löschen</button>
-            </div>
-          `;
-          card.querySelector('.card-overlay-edit').addEventListener('click', e => {
-            e.stopPropagation(); App.openEditor(q.id, 'draft');
-          });
-          card.querySelector('.card-overlay-pub').addEventListener('click', e => {
-            e.stopPropagation(); App.publishDraft(q.id);
-          });
-          card.querySelector('.card-overlay-del').addEventListener('click', e => {
-            e.stopPropagation(); App.deleteDraft(q.id);
-          });
-          card.addEventListener('click', () => App.openSetup(q.id, 'draft'));
-          draftGrid.appendChild(card);
-        });
+        state.drafts.forEach(q => draftGrid.appendChild(this._makeDraftCard(q)));
       }
     }
 
-    // Render published
+    // Published section
     const grid  = document.getElementById('quiz-grid');
     const empty = document.getElementById('empty-hint');
     grid.innerHTML = '';
+
     if (!state.published.length) {
       empty.style.display = 'block';
     } else {
       empty.style.display = 'none';
-      state.published.forEach(q => {
-        const card = document.createElement('div');
-        card.className = 'quiz-card' + (isAdmin ? ' admin-mode' : '');
-        const overlayHTML = isAdmin ? `
-          <div class="card-admin-overlay">
-            <button class="card-overlay-btn card-overlay-edit" data-id="${q.id}">Bearbeiten</button>
-            <button class="card-overlay-btn card-overlay-del"  data-id="${q.id}">Löschen</button>
-          </div>` : '';
-        card.innerHTML = `
-          <div class="quiz-card-name">${q.name}</div>
-          <div class="quiz-card-desc">${q.desc || ''}</div>
-          ${overlayHTML}
-        `;
-        if (isAdmin) {
-          card.querySelector('.card-overlay-edit').addEventListener('click', e => {
-            e.stopPropagation(); App.openEditor(q.id, 'published');
-          });
-          card.querySelector('.card-overlay-del').addEventListener('click', e => {
-            e.stopPropagation(); App.confirmDelete(q.id, 'published');
-          });
-        }
-        card.addEventListener('click', () => {
-          if (!isAdmin) App.openSetup(q.id, 'published');
-        });
-        grid.appendChild(card);
-      });
+      state.published.forEach(q => grid.appendChild(this._makePublishedCard(q)));
     }
+  },
+
+  _makeDraftCard(q) {
+    const card = document.createElement('div');
+    card.className = 'quiz-card admin-mode draft-card';
+    card.innerHTML = `
+      <div class="draft-pill">Entwurf</div>
+      <div class="quiz-card-name">${q.name}</div>
+      <div class="quiz-card-desc">${q.desc||''}</div>
+      <div class="card-admin-overlay">
+        <button class="card-overlay-btn card-overlay-edit">Bearbeiten</button>
+        <button class="card-overlay-btn card-overlay-pub">Veröffentlichen</button>
+        <button class="card-overlay-btn card-overlay-del">Löschen</button>
+      </div>
+    `;
+    card.querySelector('.card-overlay-edit').onclick = e => { e.stopPropagation(); App.openEditor(q.id,'draft'); };
+    card.querySelector('.card-overlay-pub').onclick  = e => { e.stopPropagation(); App.publishDraft(q.id,e.target); };
+    card.querySelector('.card-overlay-del').onclick  = e => { e.stopPropagation(); App.deleteDraft(q.id); };
+    // Click on card itself opens quiz
+    card.onclick = () => App.openSetup(q.id, 'draft');
+    return card;
+  },
+
+  _makePublishedCard(q) {
+    const card = document.createElement('div');
+    card.className = 'quiz-card' + (state.adminLoggedIn ? ' admin-mode' : '');
+    const overlay = state.adminLoggedIn ? `
+      <div class="card-admin-overlay">
+        <button class="card-overlay-btn card-overlay-edit">Bearbeiten</button>
+        <button class="card-overlay-btn card-overlay-del">Löschen</button>
+      </div>` : '';
+    card.innerHTML = `
+      <div class="quiz-card-name">${q.name}</div>
+      <div class="quiz-card-desc">${q.desc||''}</div>
+      ${overlay}
+    `;
+    if (state.adminLoggedIn) {
+      card.querySelector('.card-overlay-edit').onclick = e => { e.stopPropagation(); App.openEditor(q.id,'published'); };
+      card.querySelector('.card-overlay-del').onclick  = e => { e.stopPropagation(); App.confirmDelete(q.id); };
+    }
+    card.onclick = () => { if (!state.adminLoggedIn) App.openSetup(q.id,'published'); };
+    return card;
   },
 
   // ── Quiz Flow ─────────────────────────────────────────────
@@ -236,12 +239,12 @@ const App = {
       ? state.drafts.find(x => x.id === id)
       : state.published.find(x => x.id === id);
     if (!q) return;
-    state.currentQuiz    = q;
-    state.lastQuizId     = id;
-    state.lastQuizSource = source;
+    state.currentQuiz      = q;
+    state.lastQuizId       = id;
+    state.lastQuizSource   = source;
     document.getElementById('setup-title').textContent = q.name;
     document.getElementById('setup-desc').textContent  = q.desc || '';
-    document.querySelectorAll('input[name="phase"]').forEach(cb => { cb.checked = cb.value === '1'; });
+    document.querySelectorAll('input[name="phase"]').forEach(cb => { cb.checked = cb.value==='1'; });
     document.getElementById('shuffle-within').checked = false;
     this.showPage('setup', q.name);
   },
@@ -249,9 +252,9 @@ const App = {
   startQuiz() {
     const checked = [...document.querySelectorAll('input[name="phase"]:checked')];
     if (!checked.length) { alert('Bitte wähle mindestens eine Phase aus.'); return; }
-    state.selectedPhases = checked.map(c => parseInt(c.value));
-    state.shuffleWithin  = document.getElementById('shuffle-within').checked;
-    Quiz.start(state.currentQuiz, state.selectedPhases, state.shuffleWithin);
+    Quiz.start(state.currentQuiz,
+      checked.map(c => parseInt(c.value)),
+      document.getElementById('shuffle-within').checked);
   },
 
   replaySetup() {
@@ -263,9 +266,8 @@ const App = {
   handleAdminBtn() {
     if (state.adminLoggedIn) {
       state.adminLoggedIn = false;
-      const btn = document.getElementById('admin-topbtn');
-      btn.classList.remove('active');
-      btn.textContent = 'Admin';
+      document.getElementById('admin-topbtn').classList.remove('active');
+      document.getElementById('admin-topbtn').textContent = 'Admin';
       document.getElementById('add-btn').classList.add('hidden');
       this.renderHome();
     } else {
@@ -285,10 +287,7 @@ const App = {
     if (e && e.target !== document.getElementById('login-overlay')) return;
     document.getElementById('login-overlay').classList.add('hidden');
   },
-
-  closeLoginForced() {
-    document.getElementById('login-overlay').classList.add('hidden');
-  },
+  closeLoginForced() { document.getElementById('login-overlay').classList.add('hidden'); },
 
   adminLogin() {
     const u = document.getElementById('admin-username').value.trim();
@@ -296,9 +295,8 @@ const App = {
     if (u === ADMIN_USER && p === ADMIN_PASS) {
       state.adminLoggedIn = true;
       document.getElementById('login-overlay').classList.add('hidden');
-      const btn = document.getElementById('admin-topbtn');
-      btn.classList.add('active');
-      btn.textContent = 'Ausloggen';
+      document.getElementById('admin-topbtn').classList.add('active');
+      document.getElementById('admin-topbtn').textContent = 'Ausloggen';
       document.getElementById('add-btn').classList.remove('hidden');
       this.renderHome();
     } else {
@@ -306,14 +304,12 @@ const App = {
     }
   },
 
-  // ── Card action modals ────────────────────────────────────
-  confirmDelete(id, source) {
-    const q = source === 'draft'
-      ? state.drafts.find(x => x.id === id)
-      : state.published.find(x => x.id === id);
+  // ── Delete published ──────────────────────────────────────
+  confirmDelete(id) {
+    const q = state.published.find(x => x.id === id);
     if (!q) return;
-    state.cardActionId     = id;
-    state.cardActionSource = source;
+    state.actionId     = id;
+    state.actionSource = 'published';
     document.getElementById('card-action-title').textContent = q.name;
     document.getElementById('card-action-desc').textContent  = q.desc || '';
     document.getElementById('card-action-overlay').classList.remove('hidden');
@@ -325,75 +321,44 @@ const App = {
   },
 
   editFromModal() {
-    const id = state.cardActionId, src = state.cardActionSource;
+    const id = state.actionId;
     document.getElementById('card-action-overlay').classList.add('hidden');
-    this.openEditor(id, src);
+    this.openEditor(id, 'published');
   },
 
   async deleteFromModal() {
-    const id = state.cardActionId, src = state.cardActionSource;
+    const id = state.actionId;
     document.getElementById('card-action-overlay').classList.add('hidden');
-    if (src === 'published') {
-      try {
-        await db.collection('quizes').doc(id).delete();
-        state.published = state.published.filter(q => q.id !== id);
-      } catch(e) { alert('Fehler beim Löschen.'); return; }
-    } else {
-      state.drafts = state.drafts.filter(q => q.id !== id);
-      saveDraftsToStorage(state.drafts);
-    }
-    this.renderHome();
+    try {
+      await db.collection('quizes').doc(id).delete();
+      // snapshot will update state.published automatically
+    } catch(e) { alert('Fehler beim Löschen: ' + e.message); }
   },
 
-  closeDraftAction(e) {
-    if (e && e.target !== document.getElementById('draft-action-overlay')) return;
-    document.getElementById('draft-action-overlay').classList.add('hidden');
-  },
-
-  publishDraftFromModal() {
-    const id = state.cardActionId;
-    document.getElementById('draft-action-overlay').classList.add('hidden');
-    this.publishDraft(id);
-  },
-
-  editDraftFromModal() {
-    const id = state.cardActionId;
-    document.getElementById('draft-action-overlay').classList.add('hidden');
-    this.openEditor(id, 'draft');
-  },
-
-  deleteDraftFromModal() {
-    const id = state.cardActionId;
-    document.getElementById('draft-action-overlay').classList.add('hidden');
-    this.deleteDraft(id);
-  },
-
-  // ── Draft operations ──────────────────────────────────────
+  // ── Draft actions ─────────────────────────────────────────
   deleteDraft(id) {
     if (!confirm('Entwurf löschen?')) return;
     state.drafts = state.drafts.filter(q => q.id !== id);
-    saveDraftsToStorage(state.drafts);
+    persistDrafts();
     this.renderHome();
   },
 
-  async publishDraft(id) {
+  async publishDraft(id, btn) {
     const draft = state.drafts.find(q => q.id === id);
     if (!draft) return;
-
-    const btn = event && event.target;
     if (btn) { btn.textContent = '…'; btn.disabled = true; }
 
-    const published = {
-      ...draft,
-      id: 'pub_' + Date.now(),
-      order: Date.now()
-    };
+    const pubId = 'pub_' + Date.now();
+    const published = { ...draft, id: pubId, order: Date.now() };
+    // remove draft-only id field if present
+    delete published.draft;
 
     try {
-      await db.collection('quizes').doc(published.id).set(published);
-      state.published.push(published);
+      await db.collection('quizes').doc(pubId).set(published);
+      // Remove from drafts
       state.drafts = state.drafts.filter(q => q.id !== id);
-      saveDraftsToStorage(state.drafts);
+      persistDrafts();
+      // snapshot will add it to state.published automatically
       this.renderHome();
     } catch(e) {
       alert('Fehler beim Veröffentlichen: ' + e.message);
@@ -412,13 +377,10 @@ const App = {
         col.className = 'genus-col';
         col.innerHTML = `<div class="genus-col-header ${GENDER_CLASS[g]}">${GENDER_LABEL[g]}</div>`;
         CASES.forEach(c => {
-          const field = document.createElement('div');
-          field.className = 'genus-field';
-          field.innerHTML = `
-            <label>${CASE_NAMES[c]}</label>
-            <input type="text" id="${sec}_${g}_${c}" placeholder="${CASE_NAMES[c].substring(0,3).toLowerCase()}." />
-          `;
-          col.appendChild(field);
+          const f = document.createElement('div');
+          f.className = 'genus-field';
+          f.innerHTML = `<label>${CASE_NAMES[c]}</label><input type="text" id="${sec}_${g}_${c}" placeholder="${CASE_NAMES[c].substring(0,3).toLowerCase()}." />`;
+          col.appendChild(f);
         });
         wrap.appendChild(col);
       });
@@ -426,125 +388,115 @@ const App = {
   },
 
   openEditor(id, source) {
-    state.editingId     = id;
+    state.editingId     = id || null;
     state.editingSource = source || null;
     const isNew = !id;
     document.getElementById('editor-page-title').textContent = isNew ? 'Neues Quiz' : 'Quiz bearbeiten';
     document.getElementById('create-error').classList.add('hidden');
 
-    if (isNew) {
+    const clearAll = () => {
       document.getElementById('new-quiz-name').value = '';
       document.getElementById('new-quiz-desc').value = '';
-      ['sg-columns','pl-columns','de-sg-columns','de-pl-columns'].forEach(sec => {
+      ['sg-columns','pl-columns','de-sg-columns','de-pl-columns'].forEach(sec =>
         GENDERS.forEach(g => CASES.forEach(c => {
           const el = document.getElementById(`${sec}_${g}_${c}`);
           if (el) el.value = '';
-        }));
-      });
+        }))
+      );
+    };
+
+    if (isNew) {
+      clearAll();
     } else {
       const q = source === 'draft'
         ? state.drafts.find(x => x.id === id)
         : state.published.find(x => x.id === id);
-      if (!q) return;
-      document.getElementById('new-quiz-name').value = q.name;
-      document.getElementById('new-quiz-desc').value = q.desc || '';
-      const map = { 'sg-columns': q.sg, 'pl-columns': q.pl, 'de-sg-columns': q.de_sg, 'de-pl-columns': q.de_pl };
-      Object.entries(map).forEach(([sec, data]) => {
-        GENDERS.forEach(g => CASES.forEach(c => {
-          const el = document.getElementById(`${sec}_${g}_${c}`);
-          if (el) el.value = (data[g] && data[g][c]) ? data[g][c] : '';
-        }));
-      });
+      if (!q) { clearAll(); }
+      else {
+        document.getElementById('new-quiz-name').value = q.name;
+        document.getElementById('new-quiz-desc').value = q.desc || '';
+        const map = {'sg-columns':q.sg,'pl-columns':q.pl,'de-sg-columns':q.de_sg,'de-pl-columns':q.de_pl};
+        Object.entries(map).forEach(([sec, data]) =>
+          GENDERS.forEach(g => CASES.forEach(c => {
+            const el = document.getElementById(`${sec}_${g}_${c}`);
+            if (el) el.value = (data&&data[g]&&data[g][c]) ? data[g][c] : '';
+          }))
+        );
+      }
     }
     this.showPage('editor', isNew ? 'Neues Quiz' : 'Bearbeiten');
   },
 
-  _readEditorData() {
-    const name  = document.getElementById('new-quiz-name').value.trim();
-    const desc  = document.getElementById('new-quiz-desc').value.trim();
-    const readSection = (prefix) => {
-      const result = {};
-      GENDERS.forEach(g => {
-        result[g] = {};
-        CASES.forEach(c => { result[g][c] = document.getElementById(`${prefix}_${g}_${c}`)?.value.trim() || ''; });
-      });
-      return result;
+  _readForm() {
+    const read = prefix => {
+      const r = {};
+      GENDERS.forEach(g => { r[g]={}; CASES.forEach(c => { r[g][c] = document.getElementById(`${prefix}_${g}_${c}`)?.value.trim()||''; }); });
+      return r;
     };
-    return { name, desc,
-      sg:    readSection('sg-columns'),
-      pl:    readSection('pl-columns'),
-      de_sg: readSection('de-sg-columns'),
-      de_pl: readSection('de-pl-columns')
+    return {
+      name:  document.getElementById('new-quiz-name').value.trim(),
+      desc:  document.getElementById('new-quiz-desc').value.trim(),
+      sg:    read('sg-columns'), pl:    read('pl-columns'),
+      de_sg: read('de-sg-columns'), de_pl: read('de-pl-columns')
     };
   },
 
-  _validateEditor(data) {
-    const errEl = document.getElementById('create-error');
-    if (!data.name) { errEl.textContent = 'Bitte gib einen Quiz-Namen ein.'; errEl.classList.remove('hidden'); return false; }
-    let allFilled = true;
-    [data.sg, data.pl, data.de_sg, data.de_pl].forEach(obj => {
-      GENDERS.forEach(g => CASES.forEach(c => { if (!obj[g][c]) allFilled = false; }));
-    });
-    if (!allFilled) { errEl.textContent = 'Bitte fülle alle Felder aus.'; errEl.classList.remove('hidden'); return false; }
+  _validate(data, requireAll) {
+    const err = document.getElementById('create-error');
+    if (!data.name) { err.textContent='Bitte gib einen Quiz-Namen ein.'; err.classList.remove('hidden'); return false; }
+    if (requireAll) {
+      let ok = true;
+      [data.sg,data.pl,data.de_sg,data.de_pl].forEach(obj =>
+        GENDERS.forEach(g => CASES.forEach(c => { if (!obj[g][c]) ok=false; }))
+      );
+      if (!ok) { err.textContent='Bitte fülle alle Felder aus.'; err.classList.remove('hidden'); return false; }
+    }
     return true;
   },
 
   saveDraft() {
-    const data = this._readEditorData();
-    // Drafts können unvollständig sein – nur Name ist Pflicht
-    if (!data.name) {
-      const errEl = document.getElementById('create-error');
-      errEl.textContent = 'Bitte gib einen Quiz-Namen ein.';
-      errEl.classList.remove('hidden'); return;
-    }
+    const data = this._readForm();
+    if (!this._validate(data, false)) return;
     document.getElementById('create-error').classList.add('hidden');
 
     if (state.editingSource === 'draft' && state.editingId) {
-      // Update existing draft
       const idx = state.drafts.findIndex(q => q.id === state.editingId);
       if (idx !== -1) state.drafts[idx] = { ...state.drafts[idx], ...data };
-    } else if (state.editingSource === 'published' && state.editingId) {
-      // Save edited published quiz as new draft, keep original
-      state.drafts.push({ id: 'draft_' + Date.now(), ...data });
+      else state.drafts.push({ id: state.editingId, ...data });
     } else {
-      // New draft
+      // New draft (also when editing a published quiz → save copy as draft)
       state.drafts.push({ id: 'draft_' + Date.now(), ...data });
     }
-    saveDraftsToStorage(state.drafts);
+    persistDrafts();
     this.goHome();
   },
 
   async publishQuiz() {
-    const data = this._readEditorData();
-    if (!this._validateEditor(data)) return;
+    const data = this._readForm();
+    if (!this._validate(data, true)) return;
 
     const btn = document.getElementById('publish-btn');
-    btn.textContent = 'Veröffentlicht…'; btn.disabled = true;
+    btn.textContent = 'Wird gespeichert…'; btn.disabled = true;
 
-    const isEditingPublished = state.editingSource === 'published' && state.editingId;
-    const docId = isEditingPublished ? state.editingId : 'pub_' + Date.now();
-    const quiz = { id: docId, order: isEditingPublished
-      ? (state.published.find(q => q.id === state.editingId)?.order || Date.now())
+    const isEditPub = state.editingSource === 'published' && state.editingId;
+    const docId = isEditPub ? state.editingId : 'pub_' + Date.now();
+    const quiz  = { id: docId, order: isEditPub
+      ? (state.published.find(q=>q.id===state.editingId)?.order || Date.now())
       : Date.now(), ...data };
 
     try {
       await db.collection('quizes').doc(docId).set(quiz);
-      if (isEditingPublished) {
-        const idx = state.published.findIndex(q => q.id === state.editingId);
-        if (idx !== -1) state.published[idx] = quiz;
-      } else {
-        state.published.push(quiz);
-        // If we were editing a draft, remove it
-        if (state.editingSource === 'draft' && state.editingId) {
-          state.drafts = state.drafts.filter(q => q.id !== state.editingId);
-          saveDraftsToStorage(state.drafts);
-        }
+      // If we published a draft, remove it
+      if (state.editingSource === 'draft' && state.editingId) {
+        state.drafts = state.drafts.filter(q => q.id !== state.editingId);
+        persistDrafts();
       }
+      // snapshot will update state.published
       this.goHome();
     } catch(e) {
-      const errEl = document.getElementById('create-error');
-      errEl.textContent = 'Firebase-Fehler: ' + e.message;
-      errEl.classList.remove('hidden');
+      const err = document.getElementById('create-error');
+      err.textContent = 'Firebase-Fehler: ' + e.message;
+      err.classList.remove('hidden');
     } finally {
       btn.textContent = 'Veröffentlichen'; btn.disabled = false;
     }
@@ -553,102 +505,86 @@ const App = {
 
 // ── Quiz Engine ──────────────────────────────────────────────
 const Quiz = {
-  questions: [], idx: 0, score: 0, answered: false,
+  questions:[], idx:0, score:0, answered:false,
 
   start(quiz, phases, shuffle) {
     this.questions = this.build(quiz, phases, shuffle);
-    this.idx = 0; this.score = 0; this.answered = false;
+    this.idx=0; this.score=0; this.answered=false;
     App.showPage('quiz', quiz.name);
     this.render();
   },
 
   build(q, phases, shuffle) {
-    let qs = [];
+    let qs=[];
+    const add=(list,shuf)=>{ qs=[...qs,...(shuf?list.sort(()=>Math.random()-.5):list)]; };
 
-    if (phases.includes(1)) {
-      let p = [];
-      GENDERS.forEach(g => CASES.forEach(c => p.push({
-        phase:1, meta:`${CASE_NAMES[c]}  ·  ${GENDER_NAMES[g]}  ·  Singular`,
-        main:'Lateinische Form?', placeholder:'Latein eingeben…',
-        answer: q.sg[g][c]||'', answerDisplay: q.sg[g][c]||''
-      })));
-      qs = [...qs, ...(shuffle ? p.sort(() => Math.random()-.5) : p)];
+    if(phases.includes(1)){
+      add(GENDERS.flatMap(g=>CASES.map(c=>({phase:1,
+        meta:`${CASE_NAMES[c]}  ·  ${GENDER_NAMES[g]}  ·  Singular`,
+        main:'Lateinische Form?',placeholder:'Latein eingeben…',
+        answer:q.sg[g][c]||'',answerDisplay:q.sg[g][c]||''}))),shuffle);
     }
-    if (phases.includes(2)) {
-      let p = [];
-      GENDERS.forEach(g => CASES.forEach(c => p.push({
-        phase:2, meta:`${CASE_NAMES[c]}  ·  ${GENDER_NAMES[g]}  ·  Plural`,
-        main:'Lateinische Form?', placeholder:'Latein eingeben…',
-        answer: q.pl[g][c]||'', answerDisplay: q.pl[g][c]||''
-      })));
-      qs = [...qs, ...(shuffle ? p.sort(() => Math.random()-.5) : p)];
+    if(phases.includes(2)){
+      add(GENDERS.flatMap(g=>CASES.map(c=>({phase:2,
+        meta:`${CASE_NAMES[c]}  ·  ${GENDER_NAMES[g]}  ·  Plural`,
+        main:'Lateinische Form?',placeholder:'Latein eingeben…',
+        answer:q.pl[g][c]||'',answerDisplay:q.pl[g][c]||''}))),shuffle);
     }
-    if (phases.includes(3)) {
-      let p = [];
-      GENDERS.forEach(g => CASES.forEach(c => {
-        const isSg = Math.random() > .5;
-        const form = isSg ? q.sg[g][c] : q.pl[g][c];
-        p.push({ phase:3, meta:`${CASE_NAMES[c]}  ·  ${GENDER_NAMES[g]}  ·  ${isSg?'Singular':'Plural'}`,
-          main:'Lateinische Form?', placeholder:'Latein eingeben…',
-          answer: form||'', answerDisplay: form||'' });
+    if(phases.includes(3)){
+      const p=GENDERS.flatMap(g=>CASES.map(c=>{
+        const sg=Math.random()>.5, form=sg?q.sg[g][c]:q.pl[g][c];
+        return{phase:3,meta:`${CASE_NAMES[c]}  ·  ${GENDER_NAMES[g]}  ·  ${sg?'Singular':'Plural'}`,
+          main:'Lateinische Form?',placeholder:'Latein eingeben…',answer:form||'',answerDisplay:form||''};
       }));
-      qs = [...qs, ...p.sort(() => Math.random()-.5)];
+      qs=[...qs,...p.sort(()=>Math.random()-.5)];
     }
-    if (phases.includes(4)) {
-      let p = [];
-      GENDERS.forEach(g => CASES.forEach(c => {
-        p.push({ phase:4, meta:`Deutsch → Latein  ·  ${CASE_NAMES[c]}  ·  ${GENDER_NAMES[g]}  ·  Singular`,
-          main: q.de_sg[g][c]||'?', placeholder:'Latein eingeben…',
-          answer: q.sg[g][c]||'', answerDisplay: q.sg[g][c]||'' });
-        p.push({ phase:4, meta:`Deutsch → Latein  ·  ${CASE_NAMES[c]}  ·  ${GENDER_NAMES[g]}  ·  Plural`,
-          main: q.de_pl[g][c]||'?', placeholder:'Latein eingeben…',
-          answer: q.pl[g][c]||'', answerDisplay: q.pl[g][c]||'' });
-      }));
-      p = p.sort(() => Math.random()-.5);
-      qs = [...qs, ...(shuffle ? p : p.slice(0,20))];
+    if(phases.includes(4)){
+      let p=GENDERS.flatMap(g=>CASES.flatMap(c=>[
+        {phase:4,meta:`Deutsch → Latein  ·  ${CASE_NAMES[c]}  ·  ${GENDER_NAMES[g]}  ·  Singular`,
+          main:q.de_sg[g][c]||'?',placeholder:'Latein eingeben…',answer:q.sg[g][c]||'',answerDisplay:q.sg[g][c]||''},
+        {phase:4,meta:`Deutsch → Latein  ·  ${CASE_NAMES[c]}  ·  ${GENDER_NAMES[g]}  ·  Plural`,
+          main:q.de_pl[g][c]||'?',placeholder:'Latein eingeben…',answer:q.pl[g][c]||'',answerDisplay:q.pl[g][c]||''}
+      ])).sort(()=>Math.random()-.5);
+      qs=[...qs,...(shuffle?p:p.slice(0,20))];
     }
-    if (phases.includes(5)) {
-      let p = [];
-      GENDERS.forEach(g => CASES.forEach(c => {
-        p.push({ phase:5, meta:`Latein → Deutsch  ·  ${CASE_NAMES[c]}  ·  ${GENDER_NAMES[g]}  ·  Singular`,
-          main: q.sg[g][c]||'?', placeholder:'Deutsch eingeben…',
-          answer: q.de_sg[g][c]||'', answerDisplay: q.de_sg[g][c]||'' });
-        p.push({ phase:5, meta:`Latein → Deutsch  ·  ${CASE_NAMES[c]}  ·  ${GENDER_NAMES[g]}  ·  Plural`,
-          main: q.pl[g][c]||'?', placeholder:'Deutsch eingeben…',
-          answer: q.de_pl[g][c]||'', answerDisplay: q.de_pl[g][c]||'' });
-      }));
-      p = p.sort(() => Math.random()-.5);
-      qs = [...qs, ...(shuffle ? p : p.slice(0,20))];
+    if(phases.includes(5)){
+      let p=GENDERS.flatMap(g=>CASES.flatMap(c=>[
+        {phase:5,meta:`Latein → Deutsch  ·  ${CASE_NAMES[c]}  ·  ${GENDER_NAMES[g]}  ·  Singular`,
+          main:q.sg[g][c]||'?',placeholder:'Deutsch eingeben…',answer:q.de_sg[g][c]||'',answerDisplay:q.de_sg[g][c]||''},
+        {phase:5,meta:`Latein → Deutsch  ·  ${CASE_NAMES[c]}  ·  ${GENDER_NAMES[g]}  ·  Plural`,
+          main:q.pl[g][c]||'?',placeholder:'Deutsch eingeben…',answer:q.de_pl[g][c]||'',answerDisplay:q.de_pl[g][c]||''}
+      ])).sort(()=>Math.random()-.5);
+      qs=[...qs,...(shuffle?p:p.slice(0,20))];
     }
     return qs;
   },
 
-  render() {
-    const q = this.questions[this.idx], total = this.questions.length;
-    const labels = {1:'Phase 1 – Singular',2:'Phase 2 – Plural',3:'Phase 3 – Gemischt',4:'Phase 4 – Deutsch → Latein',5:'Phase 5 – Latein → Deutsch'};
-    document.getElementById('quiz-phase-badge').textContent   = labels[q.phase]||'';
-    document.getElementById('quiz-progress-text').textContent = `${this.idx+1} / ${total}`;
-    document.getElementById('progress-bar').style.width       = (this.idx/total*100)+'%';
-    document.getElementById('q-meta').textContent             = q.meta;
-    document.getElementById('q-main').textContent             = q.main;
-    const input = document.getElementById('answer-input');
-    input.placeholder = q.placeholder||''; input.value=''; input.disabled=false; input.focus();
+  render(){
+    const q=this.questions[this.idx],total=this.questions.length;
+    const labels={1:'Phase 1 – Singular',2:'Phase 2 – Plural',3:'Phase 3 – Gemischt',
+      4:'Phase 4 – Deutsch → Latein',5:'Phase 5 – Latein → Deutsch'};
+    document.getElementById('quiz-phase-badge').textContent=labels[q.phase]||'';
+    document.getElementById('quiz-progress-text').textContent=`${this.idx+1} / ${total}`;
+    document.getElementById('progress-bar').style.width=(this.idx/total*100)+'%';
+    document.getElementById('q-meta').textContent=q.meta;
+    document.getElementById('q-main').textContent=q.main;
+    const inp=document.getElementById('answer-input');
+    inp.placeholder=q.placeholder||''; inp.value=''; inp.disabled=false; inp.focus();
     document.getElementById('feedback-box').className='feedback-box hidden';
     document.getElementById('next-btn').classList.add('hidden');
-    this.answered = false;
+    this.answered=false;
   },
 
-  check() {
-    if (this.answered) return;
-    const input = document.getElementById('answer-input');
-    const val = input.value.trim(); if (!val) return;
-    this.answered = true; input.disabled = true;
-    const q = this.questions[this.idx], fb = document.getElementById('feedback-box');
-    if (isCorrect(val, q.answer)) {
-      this.score++;
-      fb.textContent='✓ Richtig!'; fb.className='feedback-box correct';
-    } else {
-      const acc = parseAnswers(q.answer);
+  check(){
+    if(this.answered)return;
+    const inp=document.getElementById('answer-input'),val=inp.value.trim();
+    if(!val)return;
+    this.answered=true; inp.disabled=true;
+    const q=this.questions[this.idx],fb=document.getElementById('feedback-box');
+    if(isCorrect(val,q.answer)){
+      this.score++;fb.textContent='✓ Richtig!';fb.className='feedback-box correct';
+    }else{
+      const acc=parseAnswers(q.answer);
       fb.textContent=`✗ Falsch. Richtig: ${acc.length>1?acc.join(' / '):q.answerDisplay}`;
       fb.className='feedback-box wrong';
     }
@@ -656,33 +592,30 @@ const Quiz = {
     document.getElementById('next-btn').classList.remove('hidden');
   },
 
-  next() {
+  next(){
     this.idx++;
-    if (this.idx >= this.questions.length) this.showResult(); else this.render();
+    if(this.idx>=this.questions.length)this.showResult();else this.render();
   },
 
-  showResult() {
-    const total=this.questions.length, pct=Math.round(this.score/total*100);
+  showResult(){
+    const total=this.questions.length,pct=Math.round(this.score/total*100);
     document.getElementById('result-score').textContent=`${this.score}/${total}`;
-    let msg,icon;
-    if(pct===100){msg='Perfekt! Absolut fehlerfrei.';icon='🏆';}
-    else if(pct>=80){msg='Sehr gut! Fast alles richtig.';icon='🏛️';}
-    else if(pct>=60){msg='Gut! Noch etwas üben.';icon='📜';}
-    else if(pct>=40){msg='Es geht. Mehr Übung hilft!';icon='⚡';}
-    else{msg='Weiter üben – du schaffst das!';icon='🌿';}
+    const map=[[100,'Perfekt! Absolut fehlerfrei.','🏆'],[80,'Sehr gut! Fast alles richtig.','🏛️'],
+      [60,'Gut! Noch etwas üben.','📜'],[40,'Es geht. Mehr Übung hilft!','⚡'],[0,'Weiter üben – du schaffst das!','🌿']];
+    const [,msg,icon]=map.find(([t])=>pct>=t);
     document.getElementById('result-icon').textContent=icon;
     document.getElementById('result-msg').textContent=msg;
     App.showPage('result');
   }
 };
 
-// ── Keyboard shortcuts ───────────────────────────────────────
-document.addEventListener('keydown', e => {
-  if (e.key !== 'Enter') return;
-  if (document.getElementById('page-quiz').classList.contains('active')) {
-    if (!Quiz.answered) Quiz.check(); else Quiz.next(); return;
+// ── Keyboard ─────────────────────────────────────────────────
+document.addEventListener('keydown', e=>{
+  if(e.key!=='Enter')return;
+  if(document.getElementById('page-quiz').classList.contains('active')){
+    if(!Quiz.answered)Quiz.check();else Quiz.next();return;
   }
-  if (!document.getElementById('login-overlay').classList.contains('hidden')) App.adminLogin();
+  if(!document.getElementById('login-overlay').classList.contains('hidden'))App.adminLogin();
 });
 
 App.init();
