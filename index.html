@@ -282,6 +282,23 @@
       </div>
     </div>
 
+
+    <!-- AI Prompt Note -->
+    <div class="ai-prompt-note">
+      <div class="ai-prompt-note-header">
+        <div class="ai-prompt-note-title">💡 Tipp: Vokabeln mit AI importieren</div>
+        <button class="ai-prompt-copy-btn" id="ai-copy-btn" onclick="Tables.copyAiPrompt(this)">Prompt kopieren</button>
+      </div>
+      <div class="ai-prompt-note-body">
+        Prompt kopieren → Screenshot in ChatGPT oder Claude einfügen → Ausgabe in den Texteditor einfügen → „Importieren" klicken.
+      </div>
+      <div class="ai-prompt-format">
+        <span class="ai-format-label">Format:</span>
+        <code>Latein-2.Fall-Genus-Deklination-Deutsch</code>
+        &nbsp;·&nbsp; Leere Felder als <code>#</code> &nbsp;·&nbsp; Mehrere Übersetzungen mit <code>%</code> &nbsp;·&nbsp; Optionale Teile in <code>(Klammern)</code>
+      </div>
+    </div>
+
     <!-- Mode switcher -->
     <div class="vok-mode-bar">
       <div class="vok-mode-label">Eingabemodus</div>
@@ -300,13 +317,41 @@
 
     <!-- Text editor view -->
     <div id="vok-text-view" class="hidden">
-      <div class="forms-section-title">Texteditor</div>
+      <div class="forms-section-title" style="display:flex;align-items:center;justify-content:space-between;">
+        <span>AI-Import</span>
+        <button class="outline-btn" style="padding:4px 12px;font-size:12px;" onclick="Tables.importTextVokabeln()">Importieren →</button>
+      </div>
       <div class="vok-text-hint">
-        Format pro Zeile: <code>Latein-2.Fall-Genus-Deklination-Deutsch</code><br/>
-        Nicht ausgefüllte Felder als <code>#</code> angeben. Mehrere Übersetzungen mit <code>/</code> trennen.<br/>
+        Jede Zeile eine Vokabel im Format: <code>Latein-2.Fall-Genus-Deklination-Deutsch</code><br>
+        Leere Felder als <code>#</code> &nbsp;·&nbsp; Mehrere Übersetzungen mit <code>%</code> &nbsp;·&nbsp; Optionale Teile: <code>(er%sie%es) geht</code><br>
         Beispiel: <code>aqua-aquae-f.-1. Dekl.-Wasser/Flüssigkeit</code>
       </div>
-      <textarea id="vok-textarea" class="vok-textarea" placeholder="1. aqua-aquae-f.-1. Dekl.-Wasser&#10;2. terra-terrae-f.-1. Dekl.-Erde/Land&#10;3. nauta-#-m.-1. Dekl.-Seemann"></textarea>
+      <div class="ai-prompt-box">
+        <div class="ai-prompt-header">
+          <span class="ai-prompt-label">AI-Prompt</span>
+          <button class="ai-prompt-copy-btn" onclick="Tables.copyAiPrompt()" id="ai-copy-btn">Kopieren</button>
+        </div>
+        <div class="ai-prompt-text" id="ai-prompt-text">Du bist ein Latein-Vokabel-Extraktor. Analysiere den Screenshot und extrahiere alle Vokabeln in exakt diesem Format:
+
+Format pro Zeile: Latein-2.Fall-Genus-Deklination-Deutsch
+
+Regeln:
+- Nicht vorhandene Felder mit # ersetzen
+- Mehrere Übersetzungen mit / trennen
+- Genus: m., f., oder n.
+- Deklination: 1. Dekl., 2. Dekl., 3. Dekl., 4. Dekl., oder 5. Dekl.
+- Keine Leerzeichen um die - Trennzeichen
+- Eine Vokabel pro Zeile, keine Nummerierung, keine Überschriften
+
+Beispiel:
+aqua-aquae-f.-1. Dekl.-Wasser/Flüssigkeit
+servus-servi-m.-2. Dekl.-Sklave/Diener
+tempus-temporis-n.-3. Dekl.-Zeit
+amare-#-#-#-lieben
+
+Gib ausschließlich die Vokabelzeilen aus, nichts anderes.</div>
+      </div>
+      <textarea id="vok-textarea" class="vok-textarea" placeholder="aqua-aquae-f.-1. Dekl.-Wasser%Flüssigkeit&#10;eo-#-#-#-(er%sie%es) geht&#10;nomen-#-n.-#-Name"></textarea>
     </div>
 
     <div class="create-error hidden" id="vt-error"></div>
