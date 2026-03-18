@@ -320,3 +320,12 @@ select.modal-input { cursor: pointer; }
   white-space: pre-wrap;
   user-select: all;
 }
+
+/* ── In Development Banner ── */
+.in-dev-banner {
+  display: flex; align-items: center; gap: 8px;
+  background: rgba(224,123,42,0.08); border: 1px solid var(--accent-dim);
+  border-radius: var(--radius); padding: 8px 14px; margin-bottom: 1.5rem;
+  font-size: 13px; color: var(--text2);
+}
+.in-dev-icon { font-size: 14px; }

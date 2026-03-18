@@ -41,14 +41,30 @@ function isCorrect(input, raw) {
 
 // Expand "(er%sie%es) geht" → "er geht%sie geht%es geht"
 function expandBrackets(str) {
-  if (!str) return str;
-  // Find (a%b%c) pattern and expand with surrounding text
-  return str.replace(/\(([^)]+)\)\s*/g, (match, inner, offset, full) => {
-    const prefix = full.slice(0, offset);
-    const suffix = full.slice(offset + match.length);
-    const options = inner.split('%').map(s => s.trim());
-    return options.map(o => (prefix + o + ' ' + suffix).replace(/\s+/g, ' ').trim()).join('%');
-  }).replace(/\s*%\s*/g, '%');
+  if (!str || !str.includes('(')) return str;
+  // Split on top-level % only (not inside brackets), then expand (a%b%c) suffix
+  function splitTopLevel(s) {
+    const parts = []; let depth = 0, cur = '';
+    for (const c of s) {
+      if (c === '(') { depth++; cur += c; }
+      else if (c === ')') { depth--; cur += c; }
+      else if (c === '%' && depth === 0) { parts.push(cur); cur = ''; }
+      else { cur += c; }
+    }
+    parts.push(cur);
+    return parts;
+  }
+  const expanded = [];
+  splitTopLevel(str).forEach(seg => {
+    seg = seg.trim();
+    const m = seg.match(/^\(([^)]+)\)\s*(.*)$/);
+    if (m) {
+      const opts = m[1].split('%').map(s => s.trim());
+      const suffix = m[2].trim();
+      opts.forEach(o => expanded.push(suffix ? o + ' ' + suffix : o));
+    } else { expanded.push(seg); }
+  });
+  return expanded.filter(Boolean).join('%');
 }
 
 // ── State ────────────────────────────────────────────────────
@@ -777,7 +793,20 @@ const Tables = {
 
   _parseTextRows(text) {
     const rows = [];
-    text.split('\n').forEach(line => {
+    // Pre-process: if everything is on one line, split on word boundaries
+    // A new entry looks like: word- or word-word- etc.
+    // Split before a sequence like "word-" that follows a space
+    // but only if it's not inside brackets
+    const normalized = text
+      .replace(/\r\n/g, '\n')
+      .replace(/\r/g, '\n');
+    // If there are no newlines, try to split on entry boundaries:
+    // An entry starts with a Latin word (letters only) followed by -
+    const lines = normalized.includes('\n')
+      ? normalized.split('\n')
+      : normalized.split(/(?<=\S)\s+(?=[a-zA-ZäöüÄÖÜ][a-zA-ZäöüÄÖÜ]*-)/);
+
+    lines.forEach(line => {
       line = line.trim();
       if (!line || line.startsWith('//')) return;
 
