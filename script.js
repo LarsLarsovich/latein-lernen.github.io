@@ -596,9 +596,9 @@ const Tables = {
   _renderVokabelTable(t) {
     const rows = t.rows||[];
     let html = `<div class="table-desc">${t.desc||''}</div>`;
-    html += `<div class="dekl-table-wrap"><table class="dekl-table vok-table"><thead><tr><th>Latein</th><th>Übersetzung</th><th>Genus</th><th>Dekl.</th><th>1. Fall</th><th>2. Fall</th></tr></thead><tbody>`;
+    html += `<div class="dekl-table-wrap"><table class="dekl-table vok-table"><thead><tr><th>Latein</th><th>2. Fall</th><th>Genus</th><th>Dekl.</th><th>Übersetzung</th></tr></thead><tbody>`;
     rows.forEach(r => {
-      const _de = (r.de||'–').split('%').join(' / '); html += `<tr><td><strong>${r.lat||'–'}</strong></td><td>${r.fall1||'–'}</td><td>${r.fall2||'–'}</td><td>${r.genus||'–'}</td><td>${r.dekl||'–'}</td><td>${_de}</td></tr>`;
+      const _de = (r.de||'–').split('%').join(' / '); html += `<tr><td><strong>${r.lat||'–'}</strong></td><td>${r.fall2||'–'}</td><td>${r.genus||'–'}</td><td>${r.dekl||'–'}</td><td>${_de}</td></tr>`;
     });
     html += `</tbody></table></div>`;
     return html;
@@ -824,7 +824,6 @@ const Tables = {
         genus: clean(parts[2]) || '–',
         dekl:  clean(parts[3]) || '–',
         de,
-        fall1: ''
       });
     });
     return rows.filter(r => r.lat);
