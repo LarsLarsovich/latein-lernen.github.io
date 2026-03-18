@@ -780,12 +780,44 @@ const Tables = {
     text.split('\n').forEach(line => {
       line = line.trim();
       if (!line || line.startsWith('//')) return;
-      const cleaned = line.replace(/^\d+\.\s*/, ''); // strip leading "1. "
-      const parts = cleaned.split('-');
+
+      // Strip leading numbering like "1. " or "1) "
+      line = line.replace(/^\d+[.)\s]+/, '');
+
+      // Split on - but NOT on - inside brackets like (er lacht-#)
+      // Strategy: temporarily protect brackets content
+      const bracketMap = {};
+      let bi = 0;
+      const protected_ = line.replace(/\([^)]+\)/g, match => {
+        const key = `__B${bi++}__`;
+        bracketMap[key] = match;
+        return key;
+      });
+
+      const parts = protected_.split('-');
       if (parts.length < 1) return;
-      const clean = v => (v && v.trim() && v.trim() !== '#') ? v.trim() : '';
-      const deRaw = parts.slice(4).join('-').trim();
-      const de = clean(deRaw) ? expandBrackets(clean(deRaw)) : '';
+
+      // Restore brackets
+      const restore = s => {
+        let r = s;
+        Object.entries(bracketMap).forEach(([k,v]) => { r = r.split(k).join(v); });
+        return r;
+      };
+
+      const clean = v => {
+        if (!v) return '';
+        const s = restore(v).trim();
+        return (s && s !== '#') ? s : '';
+      };
+
+      // German translation: everything from index 4 onwards, rejoined with -
+      const deRaw = parts.slice(4).map(restore).join('-').trim();
+      // Normalize: replace " / " with %, strip stray /
+      const deNorm = deRaw === '#' ? '' : deRaw
+        .replace(/\s*\/\s*/g, '%')   // " / " → "%"
+        .replace(/\s*,\s*/g, '%');    // ", " → "%"
+      const de = deNorm ? expandBrackets(deNorm) : '';
+
       rows.push({
         lat:   clean(parts[0]),
         fall2: clean(parts[1]),
@@ -839,35 +871,43 @@ const Tables = {
 
   // ── AI Prompt & Import ───────────────────────────────────
   copyAiPrompt(btn) {
-    const prompt = `Du bekommst einen Screenshot einer lateinischen Vokabelliste. Extrahiere alle Vokabeln und gib sie ausschließlich im folgenden Format aus – eine Vokabel pro Zeile, kein erklärender Text davor oder danach:
+    const prompt = `You are a Latin vocabulary extractor. Analyze the screenshot and extract every vocabulary entry in EXACTLY this format — one entry per line, nothing else:
 
-Format pro Zeile: Latein-2.Fall-Genus-Deklination-Deutsch
-- Nicht ausgefüllte oder unbekannte Felder als # angeben
-- Genus immer als m., f. oder n.
-- Deklination immer als 1. Dekl., 2. Dekl., 3. Dekl., 4. Dekl. oder 5. Dekl.
-- Mehrere Übersetzungen mit % trennen (NICHT mit /)
-- Optionale Teile einer Übersetzung in Klammern: (er%sie%es) geht → wird automatisch expandiert
-- Keine Leerzeichen um die - Trennzeichen
+Latin-GenitiveSingular-Gender-Declension-GermanTranslation
 
-Beispiele:
+STRICT RULES:
+1. Use # for any field that is missing or not applicable (e.g. for adverbs, conjunctions, verbs)
+2. Gender: write exactly m., f., or n. — nothing else
+3. Declension: write exactly 1. Dekl., 2. Dekl., 3. Dekl., 4. Dekl., or 5. Dekl. — nothing else. Use # if not a noun.
+4. Separate multiple German translations with % (percent sign) — NEVER use / or commas
+5. For verb forms like "er lacht / sie lacht / es lacht": write them as (er lacht%sie lacht%es lacht) — use round brackets and % inside
+6. NO spaces around the - separators
+7. NO line numbers, NO headers, NO explanations — only the data lines
+8. Each word gets exactly ONE line
+9. Do NOT concatenate or merge words — every word must be on its own separate line
+
+EXAMPLES:
 aqua-aquae-f.-1. Dekl.-Wasser%Flüssigkeit
 servus-servi-m.-2. Dekl.-Sklave%Diener
-corpus-corporis-n.-3. Dekl.-Körper%Leib
-manus-manus-f.-4. Dekl.-Hand%Schar
-res-rei-f.-5. Dekl.-Sache%Ding
-eo-#-#-#-(er%sie%es) geht
-nomen-#-n.-#-Name
-urbs-urbis-f.-3. Dekl.-Stadt
+pensum-pensi-n.-2. Dekl.-Aufgabe%Schulaufgabe
+ridet-#-#-#-(er lacht%sie lacht%es lacht)
+cur-#-#-#-warum
+nunc-#-#-#-jetzt%nun
+non-#-#-#-nicht
+magnus-#-#-#-groß
+amare-#-#-#-lieben
 
-Gib jetzt alle Vokabeln aus dem Screenshot in diesem Format aus. Nur die Zeilen ausgeben, nichts anderes.`;
+Now extract all vocabulary from the screenshot.`;
     navigator.clipboard.writeText(prompt).then(() => {
       const orig = btn.textContent;
       btn.textContent = '✓ Kopiert!';
       setTimeout(() => { btn.textContent = orig; }, 2000);
     }).catch(() => {
-      prompt && window.prompt('Prompt kopieren:', prompt);
+      window.prompt('Prompt kopieren:', prompt);
     });
   },
+
+
 
   importTextVokabeln() {
     const raw = document.getElementById('vok-textarea').value;
