@@ -776,25 +776,26 @@ const Tables = {
   },
 
   _parseTextRows(text) {
-    // Format: "1. Latein-fall2-genus-dekl-deutsch" – # = empty
     const rows = [];
     text.split('\n').forEach(line => {
       line = line.trim();
-      if (!line) return;
-      // Remove leading "1. " numbering if present
-      const cleaned = line.replace(/^\d+\.\s*/, '');
+      if (!line || line.startsWith('//')) return;
+      const cleaned = line.replace(/^\d+\.\s*/, ''); // strip leading "1. "
       const parts = cleaned.split('-');
       if (parts.length < 1) return;
-      const get = (i) => { const v = (parts[i]||'').trim(); return v === '#' ? '' : v; };
+      const clean = v => (v && v.trim() && v.trim() !== '#') ? v.trim() : '';
+      const deRaw = parts.slice(4).join('-').trim();
+      const de = clean(deRaw) ? expandBrackets(clean(deRaw)) : '';
       rows.push({
-        lat:   get(0),
-        fall2: get(1),
-        genus: get(2) || '–',
-        dekl:  get(3) || '–',
-        de:    parts.slice(4).join('-').trim().replace(/^#$/, '') // de can contain hyphens
+        lat:   clean(parts[0]),
+        fall2: clean(parts[1]),
+        genus: clean(parts[2]) || '–',
+        dekl:  clean(parts[3]) || '–',
+        de,
+        fall1: ''
       });
     });
-    return rows;
+    return rows.filter(r => r.lat);
   },
 
   addVokabelRow(data = {}) {
@@ -881,46 +882,6 @@ Gib jetzt alle Vokabeln aus dem Screenshot in diesem Format aus. Nur die Zeilen 
     // Switch to form view
     this.switchVokMode('form');
     document.getElementById('vok-textarea').value = '';
-  },
-
-  _parseTextRows(text) {
-    const rows = [];
-    text.split('\n').forEach(line => {
-      line = line.trim();
-      if (!line || line.startsWith('//') || line.startsWith('#')) return;
-      const parts = line.split('-');
-      if (parts.length < 2) return;
-      const clean = v => (v && v.trim() && v.trim() !== '#') ? v.trim() : '';
-      const deRaw = parts.slice(4).join('-').trim(); // de can contain hyphens
-      const de = clean(deRaw) ? expandBrackets(clean(deRaw)) : '';
-      rows.push({
-        lat:   clean(parts[0]),
-        fall2: clean(parts[1]),
-        genus: clean(parts[2]),
-        dekl:  clean(parts[3]),
-        de,
-        fall1: ''
-      });
-    });
-    return rows.filter(r => r.lat);
-  },
-
-  copyAiPrompt() {
-    const text = document.getElementById('ai-prompt-text').textContent;
-    navigator.clipboard.writeText(text).then(() => {
-      const btn = document.getElementById('ai-copy-btn');
-      btn.textContent = 'Kopiert ✓'; btn.classList.add('copied');
-      setTimeout(() => { btn.textContent = 'Kopieren'; btn.classList.remove('copied'); }, 2000);
-    }).catch(() => {
-      // Fallback for older browsers
-      const ta = document.createElement('textarea');
-      ta.value = text; document.body.appendChild(ta);
-      ta.select(); document.execCommand('copy');
-      document.body.removeChild(ta);
-      const btn = document.getElementById('ai-copy-btn');
-      btn.textContent = 'Kopiert ✓'; btn.classList.add('copied');
-      setTimeout(() => { btn.textContent = 'Kopieren'; btn.classList.remove('copied'); }, 2000);
-    });
   },
 
   async saveVokabel() {
