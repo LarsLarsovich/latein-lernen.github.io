@@ -63,9 +63,8 @@
   <!-- TABELLEN TAB -->
   <div id="tab-content-tables" class="hidden">
     <div class="in-dev-banner">
-      <span class="in-dev-icon">⚠️</span>
-      <span>in development</span>
-      <span class="in-dev-icon">⚠️</span>
+      <span class="in-dev-icon">🚧</span>
+      <span>Tabellen-Bereich – in Entwicklung</span>
     </div>
 
     <!-- Pronomen Entwürfe (admin) -->
@@ -427,8 +426,38 @@
   </div>
 </div>
 
+
+<!-- IMPRESSUM -->
+<main id="page-impressum" class="page">
+  <div class="back-row">
+    <button class="back-btn" onclick="App.goHome()">← Zurück</button>
+  </div>
+  <div class="impressum-wrap">
+    <h1 class="impressum-title">Impressum</h1>
+    <div class="impressum-section">
+      <div class="impressum-label">Betreiber</div>
+      <div class="impressum-value">Emil Zinke</div>
+    </div>
+    <div class="impressum-section">
+      <div class="impressum-label">E-Mail</div>
+      <div class="impressum-value"><a href="mailto:e.zinke@grg7.at">e.zinke@grg7.at</a></div>
+    </div>
+    <div class="impressum-section">
+      <div class="impressum-label">Zweck der Website</div>
+      <div class="impressum-value">Private, nicht-kommerzielle Lernplattform für Latein. Die Website dient ausschließlich dem persönlichen Lernen und enthält keine Werbung, keinen kommerziellen Zweck und kein öffentliches Angebot an Dritte.</div>
+    </div>
+    <div class="impressum-section">
+      <div class="impressum-label">Haftungsausschluss</div>
+      <div class="impressum-value">Alle Inhalte wurden nach bestem Wissen zusammengestellt. Für die Richtigkeit, Vollständigkeit und Aktualität der Inhalte wird keine Gewähr übernommen.</div>
+    </div>
+  </div>
+</main>
+
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script src="script.js"></script>
+<footer class="site-footer">
+  <button class="footer-link" onclick="App.showPage('impressum')">Impressum</button>
+</footer>
 </body>
 </html>

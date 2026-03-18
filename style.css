@@ -329,3 +329,17 @@ select.modal-input { cursor: pointer; }
   font-size: 13px; color: #d4a800;
 }
 .in-dev-icon { font-size: 15px; }
+
+/* ── Impressum ── */
+.impressum-wrap { max-width: 560px; }
+.impressum-title { font-family: var(--font-title); font-size: 28px; font-weight: 700; color: var(--text); margin-bottom: 2rem; }
+.impressum-section { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem 1.2rem; margin-bottom: 10px; }
+.impressum-label { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text3); font-weight: 600; margin-bottom: 5px; }
+.impressum-value { font-size: 15px; color: var(--text); line-height: 1.6; }
+.impressum-value a { color: var(--accent); text-decoration: none; }
+.impressum-value a:hover { text-decoration: underline; }
+
+/* ── Footer ── */
+.site-footer { text-align: center; padding: 2rem; border-top: 1px solid var(--border); margin-top: 2rem; }
+.footer-link { background: none; border: none; color: var(--text3); font-family: var(--font-body); font-size: 13px; cursor: pointer; transition: color 0.2s; }
+.footer-link:hover { color: var(--text2); }
