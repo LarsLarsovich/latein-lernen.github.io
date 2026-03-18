@@ -15,7 +15,7 @@
 <body>
 
 <header class="topbar">
-  <div class="logo">Latein</div>
+  <div class="logo" onclick="App.goHome()" title="Zur Startseite">Latein</div>
   <div class="topbar-center" id="topbar-center"></div>
   <div class="topbar-right">
     <button class="add-btn hidden" id="add-btn" onclick="App.openAddMenu()" title="Neu erstellen">+</button>
@@ -63,45 +63,45 @@
   <!-- TABELLEN TAB -->
   <div id="tab-content-tables" class="hidden">
     <div class="in-dev-banner">
-      <span class="in-dev-icon">⚠️</span>
-      <span>in development</span>
-      <span class="in-dev-icon">⚠️</span>
+      <span class="in-dev-icon">🚧</span>
+      <span>Tabellen-Bereich – in Entwicklung</span>
     </div>
 
-    <!-- Pronomen Entwürfe (admin) -->
-    <div id="pronomen-draft-section" class="hidden">
-      <div class="section-header">
-        <div class="section-label">Pronomina – Entwürfe</div>
-        <div class="section-hint">Nur für dich sichtbar</div>
+    <!-- ── Pronomina ── -->
+    <div class="tables-category-block">
+      <div class="tables-category-heading">
+        <div class="tables-category-heading-title">Pronomina</div>
+        <div class="tables-category-heading-line"></div>
       </div>
-      <div class="quiz-grid" id="pronomen-draft-grid"></div>
-      <div class="empty-hint" id="pronomen-draft-empty" style="display:none;">Keine Entwürfe.</div>
-      <div class="section-divider"></div>
-      <div class="section-label" style="margin-bottom:1rem;">Pronomina – Veröffentlicht</div>
-    </div>
-    <!-- Pronomen -->
-    <div class="table-category">
-      <div id="pronomen-pub-label" class="table-category-header hidden">
-        <div class="table-category-title">Pronomina</div>
+      <!-- Pronomen Entwürfe (admin) -->
+      <div id="pronomen-draft-section" class="hidden">
+        <div class="section-header">
+          <div class="section-label">Entwürfe</div>
+          <div class="section-hint">Nur für dich sichtbar</div>
+        </div>
+        <div class="quiz-grid" id="pronomen-draft-grid"></div>
+        <div class="empty-hint" id="pronomen-draft-empty" style="display:none;">Keine Entwürfe.</div>
+        <div class="section-divider"></div>
       </div>
       <div class="quiz-grid" id="pronomen-grid"></div>
       <div class="empty-hint" id="pronomen-empty" style="display:none;">Keine Pronomen-Tabellen vorhanden.</div>
     </div>
-    <!-- Vokabel Entwürfe (admin) -->
-    <div id="vokabel-draft-section" class="hidden" style="margin-top:2rem;">
-      <div class="section-header">
-        <div class="section-label">Vokabeln – Entwürfe</div>
-        <div class="section-hint">Nur für dich sichtbar</div>
+
+    <!-- ── Vokabeln ── -->
+    <div class="tables-category-block">
+      <div class="tables-category-heading">
+        <div class="tables-category-heading-title">Vokabeln</div>
+        <div class="tables-category-heading-line"></div>
       </div>
-      <div class="quiz-grid" id="vokabel-draft-grid"></div>
-      <div class="empty-hint" id="vokabel-draft-empty" style="display:none;">Keine Entwürfe.</div>
-      <div class="section-divider"></div>
-      <div class="section-label" style="margin-bottom:1rem;">Vokabeln – Veröffentlicht</div>
-    </div>
-    <!-- Vokabeln -->
-    <div class="table-category" style="margin-top:1rem;">
-      <div id="vokabel-pub-label" class="table-category-header hidden">
-        <div class="table-category-title">Vokabeln</div>
+      <!-- Vokabel Entwürfe (admin) -->
+      <div id="vokabel-draft-section" class="hidden">
+        <div class="section-header">
+          <div class="section-label">Entwürfe</div>
+          <div class="section-hint">Nur für dich sichtbar</div>
+        </div>
+        <div class="quiz-grid" id="vokabel-draft-grid"></div>
+        <div class="empty-hint" id="vokabel-draft-empty" style="display:none;">Keine Entwürfe.</div>
+        <div class="section-divider"></div>
       </div>
       <div class="quiz-grid" id="vokabel-grid"></div>
       <div class="empty-hint" id="vokabel-empty" style="display:none;">Keine Vokabel-Tabellen vorhanden.</div>
