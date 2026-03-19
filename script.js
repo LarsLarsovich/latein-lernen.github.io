@@ -899,33 +899,58 @@ const Tables = {
 
   // ── AI Prompt & Import ───────────────────────────────────
   copyAiPrompt(btn) {
-    const prompt = `You are a Latin vocabulary extractor. Analyze the screenshot and extract every vocabulary entry in EXACTLY this format — one entry per line, nothing else:
+    const prompt = `You are a Latin vocabulary extractor. You will receive either a screenshot of a Latin vocabulary list OR pasted text. Extract every vocabulary entry in EXACTLY this format — one entry per line, nothing else:
 
-Latin-GenitiveSingular-Gender-Declension-GermanTranslation
+Latin-SecondField-Gender-Declension-GermanTranslation
+
+WHAT TO PUT IN EACH FIELD:
+
+Field 1 - Latin word:
+- Nouns: Nominative singular (e.g. aqua)
+- Adjectives: ALL three gender forms: bonus/a/um or magnus/a/um
+- Verbs: ALWAYS the INFINITIVE (e.g. clamare, ridere, laborare) — NEVER the conjugated form
+- Other (adverb, conjunction, particle): the word as-is
+
+Field 2 - Second field:
+- Nouns: Genitive singular (e.g. aquae, servi, corporis)
+- Adjectives: #
+- Verbs: 1st person singular present (e.g. clamo, rideo, laboro)
+- Other: #
+
+Field 3 - Gender:
+- Nouns: exactly m., f., or n.
+- Everything else: #
+
+Field 4 - Declension:
+- Nouns: exactly 1. Dekl., 2. Dekl., 3. Dekl., 4. Dekl., or 5. Dekl.
+- Everything else: #
+
+Field 5 - German translation:
+- Separate multiple translations with % (NEVER use / or commas)
+- Verb translations: use bracket notation with % inside: (ich rufe%er ruft%sie ruft%es ruft)
+- Adjectives: just the base meaning (e.g. gut, gross, schlecht)
 
 STRICT RULES:
-1. Use # for any field that is missing or not applicable (e.g. for adverbs, conjunctions, verbs)
-2. Gender: write exactly m., f., or n. — nothing else
-3. Declension: write exactly 1. Dekl., 2. Dekl., 3. Dekl., 4. Dekl., or 5. Dekl. — nothing else. Use # if not a noun.
-4. Separate multiple German translations with % (percent sign) — NEVER use / or commas
-5. For verb forms like "er lacht / sie lacht / es lacht": write them as (er lacht%sie lacht%es lacht) — use round brackets and % inside
-6. NO spaces around the - separators
-7. NO line numbers, NO headers, NO explanations — only the data lines
-8. Each word gets exactly ONE line
-9. Do NOT concatenate or merge words — every word must be on its own separate line
+1. Use # for any field that is not applicable
+2. NO spaces around the - separators
+3. NO line numbers, NO headers, NO explanations — only the data lines
+4. Each word gets exactly ONE line
+5. Do NOT merge or concatenate words
 
 EXAMPLES:
-aqua-aquae-f.-1. Dekl.-Wasser%Flüssigkeit
-servus-servi-m.-2. Dekl.-Sklave%Diener
-pensum-pensi-n.-2. Dekl.-Aufgabe%Schulaufgabe
-ridet-#-#-#-(er lacht%sie lacht%es lacht)
+aqua-aquae-f.-1. Dekl.-Wasser%Flussigkeit
+bonus/a/um-#-#-#-gut
+magnus/a/um-#-#-#-gross
+clamare-clamo-#-#-(ich rufe%er ruft%sie ruft%es ruft)
+ridere-rideo-#-#-(ich lache%er lacht%sie lacht%es lacht)
+laborare-laboro-#-#-(ich arbeite%er arbeitet%sie arbeitet%es arbeitet)
 cur-#-#-#-warum
 nunc-#-#-#-jetzt%nun
 non-#-#-#-nicht
-magnus-#-#-#-groß
-amare-#-#-#-lieben
+pensum-pensi-n.-2. Dekl.-Aufgabe
+servus-servi-m.-2. Dekl.-Sklave%Diener
 
-Now extract all vocabulary from the screenshot.`;
+Now extract all vocabulary from the provided screenshot or text.`;
     navigator.clipboard.writeText(prompt).then(() => {
       const orig = btn.textContent;
       btn.textContent = '✓ Kopiert!';
