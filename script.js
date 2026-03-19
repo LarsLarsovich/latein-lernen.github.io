@@ -1098,16 +1098,29 @@ const VokSearch = {
   },
 
   // ── Alle Vokabeln ──────────────────────────────────────────
+  _sortMode: 'lat', // 'lat' or 'de'
+
   openAlleVokabeln() {
-    // Sort tables alphabetically
-    const sorted = [...state.vokabel].sort((a,b) => a.name.localeCompare(b.name, 'de'));
-    const total = sorted.reduce((s,t)=>(t.rows?.length||0)+s, 0);
-    document.getElementById('alle-count-badge').textContent = total + ' Vokabeln';
+    this._sortMode = 'lat';
     document.getElementById('alle-search-input').value = '';
     document.getElementById('filter-genus').value = '';
     document.getElementById('filter-dekl').value = '';
+    this._updateSortBtns();
     this._renderAlleResults('', '', '');
     App.showPage('alle-vokabeln', 'Alle Vokabeln');
+  },
+
+  setSortMode(mode) {
+    this._sortMode = mode;
+    this._updateSortBtns();
+    this.search();
+  },
+
+  _updateSortBtns() {
+    const btnLat = document.getElementById('sort-btn-lat');
+    const btnDe  = document.getElementById('sort-btn-de');
+    if (btnLat) btnLat.classList.toggle('active', this._sortMode === 'lat');
+    if (btnDe)  btnDe.classList.toggle('active',  this._sortMode === 'de');
   },
 
   search() {
@@ -1118,15 +1131,23 @@ const VokSearch = {
   },
 
   _renderAlleResults(q, genus, dekl) {
-    const sorted = [...state.vokabel].sort((a,b) => a.name.localeCompare(b.name, 'de'));
+    const tables = [...state.vokabel].sort((a,b) =>
+      a.name.localeCompare(b.name, 'de', {numeric:true, sensitivity:'base'})
+    );
     const matched = [];
-    sorted.forEach(t => {
+    tables.forEach(t => {
       (t.rows||[]).forEach((r, idx) => {
         if (this._matches(r, q, genus, dekl)) {
           matched.push({ r, idx, tid: t.id, tname: t.name });
         }
       });
     });
+    // Sort results
+    if (this._sortMode === 'lat') {
+      matched.sort((a,b) => (a.r.lat||'').localeCompare(b.r.lat||'', 'de', {sensitivity:'base'}));
+    } else {
+      matched.sort((a,b) => (a.r.de||'').localeCompare(b.r.de||'', 'de', {sensitivity:'base'}));
+    }
     document.getElementById('alle-count-badge').textContent = matched.length + ' Vokabeln';
     document.getElementById('alle-vok-results').innerHTML = this._renderRows(matched, null, true);
   },
