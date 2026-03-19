@@ -63,9 +63,8 @@
   <!-- TABELLEN TAB -->
   <div id="tab-content-tables" class="hidden">
     <div class="in-dev-banner">
-      <span class="in-dev-icon">⚠️</span>
-      <span>in development</span>
-       <span class="in-dev-icon">⚠️</span>
+      <span class="in-dev-icon">🚧</span>
+      <span>Tabellen-Bereich – in Entwicklung</span>
     </div>
 
     <!-- ── Pronomina ── -->
@@ -74,7 +73,6 @@
         <div class="tables-category-heading-title">Pronomina</div>
         <div class="tables-category-heading-line"></div>
       </div>
-      <!-- Pronomen Entwürfe (admin) -->
       <div id="pronomen-draft-section" class="hidden">
         <div class="section-header">
           <div class="section-label">Entwürfe</div>
@@ -94,8 +92,15 @@
         <div class="tables-category-heading-title">Vokabeln</div>
         <div class="tables-category-heading-line"></div>
       </div>
-      <!-- Vokabel Entwürfe (admin) -->
-      <div id="vokabel-draft-section" class="hidden">
+
+      <!-- Alle Vokabeln Card -->
+      <div class="quiz-card alle-vok-card" onclick="Tables.openAlleVokabeln()">
+        <div class="alle-vok-icon">∑</div>
+        <div class="quiz-card-name">Alle Vokabeln</div>
+        <div class="quiz-card-desc" id="alle-vok-count">Wird geladen…</div>
+      </div>
+
+      <div id="vokabel-draft-section" class="hidden" style="margin-top:1rem;">
         <div class="section-header">
           <div class="section-label">Entwürfe</div>
           <div class="section-hint">Nur für dich sichtbar</div>
@@ -104,7 +109,7 @@
         <div class="empty-hint" id="vokabel-draft-empty" style="display:none;">Keine Entwürfe.</div>
         <div class="section-divider"></div>
       </div>
-      <div class="quiz-grid" id="vokabel-grid"></div>
+      <div class="quiz-grid" id="vokabel-grid" style="margin-top:1rem;"></div>
       <div class="empty-hint" id="vokabel-empty" style="display:none;">Keine Vokabel-Tabellen vorhanden.</div>
     </div>
   </div>
@@ -185,11 +190,32 @@
 ══════════════════════════════════════════ -->
 <main id="page-table-view" class="page">
   <div class="back-row">
-    <button class="back-btn" onclick="App.goHome()">← Zurück</button>
+    <button class="back-btn" onclick="App.goHome();App.switchTab('tables')">← Zurück</button>
     <div class="editor-page-title" id="table-view-title"></div>
     <div style="margin-left:auto;display:flex;gap:8px;" id="table-view-admin-btns" class="hidden">
       <button class="draft-btn" onclick="App.editTableFromView()">Bearbeiten</button>
       <button class="draft-btn" onclick="App.createQuizFromTable()">→ Quiz erstellen</button>
+    </div>
+  </div>
+  <div id="table-view-search" class="hidden">
+    <div class="vok-search-bar" style="margin-bottom:1rem;">
+      <input type="text" id="table-search-input" class="vok-search-input" placeholder="Suchen…" oninput="VokSearch.searchTable()" />
+      <div class="vok-filters">
+        <select class="vok-filter-select" id="table-filter-genus" onchange="VokSearch.searchTable()">
+          <option value="">Alle Genera</option>
+          <option value="m.">m.</option>
+          <option value="f.">f.</option>
+          <option value="n.">n.</option>
+        </select>
+        <select class="vok-filter-select" id="table-filter-dekl" onchange="VokSearch.searchTable()">
+          <option value="">Alle Dekl.</option>
+          <option value="1. Dekl.">1. Dekl.</option>
+          <option value="2. Dekl.">2. Dekl.</option>
+          <option value="3. Dekl.">3. Dekl.</option>
+          <option value="4. Dekl.">4. Dekl.</option>
+          <option value="5. Dekl.">5. Dekl.</option>
+        </select>
+      </div>
     </div>
   </div>
   <div id="table-view-content"></div>
@@ -400,7 +426,7 @@
   </div>
 </div>
 
-<!-- Card action (published quiz) -->
+<!-- Card action modal -->
 <div class="modal-overlay hidden" id="card-action-overlay" onclick="App.closeCardAction(event)">
   <div class="modal card-action-modal">
     <button class="modal-close" onclick="App.closeCardAction()">✕</button>
@@ -408,6 +434,7 @@
     <div class="card-action-desc" id="card-action-desc"></div>
     <div class="card-action-btns">
       <button class="start-btn" onclick="App.editFromModal()">Bearbeiten</button>
+      <button class="draft-btn" id="card-action-publish-btn" onclick="App.publishFromModal()" style="display:none;">Veröffentlichen</button>
       <button class="danger-btn" onclick="App.deleteFromModal()">Löschen</button>
       <button class="outline-btn" onclick="App.closeCardAction()">Abbrechen</button>
     </div>
@@ -428,6 +455,46 @@
   </div>
 </div>
 
+
+
+
+<!-- ALLE VOKABELN -->
+<main id="page-alle-vokabeln" class="page">
+  <div class="back-row">
+    <button class="back-btn" onclick="App.goHome();App.switchTab('tables')">← Zurück</button>
+    <div class="editor-page-title">Alle Vokabeln</div>
+    <div class="vok-count-badge" id="alle-count-badge"></div>
+  </div>
+  <div class="vok-search-bar">
+    <input type="text" id="alle-search-input" class="vok-search-input" placeholder="Suchen… (Latein, Deutsch, oder deklinierte Form)" oninput="VokSearch.search()" />
+    <div class="vok-filters">
+      <select class="vok-filter-select" id="filter-genus" onchange="VokSearch.search()">
+        <option value="">Alle Genera</option>
+        <option value="m.">Maskulinum (m.)</option>
+        <option value="f.">Femininum (f.)</option>
+        <option value="n.">Neutrum (n.)</option>
+      </select>
+      <select class="vok-filter-select" id="filter-dekl" onchange="VokSearch.search()">
+        <option value="">Alle Deklinationen</option>
+        <option value="1. Dekl.">1. Deklination</option>
+        <option value="2. Dekl.">2. Deklination</option>
+        <option value="3. Dekl.">3. Deklination</option>
+        <option value="4. Dekl.">4. Deklination</option>
+        <option value="5. Dekl.">5. Deklination</option>
+      </select>
+    </div>
+  </div>
+  <div id="alle-vok-results"></div>
+</main>
+
+<!-- VOKABEL DETAIL -->
+<main id="page-vok-detail" class="page">
+  <div class="back-row">
+    <button class="back-btn" id="vok-detail-back">← Zurück</button>
+    <button class="draft-btn hidden" id="vok-detail-edit-btn" onclick="VokDetail.openOverride()">Formen bearbeiten</button>
+  </div>
+  <div id="vok-detail-content"></div>
+</main>
 
 <!-- IMPRESSUM -->
 <main id="page-impressum" class="page">
@@ -455,6 +522,20 @@
   </div>
 </main>
 
+
+<!-- MODAL: Manuelle Konjugation/Deklination (Admin) -->
+<div class="modal-overlay hidden" id="override-overlay" onclick="VokDetail.closeOverride(event)">
+  <div class="modal override-modal">
+    <button class="modal-close" onclick="VokDetail.closeOverride()">✕</button>
+    <div class="modal-title" id="override-modal-title">Formen bearbeiten</div>
+    <div class="override-hint">Hier kannst du die automatisch generierten Formen manuell überschreiben. Leer lassen = automatisch berechnen.</div>
+    <div id="override-fields"></div>
+    <div class="editor-actions" style="margin-top:1.2rem;">
+      <button class="start-btn" onclick="VokDetail.saveOverride()">Speichern</button>
+      <button class="outline-btn" onclick="VokDetail.closeOverride()">Abbrechen</button>
+    </div>
+  </div>
+</div>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script src="script.js"></script>

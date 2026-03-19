@@ -213,30 +213,28 @@ const App = {
       }
     }
 
-    // Vokabel tables
+    // Vokabel tables - sorted alphabetically
     const vg = document.getElementById('vokabel-grid');
     const ve = document.getElementById('vokabel-empty');
     vg.innerHTML = '';
-    if (!state.vokabel.length) { ve.style.display='block'; }
-    else { ve.style.display='none'; state.vokabel.forEach(t=>vg.appendChild(this._makeTableCard(t,'vokabel'))); }
+    const sortedVok = [...state.vokabel].sort((a,b)=>a.name.localeCompare(b.name,'de',{numeric:true,sensitivity:'base'}));
+    if (!sortedVok.length) { ve.style.display='block'; }
+    else { ve.style.display='none'; sortedVok.forEach(t=>vg.appendChild(this._makeTableCard(t,'vokabel'))); }
+    // Update alle-vokabeln count
+    const alleCount = sortedVok.reduce((s,t)=>(t.rows?.length||0)+s,0);
+    const alleEl = document.getElementById('alle-vok-count');
+    if (alleEl) alleEl.textContent = alleCount + ' Vokabeln aus ' + sortedVok.length + ' Listen';
   },
 
   _makeDraftCard(q) {
     const card = document.createElement('div');
-    card.className = 'quiz-card admin-mode draft-card';
+    card.className = 'quiz-card admin-mode-click draft-card';
     card.innerHTML = `
       <div class="draft-pill">Entwurf</div>
       <div class="quiz-card-name">${q.name}</div>
       <div class="quiz-card-desc">${q.desc||''}</div>
-      <div class="card-admin-overlay">
-        <button class="card-overlay-btn card-overlay-edit">Bearbeiten</button>
-        <button class="card-overlay-btn card-overlay-pub">Veröffentlichen</button>
-        <button class="card-overlay-btn card-overlay-del">Löschen</button>
-      </div>`;
-    card.querySelector('.card-overlay-edit').onclick = e=>{e.stopPropagation();App.openEditor(q.id,'draft');};
-    card.querySelector('.card-overlay-pub').onclick  = e=>{e.stopPropagation();App.publishDraft(q.id,e.target);};
-    card.querySelector('.card-overlay-del').onclick  = e=>{e.stopPropagation();App.deleteDraft(q.id);};
-    card.onclick = ()=>App.openSetup(q.id,'draft');
+    `;
+    card.onclick = () => App.showDraftActions(q.id);
     return card;
   },
 
@@ -554,6 +552,10 @@ const App = {
     const t=state.pronomen.find(x=>x.id===state.tableViewId); if(!t)return;
     this.openEditor(null,null);
     setTimeout(()=>this._fillFromPronomenTable(t),50);
+  },
+
+  openAlleVokabeln() {
+    VokSearch.openAlleVokabeln();
   }
 };
 
@@ -563,14 +565,30 @@ function escHtml(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').
 const Tables = {
 
   // ── View ─────────────────────────────────────────────────
-  viewTable(id, type) {
+  viewTable(id, type, isDraft) {
     state.tableViewId=id; state.tableViewType=type;
-    const t = type==='pronomen' ? state.pronomen.find(x=>x.id===id) : state.vokabel.find(x=>x.id===id);
+    const arr = isDraft
+      ? (type==='pronomen' ? state.pronomenDrafts : state.vokabelDrafts)
+      : (type==='pronomen' ? state.pronomen : state.vokabel);
+    const t = arr.find(x=>x.id===id);
     if(!t)return;
     document.getElementById('table-view-title').textContent=t.name;
     document.getElementById('table-view-admin-btns').classList.toggle('hidden',!state.adminLoggedIn);
-    const content=document.getElementById('table-view-content');
-    content.innerHTML = type==='pronomen' ? this._renderPronomenTable(t) : this._renderVokabelTable(t);
+
+    // Show search bar only for vokabel tables (not for admins in edit mode? no – show for all)
+    const searchWrap = document.getElementById('table-view-search');
+    if (type === 'vokabel') {
+      searchWrap.classList.remove('hidden');
+      document.getElementById('table-search-input').value = '';
+      document.getElementById('table-filter-genus').value = '';
+      document.getElementById('table-filter-dekl').value = '';
+      VokSearch.initTableSearch(id, t.rows || []);
+    } else {
+      searchWrap.classList.add('hidden');
+    }
+
+    const contentEl = document.getElementById('table-view-content');
+    contentEl.innerHTML = type==='pronomen' ? this._renderPronomenTable(t) : this._renderVokabelTable(t);
     App.showPage('table-view', t.name);
   },
 
@@ -613,10 +631,19 @@ const Tables = {
     const rows = t.rows||[];
     let html = `<div class="table-desc">${t.desc||''}</div>`;
     html += `<div class="dekl-table-wrap"><table class="dekl-table vok-table"><thead><tr><th>Latein</th><th>2. Fall</th><th>Genus</th><th>Dekl.</th><th>Übersetzung</th></tr></thead><tbody>`;
-    rows.forEach(r => {
-      const _de = (r.de||'–').split('%').join(' / '); html += `<tr><td><strong>${r.lat||'–'}</strong></td><td>${r.fall2||'–'}</td><td>${r.genus||'–'}</td><td>${r.dekl||'–'}</td><td>${_de}</td></tr>`;
+    rows.forEach((r, i) => {
+      const _de = (r.de||'–').split('%').join(' / ');
+      html += `<tr class="vok-row-clickable" onclick="VokDetail.open(${i},'${t.id}')">
+        <td><strong>${r.lat||'–'}</strong></td>
+        <td>${r.fall2||'–'}</td>
+        <td>${r.genus||'–'}</td>
+        <td>${r.dekl||'–'}</td>
+        <td>${_de}</td>
+        <td class="vok-row-arrow">›</td>
+      </tr>`;
     });
     html += `</tbody></table></div>`;
+    html += `<div class="vok-table-hint">Auf ein Wort tippen für Details &amp; Deklination/Konjugation</div>`;
     return html;
   },
 
@@ -720,6 +747,10 @@ const Tables = {
   buildVokabelRow_template() {}, // placeholder, rows built dynamically
 
   _vokEditorMode: 'form', // 'form' | 'text'
+
+  openAlleVokabeln() {
+    VokSearch.openAlleVokabeln();
+  },
 
   openVokabelEditor(id, source) {
     const isNew = !id;
@@ -1004,6 +1035,467 @@ Now extract all vocabulary from the provided screenshot or text.`;
   }
 };
 
+
+
+// ── Vokabel Search Engine ─────────────────────────────────────
+
+const VokSearch = {
+  _currentTableId: null,
+  _currentTableRows: [],
+
+  // Generate all forms for a row for fuzzy matching
+  _allForms(r) {
+    const forms = new Set();
+    const add = s => { if (s && s !== '#' && s !== '–') forms.add(s.toLowerCase()); };
+
+    add(r.lat); add(r.fall2); add(r.de);
+    // Add all % variants of translation
+    if (r.de) r.de.split('%').forEach(d => add(d.trim()));
+
+    const type = Latin.detectType(r);
+    if (type === 'verb') {
+      const conj = Latin.conjugateVerb(r.lat||'', r.fall2||'');
+      if (conj) conj.forms.forEach(([,f]) => add(f));
+    } else if (type === 'noun' && r.fall2 && r.fall2 !== '#' && r.fall2 !== '–') {
+      const res = Latin.declineNoun(r.lat||'', r.fall2||'', r.genus||'');
+      if (res) { res.sg.forEach(f=>add(f)); res.pl.forEach(f=>add(f)); }
+    } else if (type === 'adj') {
+      const res = Latin.declineAdj(r.lat||'');
+      if (res) {
+        ['m_sg','f_sg','n_sg','m_pl','f_pl','n_pl'].forEach(k=>res[k]?.forEach(f=>add(f)));
+      }
+    }
+    return forms;
+  },
+
+  _matches(r, query, genus, dekl) {
+    if (genus && (r.genus||'') !== genus) return false;
+    if (dekl  && (r.dekl ||'') !== dekl)  return false;
+    if (!query) return true;
+    const q = query.toLowerCase().trim();
+    return this._allForms(r).has(q) ||
+      [...this._allForms(r)].some(f => f.includes(q));
+  },
+
+  _renderRows(rows, tableId, showSource) {
+    if (!rows.length) return '<div class="empty-hint">Keine Vokabeln gefunden.</div>';
+    let html = '<div class="dekl-table-wrap"><table class="dekl-table vok-table"><thead><tr>';
+    html += '<th>Latein</th><th>2. Fall</th><th>Genus</th><th>Dekl.</th><th>Übersetzung</th>';
+    if (showSource) html += '<th>Liste</th>';
+    html += '</tr></thead><tbody>';
+    rows.forEach(({r, idx, tid, tname}) => {
+      const de = (r.de||'–').split('%').join(' / ');
+      const clickId = tid || tableId;
+      html += `<tr class="vok-row-clickable" onclick="VokDetail.open(${idx},'${clickId}')">
+        <td><strong>${r.lat||'–'}</strong></td>
+        <td>${r.fall2||'–'}</td><td>${r.genus||'–'}</td><td>${r.dekl||'–'}</td>
+        <td>${de}</td>`;
+      if (showSource) html += `<td style="font-size:11px;color:var(--text3);">${tname||''}</td>`;
+      html += `<td class="vok-row-arrow">›</td></tr>`;
+    });
+    html += '</tbody></table></div>';
+    return html;
+  },
+
+  // ── Alle Vokabeln ──────────────────────────────────────────
+  openAlleVokabeln() {
+    // Sort tables alphabetically
+    const sorted = [...state.vokabel].sort((a,b) => a.name.localeCompare(b.name, 'de'));
+    const total = sorted.reduce((s,t)=>(t.rows?.length||0)+s, 0);
+    document.getElementById('alle-count-badge').textContent = total + ' Vokabeln';
+    document.getElementById('alle-search-input').value = '';
+    document.getElementById('filter-genus').value = '';
+    document.getElementById('filter-dekl').value = '';
+    this._renderAlleResults('', '', '');
+    App.showPage('alle-vokabeln', 'Alle Vokabeln');
+  },
+
+  search() {
+    const q     = document.getElementById('alle-search-input').value;
+    const genus = document.getElementById('filter-genus').value;
+    const dekl  = document.getElementById('filter-dekl').value;
+    this._renderAlleResults(q, genus, dekl);
+  },
+
+  _renderAlleResults(q, genus, dekl) {
+    const sorted = [...state.vokabel].sort((a,b) => a.name.localeCompare(b.name, 'de'));
+    const matched = [];
+    sorted.forEach(t => {
+      (t.rows||[]).forEach((r, idx) => {
+        if (this._matches(r, q, genus, dekl)) {
+          matched.push({ r, idx, tid: t.id, tname: t.name });
+        }
+      });
+    });
+    document.getElementById('alle-count-badge').textContent = matched.length + ' Vokabeln';
+    document.getElementById('alle-vok-results').innerHTML = this._renderRows(matched, null, true);
+  },
+
+  // ── Table-specific search ──────────────────────────────────
+  initTableSearch(tableId, rows) {
+    this._currentTableId = tableId;
+    this._currentTableRows = rows;
+  },
+
+  searchTable() {
+    const q     = document.getElementById('table-search-input').value;
+    const genus = document.getElementById('table-filter-genus').value;
+    const dekl  = document.getElementById('table-filter-dekl').value;
+    const matched = this._currentTableRows
+      .map((r, idx) => ({ r, idx, tid: this._currentTableId }))
+      .filter(({r}) => this._matches(r, q, genus, dekl));
+    document.getElementById('table-view-content').innerHTML =
+      this._renderRows(matched, this._currentTableId, false);
+  }
+};
+
+// ── Latin Grammar Engine ─────────────────────────────────────
+
+const Latin = {
+
+  // Detect word type from data
+  detectType(r) {
+    const lat   = (r.lat   || '').trim();
+    const fall2 = (r.fall2 || '').trim();
+    const genus = (r.genus || '').trim();
+    // Adjective: lat contains /
+    if (lat.includes('/')) return 'adj';
+    // Noun: has genus m./f./n.
+    if (['m.','f.','n.'].includes(genus)) return 'noun';
+    // Verb: fall2 looks like 1st person (ends in -o or -m, or starts with same root)
+    if (fall2 && fall2 !== '#' && fall2 !== '–' &&
+        (fall2.endsWith('o') || fall2.endsWith('m') || fall2.endsWith('or'))) return 'verb';
+    // Check infinitive ending
+    if (lat.endsWith('are') || lat.endsWith('ere') || lat.endsWith('ire')) return 'verb';
+    return 'indecl';
+  },
+
+  // ── VERB CONJUGATION (Präsens Aktiv) ────────────────────────
+  conjugateVerb(inf, form1sg) {
+    // Determine conjugation class from infinitive
+    let stem = '', endings = [], conj = '';
+    if (inf.endsWith('are')) {
+      stem = inf.slice(0, -3);
+      endings = ['o','as','at','amus','atis','ant'];
+      conj = '1. Konjugation';
+    } else if (inf.endsWith('ire')) {
+      stem = inf.slice(0, -3);
+      endings = ['io','is','it','imus','itis','iunt'];
+      conj = '4. Konjugation';
+    } else if (inf.endsWith('ere')) {
+      // 2. or 3. – check 1sg form
+      // 2. Konj: 1sg ends in -eo (habeo, video)
+      if (form1sg && form1sg.endsWith('eo')) {
+        stem = inf.slice(0, -3);
+        endings = ['eo','es','et','emus','etis','ent'];
+        conj = '2. Konjugation';
+      } else {
+        // 3. Konj
+        stem = inf.slice(0, -3);
+        // use 1sg form directly if available
+        const sg1 = (form1sg && form1sg !== '#' && form1sg !== '–') ? form1sg : stem + 'o';
+        // derive stem from 1sg: drop -o
+        const stem3 = sg1.endsWith('o') ? sg1.slice(0,-1) : stem;
+        endings = null; // handle manually
+        return {
+          conj: '3. Konjugation',
+          forms: [
+            ['1. Sg.', sg1],
+            ['2. Sg.', stem3 + 'is'],
+            ['3. Sg.', stem3 + 'it'],
+            ['1. Pl.', stem3 + 'imus'],
+            ['2. Pl.', stem3 + 'itis'],
+            ['3. Pl.', stem3 + 'unt']
+          ]
+        };
+      }
+    } else {
+      return null;
+    }
+
+    const sg1 = (form1sg && form1sg !== '#' && form1sg !== '–') ? form1sg : stem + endings[0];
+    return {
+      conj,
+      forms: [
+        ['1. Sg. (ich)',  sg1],
+        ['2. Sg. (du)',   stem + endings[1]],
+        ['3. Sg. (er/sie/es)', stem + endings[2]],
+        ['1. Pl. (wir)', stem + endings[3]],
+        ['2. Pl. (ihr)', stem + endings[4]],
+        ['3. Pl. (sie)', stem + endings[5]]
+      ]
+    };
+  },
+
+  // ── NOUN DECLENSION ──────────────────────────────────────────
+  declineNoun(nom, gen, genus) {
+    // Determine declension from genitive
+    let decl = 0;
+    if (gen.endsWith('ae'))  decl = 1;
+    else if (gen.endsWith('i'))   decl = 2;
+    else if (gen.endsWith('is'))  decl = 3;
+    else if (gen.endsWith('us'))  decl = 4;
+    else if (gen.endsWith('ei') || gen.endsWith('ei')) decl = 5;
+
+    const n = genus === 'n.';
+    let sg = [], pl = [];
+
+    if (decl === 1) {
+      const stem = gen.slice(0, -2); // remove -ae → stem
+      sg = [nom, gen, stem+'ae', stem+'am', nom, stem+'a'];
+      pl = [stem+'ae', stem+'arum', stem+'is', stem+'as', stem+'ae', stem+'is'];
+    } else if (decl === 2) {
+      const stem = gen.slice(0, -1); // remove -i
+      if (n) {
+        sg = [nom, gen, stem+'o', nom, nom, stem+'o'];
+        pl = [stem+'a', stem+'orum', stem+'is', stem+'a', stem+'a', stem+'is'];
+      } else {
+        sg = [nom, gen, stem+'o', stem+'um', nom, stem+'o'];
+        pl = [stem+'i', stem+'orum', stem+'is', stem+'os', stem+'i', stem+'is'];
+      }
+    } else if (decl === 3) {
+      const stem = gen.slice(0, -2); // remove -is
+      if (n) {
+        sg = [nom, gen, stem+'i', nom, nom, stem+'e'];
+        pl = [stem+'ia', stem+'ium', stem+'ibus', stem+'ia', stem+'ia', stem+'ibus'];
+      } else {
+        sg = [nom, gen, stem+'i', stem+'em', nom, stem+'e'];
+        pl = [stem+'es', stem+'um', stem+'ibus', stem+'es', stem+'es', stem+'ibus'];
+      }
+    } else if (decl === 4) {
+      const stem = gen.slice(0, -2); // remove -us
+      if (n) {
+        sg = [nom, gen, stem+'u', nom, nom, stem+'u'];
+        pl = [stem+'ua', stem+'uum', stem+'ibus', stem+'ua', stem+'ua', stem+'ibus'];
+      } else {
+        sg = [nom, gen, stem+'ui', stem+'um', nom, stem+'u'];
+        pl = [stem+'us', stem+'uum', stem+'ibus', stem+'us', stem+'us', stem+'ibus'];
+      }
+    } else if (decl === 5) {
+      const stem = gen.slice(0, -2); // remove -ei
+      sg = [nom, gen, stem+'ei', stem+'em', nom, stem+'e'];
+      pl = [stem+'es', stem+'erum', stem+'ebus', stem+'es', stem+'es', stem+'ebus'];
+    }
+
+    if (!sg.length) return null;
+    const cases = ['Nominativ','Genitiv','Dativ','Akkusativ','Vokativ','Ablativ'];
+    return { decl, sg, pl, cases };
+  },
+
+  // ── ADJECTIVE (1/2 Deklination, bonus/a/um type) ─────────────
+  declineAdj(lat) {
+    // Parse bonus/a/um → stem = bon
+    const parts = lat.split('/');
+    if (parts.length < 2) return null;
+    const mNom = parts[0].trim();
+    // stem: remove -us or -er
+    let stem = mNom.endsWith('us') ? mNom.slice(0,-2)
+             : mNom.endsWith('er') ? mNom
+             : mNom;
+
+    const cases = ['Nominativ','Genitiv','Dativ','Akkusativ','Vokativ','Ablativ'];
+    const m_sg = [mNom,      stem+'i',  stem+'o',  stem+'um', mNom,      stem+'o'];
+    const f_sg = [stem+'a',  stem+'ae', stem+'ae', stem+'am', stem+'a',  stem+'a'];
+    const n_sg = [stem+'um', stem+'i',  stem+'o',  stem+'um', stem+'um', stem+'o'];
+    const m_pl = [stem+'i',  stem+'orum',stem+'is',stem+'os', stem+'i',  stem+'is'];
+    const f_pl = [stem+'ae', stem+'arum',stem+'is',stem+'as', stem+'ae', stem+'is'];
+    const n_pl = [stem+'a',  stem+'orum',stem+'is',stem+'a',  stem+'a',  stem+'is'];
+
+    return { cases, m_sg, f_sg, n_sg, m_pl, f_pl, n_pl };
+  }
+};
+
+// ── Vokabel Detail View ───────────────────────────────────────
+const VokDetail = {
+  currentTableId: null,
+
+  _currentRow: null,
+  _currentRowIndex: null,
+  _currentOverrideKey: null,
+
+  open(rowIndex, tableId) {
+    this.currentTableId = tableId;
+    this._currentRowIndex = rowIndex;
+    const t = state.vokabel.find(x => x.id === tableId);
+    if (!t) return;
+    const r = t.rows[rowIndex];
+    if (!r) return;
+    this._currentRow = r;
+    this._currentOverrideKey = tableId + '_' + rowIndex;
+
+    // Show admin edit button
+    const editBtn = document.getElementById('vok-detail-edit-btn');
+    if (editBtn) editBtn.classList.toggle('hidden', !state.adminLoggedIn);
+
+    // Get manual override if exists
+    const override = (t.overrides && t.overrides[rowIndex]) || {};
+
+    const type = Latin.detectType(r);
+    const de = (r.de || '–').split('%').join(' / ');
+
+    let html = '';
+
+    // ── Info card ──────────────────────────────────────────────
+    html += `<div class="vok-detail-card">
+      <div class="vok-detail-lat">${r.lat || '–'}</div>
+      <div class="vok-detail-de">${de}</div>
+      <div class="vok-detail-meta">`;
+    if (r.fall2 && r.fall2 !== '–') html += `<span class="vok-meta-chip">${r.fall2}</span>`;
+    if (r.genus && r.genus !== '–') html += `<span class="vok-meta-chip">${r.genus}</span>`;
+    if (r.dekl  && r.dekl  !== '–') html += `<span class="vok-meta-chip">${r.dekl}</span>`;
+    html += `<span class="vok-meta-chip vok-type-chip">${this._typeLabel(type)}</span>`;
+    if (Object.keys(override).length) html += `<span class="vok-meta-chip" style="color:#8adc9e;border-color:#1e4a30;">manuell</span>`;
+    html += `</div></div>`;
+
+    // ── Grammar table ──────────────────────────────────────────
+    if (type === 'verb') {
+      const autoConj = Latin.conjugateVerb(r.lat || '', r.fall2 || '');
+      const persons = ['ich','du','er / sie / es','wir','ihr','sie'];
+      const keys = ['p1sg','p2sg','p3sg','p1pl','p2pl','p3pl'];
+      const auto = autoConj ? autoConj.forms.map(([,f])=>f) : ['','','','','',''];
+      const conjLabel = autoConj ? autoConj.conj : 'unbekannte Konjugation';
+      html += `<div class="forms-section-title" style="margin-top:1.5rem;">Konjugation – Präsens Aktiv <span style="font-weight:400;color:var(--text3);font-size:11px;">(${conjLabel})</span></div>`;
+      html += `<div class="dekl-table-wrap"><table class="dekl-table"><thead><tr><th>Person</th><th>Latein</th></tr></thead><tbody>`;
+      keys.forEach((k, i) => {
+        const form = override[k] || auto[i] || '–';
+        const isManual = !!override[k];
+        html += `<tr><td class="case-cell">${persons[i]}</td><td><strong${isManual?' style="color:#8adc9e;"':''}>${form}</strong></td></tr>`;
+      });
+      html += `</tbody></table></div>`;
+    } else if (type === 'noun') {
+      const res = Latin.declineNoun(r.lat||'', r.fall2||'', r.genus||'');
+      const caseKeys = ['nom','gen','dat','akk','vok','abl'];
+      const cases = ['Nominativ','Genitiv','Dativ','Akkusativ','Vokativ','Ablativ'];
+      if (res) {
+        html += `<div class="forms-section-title" style="margin-top:1.5rem;">Deklination – ${res.decl}. Deklination</div>`;
+        html += `<div class="dekl-table-wrap"><table class="dekl-table"><thead><tr><th>Kasus</th><th>Singular</th><th>Plural</th></tr></thead><tbody>`;
+        cases.forEach((c, i) => {
+          const sg = override['sg_'+caseKeys[i]] || res.sg[i] || '–';
+          const pl = override['pl_'+caseKeys[i]] || res.pl[i] || '–';
+          const isMSg = !!override['sg_'+caseKeys[i]], isMPl = !!override['pl_'+caseKeys[i]];
+          html += `<tr><td class="case-cell">${c}</td><td><strong${isMSg?' style="color:#8adc9e;"':''}>${sg}</strong></td><td${isMPl?' style="color:#8adc9e;"':''}>${pl}</td></tr>`;
+        });
+        html += `</tbody></table></div>`;
+      }
+    } else if (type === 'adj') {
+      const res = Latin.declineAdj(r.lat||'');
+      if (res) {
+        html += `<div class="forms-section-title" style="margin-top:1.5rem;">Deklination – Adjektiv (1./2. Dekl.)</div>`;
+        html += `<div class="dekl-table-wrap"><table class="dekl-table"><thead><tr><th>Kasus</th><th>M Sg.</th><th>F Sg.</th><th>N Sg.</th><th>M Pl.</th><th>F Pl.</th><th>N Pl.</th></tr></thead><tbody>`;
+        res.cases.forEach((c, i) => {
+          html += `<tr><td class="case-cell">${c}</td><td><strong>${res.m_sg[i]}</strong></td><td>${res.f_sg[i]}</td><td>${res.n_sg[i]}</td><td>${res.m_pl[i]}</td><td>${res.f_pl[i]}</td><td>${res.n_pl[i]}</td></tr>`;
+        });
+        html += `</tbody></table></div>`;
+      }
+    } else {
+      html += `<div class="forms-section-title" style="margin-top:1.5rem;">Indeklinabel</div>`;
+      html += `<div class="empty-hint">Dieses Wort wird nicht dekliniert oder konjugiert.</div>`;
+    }
+
+    document.getElementById('vok-detail-content').innerHTML = html;
+    document.getElementById('vok-detail-back').onclick = () => Tables.viewTable(tableId, 'vokabel');
+    App.showPage('vok-detail', r.lat || '');
+  },
+
+  // ── Manual Override ──────────────────────────────────────────
+  openOverride() {
+    const r = this._currentRow;
+    if (!r) return;
+    const t = state.vokabel.find(x => x.id === this.currentTableId);
+    const override = (t && t.overrides && t.overrides[this._currentRowIndex]) || {};
+    const type = Latin.detectType(r);
+
+    document.getElementById('override-modal-title').textContent = 'Formen für „' + (r.lat||'') + '" bearbeiten';
+
+    let fields = '';
+    if (type === 'verb') {
+      const autoConj = Latin.conjugateVerb(r.lat||'', r.fall2||'');
+      const auto = autoConj ? autoConj.forms.map(([,f])=>f) : ['','','','','',''];
+      const persons = ['ich','du','er / sie / es','wir','ihr','sie'];
+      const keys = ['p1sg','p2sg','p3sg','p1pl','p2pl','p3pl'];
+      fields += '<div class="override-grid">';
+      keys.forEach((k, i) => {
+        fields += `<div class="override-field">
+          <label>${persons[i]}</label>
+          <input type="text" id="ov_${k}" class="modal-input" placeholder="${auto[i]||''}" value="${override[k]||''}"/>
+        </div>`;
+      });
+      fields += '</div>';
+    } else if (type === 'noun') {
+      const res = Latin.declineNoun(r.lat||'', r.fall2||'', r.genus||'');
+      const caseKeys = ['nom','gen','dat','akk','vok','abl'];
+      const cases = ['Nominativ','Genitiv','Dativ','Akkusativ','Vokativ','Ablativ'];
+      fields += '<div class="override-section-label">Singular</div><div class="override-grid">';
+      cases.forEach((c, i) => {
+        const auto = res ? res.sg[i] : '';
+        fields += `<div class="override-field"><label>${c}</label><input type="text" id="ov_sg_${caseKeys[i]}" class="modal-input" placeholder="${auto||''}" value="${override['sg_'+caseKeys[i]]||''}"/></div>`;
+      });
+      fields += '</div><div class="override-section-label">Plural</div><div class="override-grid">';
+      cases.forEach((c, i) => {
+        const auto = res ? res.pl[i] : '';
+        fields += `<div class="override-field"><label>${c}</label><input type="text" id="ov_pl_${caseKeys[i]}" class="modal-input" placeholder="${auto||''}" value="${override['pl_'+caseKeys[i]]||''}"/></div>`;
+      });
+      fields += '</div>';
+    } else {
+      fields = '<div style="color:var(--text2);font-size:14px;">Für diesen Worttyp gibt es keine Formen zum Bearbeiten.</div>';
+    }
+
+    document.getElementById('override-fields').innerHTML = fields;
+    document.getElementById('override-overlay').classList.remove('hidden');
+  },
+
+  closeOverride(e) {
+    if (e && e.target !== document.getElementById('override-overlay')) return;
+    document.getElementById('override-overlay').classList.add('hidden');
+  },
+
+  async saveOverride() {
+    const t = state.vokabel.find(x => x.id === this.currentTableId);
+    if (!t) return;
+    const r = this._currentRow;
+    const type = Latin.detectType(r);
+    const idx = this._currentRowIndex;
+
+    const override = {};
+    const readField = id => {
+      const el = document.getElementById(id);
+      return el ? el.value.trim() : '';
+    };
+
+    if (type === 'verb') {
+      ['p1sg','p2sg','p3sg','p1pl','p2pl','p3pl'].forEach(k => {
+        const v = readField('ov_' + k); if (v) override[k] = v;
+      });
+    } else if (type === 'noun') {
+      ['nom','gen','dat','akk','vok','abl'].forEach(k => {
+        const sg = readField('ov_sg_' + k); if (sg) override['sg_'+k] = sg;
+        const pl = readField('ov_pl_' + k); if (pl) override['pl_'+k] = pl;
+      });
+    }
+
+    // Merge into table overrides
+    if (!t.overrides) t.overrides = {};
+    if (Object.keys(override).length) {
+      t.overrides[idx] = override;
+    } else {
+      delete t.overrides[idx];
+    }
+
+    try {
+      await COL.vokabel.doc(t.id).update({ overrides: t.overrides });
+      document.getElementById('override-overlay').classList.add('hidden');
+      // Reopen detail to refresh
+      this.open(idx, this.currentTableId);
+    } catch(e) {
+      alert('Fehler beim Speichern: ' + e.message);
+    }
+  },
+
+  _typeLabel(type) {
+    return { noun:'Nomen', verb:'Verb', adj:'Adjektiv', indecl:'Indeklinabel' }[type] || '';
+  }
+};
+
 // ── Quiz Engine ──────────────────────────────────────────────
 const Quiz = {
   questions:[], idx:0, score:0, answered:false,
@@ -1081,8 +1573,10 @@ document.addEventListener('keydown',e=>{
 });
 
 // ── Export globals for onclick handlers ──────────────────────
-window.App    = App;
-window.Tables = Tables;
-window.Quiz   = Quiz;
+window.App       = App;
+window.Tables    = Tables;
+window.Quiz      = Quiz;
+window.VokDetail = VokDetail;
+window.VokSearch = VokSearch;
 
 App.init();
