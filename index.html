@@ -43,10 +43,6 @@
 
   <!-- TABELLEN (direkt, kein Tab mehr) -->
   <div id="tab-content-tables">
-    <div class="in-dev-banner">
-      <span class="in-dev-icon">⚠️</span>
-      <span>Vokabeln – in development</span>
-    </div>
 
     <!-- ── Pronomina ── -->
     <div class="tables-category-block">
@@ -72,6 +68,11 @@
       <div class="tables-category-heading">
         <div class="tables-category-heading-title">Vokabeln</div>
         <div class="tables-category-heading-line"></div>
+      </div>
+
+      <div class="in-dev-banner" style="margin-bottom:1rem;">
+        <span class="in-dev-icon">⚠️</span>
+        <span>Vokabeln können fehlerhaft sein. Bitte bei Fehlern melden.</span>
       </div>
 
       <!-- Alle Vokabeln Card -->
@@ -170,6 +171,7 @@
     <button class="back-btn" onclick="App.goHome()">← Abbrechen</button>
     <div class="phase-badge" id="quiz-phase-badge"></div>
     <div class="quiz-progress-text" id="quiz-progress-text"></div>
+    <button class="report-float-btn" onclick="Report.open('Quiz: ' + document.getElementById('quiz-phase-badge').textContent + ' – ' + document.getElementById('q-main').textContent.slice(0,50))" title="Fehler melden">⚑ Melden</button>
   </div>
   <div class="quiz-area">
     <div class="progress-bar-wrap"><div class="progress-bar-fill" id="progress-bar"></div></div>
@@ -178,7 +180,7 @@
       <div class="q-main" id="q-main"></div>
     </div>
     <div class="answer-wrap">
-      <input type="text" id="answer-input" class="answer-input" autocomplete="off" />
+      <input type="text" id="answer-input" class="answer-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
       <button class="check-btn" onclick="Quiz.check()">Prüfen</button>
     </div>
     <div class="feedback-box hidden" id="feedback-box"></div>
@@ -219,7 +221,7 @@
   </div>
   <div id="table-view-search" class="hidden">
     <div class="vok-search-bar" style="margin-bottom:1rem;">
-      <input type="text" id="table-search-input" class="vok-search-input" placeholder="Suchen…" oninput="VokSearch.searchTable()" />
+      <input type="text" id="table-search-input" class="vok-search-input" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Suchen…" oninput="VokSearch.searchTable()"  autocorrect="off" autocapitalize="off" spellcheck="false"/>
       <div class="vok-filters">
         <select class="vok-filter-select" id="table-filter-genus" onchange="VokSearch.searchTable()">
           <option value="">Alle Genera</option>
@@ -254,7 +256,7 @@
     <div class="editor-meta">
       <div class="field-group">
         <label>Quiz-Name</label>
-        <input type="text" id="new-quiz-name" class="modal-input" placeholder="z.B. hic / haec / hoc" />
+        <input type="text" id="new-quiz-name" class="modal-input" placeholder="z.B. hic / haec / hoc" autocorrect="off" autocapitalize="off" spellcheck="false" />
       </div>
       <div class="field-group">
         <label>Beschreibung (optional)</label>
@@ -291,7 +293,7 @@
     <div class="editor-meta">
       <div class="field-group">
         <label>Tabellenname</label>
-        <input type="text" id="pt-name" class="modal-input" placeholder="z.B. hic / haec / hoc" />
+        <input type="text" id="pt-name" class="modal-input" placeholder="z.B. hic / haec / hoc" autocorrect="off" autocapitalize="off" spellcheck="false" />
       </div>
       <div class="field-group">
         <label>Beschreibung (optional)</label>
@@ -378,7 +380,7 @@
         Jede Zeile: <code>Latein-2.Fall-Genus-Deklination-Deutsch</code> &nbsp;·&nbsp; Leere Felder: <code>#</code> &nbsp;·&nbsp; Mehrere Bedeutungen: <code>%</code>
       </div>
 
-      <textarea id="vok-textarea" class="vok-textarea" placeholder="aqua-aquae-f.-1. Dekl.-Wasser%Flüssigkeit&#10;eo-#-#-#-(er%sie%es) geht&#10;nomen-#-n.-#-Name"></textarea>
+      <textarea id="vok-textarea" autocorrect="off" autocapitalize="off" spellcheck="false" class="vok-textarea" placeholder="aqua-aquae-f.-1. Dekl.-Wasser%Flüssigkeit&#10;eo-#-#-#-(er%sie%es) geht&#10;nomen-#-n.-#-Name"></textarea>
     </div>
 
     <div class="create-error hidden" id="vt-error"></div>
@@ -481,7 +483,7 @@
     <div class="vok-count-badge" id="alle-count-badge"></div>
   </div>
   <div class="vok-search-bar">
-    <input type="text" id="alle-search-input" class="vok-search-input" placeholder="Suchen… (Latein, Deutsch, oder deklinierte Form)" oninput="VokSearch.search()" />
+    <input type="text" id="alle-search-input" class="vok-search-input" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Suchen… (Latein, Deutsch, oder deklinierte Form)" oninput="VokSearch.search()"  autocorrect="off" autocapitalize="off" spellcheck="false"/>
     <div class="vok-filters">
       <select class="vok-filter-select" id="filter-genus" onchange="VokSearch.search()">
         <option value="">Alle Genera</option>
@@ -654,7 +656,7 @@
     <div id="report-form-body">
       <div class="field-group">
         <label>Was ist falsch?</label>
-        <textarea id="report-message" class="modal-input report-textarea" placeholder="Beschreibe den Fehler…"></textarea>
+        <textarea id="report-message" autocorrect="off" spellcheck="false" class="modal-input report-textarea" placeholder="Beschreibe den Fehler…"></textarea>
       </div>
       <div class="create-error hidden" id="report-error"></div>
       <button class="start-btn" id="report-send-btn" onclick="Report.send()">Melden</button>

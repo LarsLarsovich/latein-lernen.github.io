@@ -1770,11 +1770,11 @@ const Tables = {
       <div class="vok-row-grid">
         <div class="vok-cell">
           <label class="vok-label">Latein</label>
-          <input type="text" class="modal-input vok-lat" placeholder="z.B. aqua" value="${escHtml(data.lat||'')}"/>
+          <input type="text" class="modal-input vok-lat" placeholder="z.B. aqua" autocorrect="off" autocapitalize="off" spellcheck="false" value="${escHtml(data.lat||'')}"/>
         </div>
         <div class="vok-cell">
           <label class="vok-label">2. Fall</label>
-          <input type="text" class="modal-input vok-fall2" placeholder="z.B. aquae" value="${escHtml(data.fall2||'')}"/>
+          <input type="text" class="modal-input vok-fall2" placeholder="z.B. aquae" autocorrect="off" autocapitalize="off" spellcheck="false" value="${escHtml(data.fall2||'')}"/>
         </div>
         <div class="vok-cell vok-cell-sm">
           <label class="vok-label">Genus</label>
@@ -1790,7 +1790,7 @@ const Tables = {
         </div>
         <div class="vok-cell">
           <label class="vok-label">Deutsch</label>
-          <input type="text" class="modal-input vok-de" placeholder="Übersetzung" value="${escHtml(data.de||'')}"/>
+          <input type="text" class="modal-input vok-de" placeholder="Übersetzung" autocorrect="off" spellcheck="false" value="${escHtml(data.de||'')}"/>
         </div>
         <div class="vok-cell vok-cell-del">
           <label class="vok-label">&nbsp;</label>
