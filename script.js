@@ -718,13 +718,6 @@ const App = {
       }
     }
 
-    // Reports for admin
-    const reportsSection = document.getElementById('reports-section');
-    if (reportsSection) {
-      reportsSection.classList.toggle('hidden', !isAdmin);
-      if (isAdmin) App.loadReports();
-    }
-
     // Vokabel tables - sorted alphabetically
     const vg = document.getElementById('vokabel-grid');
     const ve = document.getElementById('vokabel-empty');
@@ -828,6 +821,65 @@ const App = {
     document.querySelectorAll('input[name="phase"]').forEach(cb=>{cb.checked=cb.value==='1';});
     document.getElementById('shuffle-within').checked = false;
     this.showPage('setup', q.name);
+  },
+
+  async loadReports() {
+    const grid = document.getElementById('reports-list');
+    if (!grid) return;
+    try {
+      const snap = await COL.reports.orderBy('timestamp','desc').limit(50).get();
+      const docs = snap.docs.map(d => ({id: d.id, ...d.data()}));
+      grid.innerHTML = '';
+      if (!docs.length) { grid.innerHTML = '<div class="reports-empty">Keine Meldungen.</div>'; return; }
+      docs.forEach(doc => {
+        const date = new Date(doc.timestamp).toLocaleString('de-AT');
+        const div = document.createElement('div');
+        div.className = 'report-item' + (doc.read ? ' report-read' : '');
+        div.innerHTML = `
+          <div class="report-item-context" onclick="App.navigateToReport('${escHtml(doc.context||'')}',this)">${escHtml(doc.context||'Unbekannt')} <span class="report-nav-hint">→</span></div>
+          <div class="report-item-msg">${escHtml(doc.message||'')}</div>
+          <div class="report-item-footer">
+            <span>${date}</span>
+            <button onclick="App.markReportRead('${doc.id}',this)">✓ Gelesen</button>
+            <button onclick="App.deleteReport('${doc.id}',this)" style="color:#e05a5a;">Löschen</button>
+          </div>`;
+        grid.appendChild(div);
+      });
+      this.updateBellBadge();
+    } catch(e) { console.error('loadReports error:', e); }
+  },
+
+  navigateToReport(context, el) {
+    // Close panel
+    document.getElementById('reports-panel').classList.add('hidden');
+    document.getElementById('reports-backdrop').classList.add('hidden');
+    // Navigate based on context prefix
+    if (context.startsWith('Quiz:')) {
+      // Go back to setup for last quiz
+      if (state.lastQuizId) App.replaySetup();
+    } else if (context.startsWith('Vokabel-Detail:')) {
+      const word = context.replace('Vokabel-Detail:','').trim();
+      // Find the word in all tables and open it
+      for (const t of state.vokabel) {
+        const idx = (t.rows||[]).findIndex(r => r.lat === word);
+        if (idx >= 0) { VokDetail.open(idx, t.id); return; }
+      }
+    } else if (context.startsWith('Tabelle:')) {
+      const name = context.replace('Tabelle:','').trim();
+      const tv = state.vokabel.find(t=>t.name===name) || state.pronomen.find(t=>t.name===name);
+      if (tv) Tables.viewTable(tv.id, state.vokabel.includes(tv)?'vokabel':'pronomen');
+    }
+  },
+
+  async markReportRead(id, btn) {
+    try { await COL.reports.doc(id).update({read: true}); } catch(e) {}
+    btn.closest('.report-item').classList.add('report-read');
+    btn.textContent = '✓ Gelesen';
+  },
+
+  async deleteReport(id, btn) {
+    try { await COL.reports.doc(id).delete(); } catch(e) {}
+    btn.closest('.report-item').remove();
   },
 
   toggleDeLatOptions() {
@@ -1802,7 +1854,6 @@ const VokDetail = {
     if (r.genus && r.genus !== '–') html += `<span class="vok-meta-chip">${r.genus}</span>`;
     if (r.dekl  && r.dekl  !== '–') html += `<span class="vok-meta-chip">${r.dekl}</span>`;
     html += `<span class="vok-meta-chip vok-type-chip">${this._typeLabel(type)}</span>`;
-    if (Object.keys(override).length) html += `<span class="vok-meta-chip" style="color:#8adc9e;border-color:#1e4a30;">manuell</span>`;
     html += `</div></div>`;
 
     // ── Grammar tables (Latin + German) ───────────────────────
@@ -1825,7 +1876,7 @@ const VokDetail = {
         const latForm = override[k] || auto[i] || '–';
         const isManual = !!override[k];
         const deForm  = deConj ? deConj[i] : '–';
-        html += `<tr><td class="case-cell">${persons[i]}</td><td><strong${isManual?' style="color:#8adc9e;"':''}>${latForm}</strong></td><td style="color:var(--text2);">${deForm}</td></tr>`;
+        html += `<tr><td class="case-cell">${persons[i]}</td><td><strong>${latForm}</strong></td><td style="color:var(--text2);">${deForm}</td></tr>`;
       });
       html += `</tbody></table></div>`;
 
@@ -1838,7 +1889,7 @@ const VokDetail = {
           const ovKey = 'imp_' + label.split(' ')[0].toLowerCase();
           const manualForm = override[ovKey];
           const deImpForm = deImp ? deImp[i] : '–';
-          html += `<tr><td class="case-cell">${label}</td><td><strong${manualForm?' style="color:#8adc9e;"':''}>${manualForm||latForm||'–'}</strong></td><td style="color:var(--text2);">${deImpForm}</td></tr>`;
+          html += `<tr><td class="case-cell">${label}</td><td><strong>${manualForm||latForm||'–'}</strong></td><td style="color:var(--text2);">${deImpForm}</td></tr>`;
         });
         html += `</tbody></table></div>`;
       }
@@ -1855,13 +1906,12 @@ const VokDetail = {
         cases.forEach((c, i) => {
           const sg = override['sg_'+caseKeys[i]] || res.sg[i] || '–';
           const pl = override['pl_'+caseKeys[i]] || res.pl[i] || '–';
-          const isMSg = !!override['sg_'+caseKeys[i]], isMPl = !!override['pl_'+caseKeys[i]];
           const deSg = deDecl ? deDecl.sg[i] : '–';
           const dePl = deDecl ? deDecl.pl[i] : '–';
           html += `<tr>
             <td class="case-cell">${c}</td>
-            <td><strong${isMSg?' style="color:#8adc9e;"':''}>${sg}</strong></td>
-            <td${isMPl?' style="color:#8adc9e;"':''}>${pl}</td>
+            <td><strong>${sg}</strong></td>
+            <td>${pl}</td>
             <td style="color:var(--text2);">${deSg}</td>
             <td style="color:var(--text2);">${dePl}</td>
           </tr>`;

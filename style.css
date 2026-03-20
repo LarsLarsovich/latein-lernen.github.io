@@ -481,3 +481,55 @@ select.modal-input { cursor: pointer; }
 }
 .report-mark-btn:hover { border-color: #8adc9e; color: #8adc9e; }
 .report-del-btn:hover { border-color: #e05a5a; color: #e05a5a; }
+
+/* ── Bell Button ── */
+.bell-btn {
+  position: relative; background: none; border: none;
+  cursor: pointer; padding: 6px 8px; border-radius: 8px;
+  transition: background 0.15s;
+}
+.bell-btn:hover { background: var(--bg3); }
+.bell-icon { font-size: 18px; }
+.bell-badge {
+  position: absolute; top: 2px; right: 2px;
+  background: #e05a5a; color: #fff; font-size: 10px; font-weight: 700;
+  border-radius: 10px; padding: 1px 5px; min-width: 16px; text-align: center;
+  line-height: 14px;
+}
+
+/* ── Reports Panel ── */
+.reports-panel {
+  position: fixed; top: 56px; right: 12px; width: 360px; max-width: 95vw;
+  max-height: 70vh; overflow-y: auto;
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); z-index: 200;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+.reports-panel-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px; border-bottom: 1px solid var(--border);
+  font-weight: 600; font-size: 14px; color: var(--text); position: sticky; top: 0;
+  background: var(--bg2);
+}
+.report-item {
+  padding: 12px 16px; border-bottom: 1px solid var(--border);
+  transition: background 0.15s;
+}
+.report-item.report-read { opacity: 0.45; }
+.report-item-context {
+  font-size: 11px; color: var(--accent); font-weight: 600;
+  margin-bottom: 4px; cursor: pointer; display: flex; align-items: center; gap: 4px;
+}
+.report-item-context:hover { text-decoration: underline; }
+.report-nav-hint { font-size: 10px; color: var(--text3); }
+.report-item-msg { font-size: 13px; color: var(--text); margin-bottom: 6px; }
+.report-item-footer {
+  display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--text3); flex-wrap: wrap;
+}
+.report-item-footer button {
+  background: none; border: none; font-size: 11px; cursor: pointer;
+  color: var(--text3); padding: 0; font-family: var(--font-body);
+  transition: color 0.15s;
+}
+.report-item-footer button:hover { color: var(--text); }
+.reports-empty { padding: 1.5rem; text-align: center; color: var(--text3); font-size: 13px; }

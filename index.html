@@ -71,17 +71,7 @@
         <div class="tables-category-heading-line"></div>
       </div>
 
-      <!-- Admin: Meldungen -->
-    <div id="reports-section" class="hidden" style="margin-bottom:2rem;">
-      <div class="tables-category-heading">
-        <div class="tables-category-heading-title" style="color:#e05a5a;">⚑ Meldungen</div>
-        <div class="tables-category-heading-line"></div>
-      </div>
-      <div id="reports-grid"></div>
-      <div class="empty-hint" id="reports-empty" style="display:none;">Keine Meldungen vorhanden.</div>
-    </div>
-
-    <!-- Alle Vokabeln Card -->
+      <!-- Alle Vokabeln Card -->
       <div class="quiz-card alle-vok-card" onclick="Tables.openAlleVokabeln()">
         <div class="alle-vok-icon">∑</div>
         <div class="quiz-card-name">Alle Vokabeln</div>
@@ -563,6 +553,17 @@
     </div>
   </div>
 </div>
+
+
+<!-- Reports Panel -->
+<div id="reports-panel" class="reports-panel hidden">
+  <div class="reports-panel-header">
+    <span>Meldungen</span>
+    <button onclick="App.toggleReportsPanel()" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:18px;">✕</button>
+  </div>
+  <div id="reports-list"></div>
+</div>
+<div id="reports-backdrop" class="hidden" onclick="App.toggleReportsPanel()" style="position:fixed;inset:0;z-index:199;"></div>
 
 <!-- MODAL: Fehler melden -->
 <div class="modal-overlay hidden" id="report-overlay" onclick="Report.close(event)">
