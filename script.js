@@ -1738,7 +1738,7 @@ const VokDetail = {
     const override = (t && t.overrides && t.overrides[this._currentRowIndex]) || {};
     const type = Latin.detectType(r);
 
-    document.getElementById('override-modal-title').textContent = 'Formen für „' + (r.lat||'') + '" bearbeiten';
+    document.getElementById('override-modal-title').textContent = 'Formen fuer: ' + (r.lat||'');
 
     let fields = '';
     if (type === 'verb') {
