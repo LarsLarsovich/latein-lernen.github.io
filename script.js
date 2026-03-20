@@ -1194,31 +1194,30 @@ const Latin = {
 
   // ── VERB CONJUGATION (Präsens Aktiv) ────────────────────────
   conjugateVerb(inf, form1sg) {
-    // Determine conjugation class from infinitive
-    let stem = '', endings = [], conj = '';
+    let stem = '', endings = [], conj = '', impSg = '', impPl = '';
     if (inf.endsWith('are')) {
-      stem = inf.slice(0, -3);
+      stem  = inf.slice(0, -3);
       endings = ['o','as','at','amus','atis','ant'];
-      conj = '1. Konjugation';
+      conj  = '1. Konjugation';
+      impSg = stem + 'a';
+      impPl = stem + 'ate';
     } else if (inf.endsWith('ire')) {
-      stem = inf.slice(0, -3);
+      stem  = inf.slice(0, -3);
       endings = ['io','is','it','imus','itis','iunt'];
-      conj = '4. Konjugation';
+      conj  = '4. Konjugation';
+      impSg = stem + 'i';
+      impPl = stem + 'ite';
     } else if (inf.endsWith('ere')) {
-      // 2. or 3. – check 1sg form
-      // 2. Konj: 1sg ends in -eo (habeo, video)
       if (form1sg && form1sg.endsWith('eo')) {
-        stem = inf.slice(0, -3);
+        stem  = inf.slice(0, -3);
         endings = ['eo','es','et','emus','etis','ent'];
-        conj = '2. Konjugation';
+        conj  = '2. Konjugation';
+        impSg = stem + 'e';
+        impPl = stem + 'ete';
       } else {
-        // 3. Konj
         stem = inf.slice(0, -3);
-        // use 1sg form directly if available
-        const sg1 = (form1sg && form1sg !== '#' && form1sg !== '–') ? form1sg : stem + 'o';
-        // derive stem from 1sg: drop -o
+        const sg1   = (form1sg && form1sg !== '#' && form1sg !== '–') ? form1sg : stem + 'o';
         const stem3 = sg1.endsWith('o') ? sg1.slice(0,-1) : stem;
-        endings = null; // handle manually
         return {
           conj: '3. Konjugation',
           forms: [
@@ -1228,6 +1227,10 @@ const Latin = {
             ['1. Pl.', stem3 + 'imus'],
             ['2. Pl.', stem3 + 'itis'],
             ['3. Pl.', stem3 + 'unt']
+          ],
+          imperativ: [
+            ['Sg. (du)',  stem3 + 'e'],
+            ['Pl. (ihr)', stem3 + 'ite']
           ]
         };
       }
@@ -1239,12 +1242,16 @@ const Latin = {
     return {
       conj,
       forms: [
-        ['1. Sg. (ich)',  sg1],
-        ['2. Sg. (du)',   stem + endings[1]],
-        ['3. Sg. (er/sie/es)', stem + endings[2]],
-        ['1. Pl. (wir)', stem + endings[3]],
-        ['2. Pl. (ihr)', stem + endings[4]],
-        ['3. Pl. (sie)', stem + endings[5]]
+        ['1. Sg. (ich)',        sg1],
+        ['2. Sg. (du)',         stem + endings[1]],
+        ['3. Sg. (er/sie/es)',  stem + endings[2]],
+        ['1. Pl. (wir)',        stem + endings[3]],
+        ['2. Pl. (ihr)',        stem + endings[4]],
+        ['3. Pl. (sie)',        stem + endings[5]]
+      ],
+      imperativ: [
+        ['Sg. (du)',  impSg],
+        ['Pl. (ihr)', impPl]
       ]
     };
   },
@@ -1385,6 +1392,17 @@ const VokDetail = {
         html += `<tr><td class="case-cell">${persons[i]}</td><td><strong${isManual?' style="color:#8adc9e;"':''}>${form}</strong></td></tr>`;
       });
       html += `</tbody></table></div>`;
+      // Imperativ table
+      if (autoConj && autoConj.imperativ) {
+        html += `<div class="forms-section-title" style="margin-top:1.2rem;">Imperativ – Präsens</div>`;
+        html += `<div class="dekl-table-wrap"><table class="dekl-table"><thead><tr><th>Form</th><th>Latein</th></tr></thead><tbody>`;
+        autoConj.imperativ.forEach(([label, form]) => {
+          const ovKey = 'imp_' + label.split(' ')[0].toLowerCase();
+          const manualForm = override[ovKey];
+          html += `<tr><td class="case-cell">${label}</td><td><strong${manualForm?' style="color:#8adc9e;"':''}>${manualForm||form||'–'}</strong></td></tr>`;
+        });
+        html += `</tbody></table></div>`;
+      }
     } else if (type === 'noun') {
       const res = Latin.declineNoun(r.lat||'', r.fall2||'', r.genus||'');
       const caseKeys = ['nom','gen','dat','akk','vok','abl'];
