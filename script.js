@@ -86,67 +86,178 @@ const state = {
 // ── Vokabel Quiz Engine ───────────────────────────────────────
 const VokabelQuiz = {
 
-  build(rows, modes, shuffle) {
+  // Parse "amica,ae f." or "discipulus,i m." or "amica" → {fall2, genus}
+  _parseInput(input) {
+    const s = input.trim();
+    // Try to extract genus: ends with m., f., or n.
+    const genusMatch = s.match(/\b(m\.|f\.|n\.)\s*$/i);
+    const genus = genusMatch ? genusMatch[1].toLowerCase() : null;
+    // Remove genus from string
+    const withoutGenus = genus ? s.slice(0, s.lastIndexOf(genusMatch[0])).trim() : s;
+    // Try to extract fall2: after comma
+    const commaIdx = withoutGenus.indexOf(',');
+    const lat   = commaIdx >= 0 ? withoutGenus.slice(0, commaIdx).trim() : withoutGenus.trim();
+    const fall2 = commaIdx >= 0 ? withoutGenus.slice(commaIdx + 1).trim() : null;
+    return { lat, fall2, genus };
+  },
+
+  // Check if answer matches, accepting multiple formats
+  _checkDeLatAnswer(input, r) {
+    const inp = input.trim().toLowerCase();
+    const parsed = this._parseInput(inp);
+
+    // Must at minimum have the correct Latin word
+    if (!parsed.lat) return false;
+    const latOk = parsed.lat === (r.lat||'').toLowerCase();
+    if (!latOk) return false;
+
+    // If fall2 provided, check it
+    const hasFall2 = r.fall2 && r.fall2 !== '–' && r.fall2 !== '#';
+    if (parsed.fall2 && hasFall2) {
+      if (parsed.fall2 !== (r.fall2||'').toLowerCase()) return false;
+    }
+    // If genus provided, check it
+    const hasGenus = r.genus && r.genus !== '–' && r.genus !== '#';
+    if (parsed.genus && hasGenus) {
+      if (parsed.genus !== (r.genus||'').toLowerCase()) return false;
+    }
+    return true;
+  },
+
+  // Format the expected answer for feedback
+  _formatDeLatAnswer(r) {
+    let parts = [r.lat];
+    if (r.fall2 && r.fall2 !== '–' && r.fall2 !== '#') parts[0] += ',' + r.fall2;
+    if (r.genus && r.genus !== '–' && r.genus !== '#') parts.push(r.genus);
+    return parts.join(' ');
+  },
+
+  // Check German answer (with or without article)
+  _checkDeAnswer(input, r) {
+    const inp = input.trim().toLowerCase();
+    const deWords = (r.de || '').split('%').map(d => d.trim().toLowerCase());
+    // Direct match
+    if (deWords.some(d => d === inp)) return true;
+    // Strip article: der/die/das/ein/eine
+    const stripped = inp.replace(/^(der|die|das|ein|eine)\s+/i, '');
+    return deWords.some(d => {
+      const dStripped = d.replace(/^(der|die|das|ein|eine)\s+/i, '');
+      return dStripped === stripped || d === stripped;
+    });
+  },
+
+  build(rows, modes, shuffle, extreme) {
     let questions = [];
+    const doLatDe = modes.includes('lat-de');
+    const doDeLat = modes.includes('de-lat');
 
-    rows.forEach((r, idx) => {
+    rows.forEach(r => {
       if (!r.lat) return;
-      const de = (r.de || '').split('%').join(' / ') || '–';
-      const lat = r.lat;
+      const deDisplay = (r.de || '').split('%').join(' / ') || '–';
+      const type = Latin.detectType(r);
+      const hasFall2 = r.fall2 && r.fall2 !== '–' && r.fall2 !== '#';
+      const hasGenus = r.genus && r.genus !== '–' && r.genus !== '#';
 
-      if (modes.includes('lat-de')) {
+      // ── Latein → Deutsch ──────────────────────────────────────
+      if (doLatDe) {
         questions.push({
+          mode: 'lat-de',
           meta: 'Latein → Deutsch',
-          main: lat,
-          placeholder: 'Deutsch eingeben…',
+          main: r.lat,
+          placeholder: 'Deutsch eingeben… (mit oder ohne Artikel)',
           answer: r.de || '',
-          answerDisplay: de,
-          hint: ''
+          answerDisplay: deDisplay,
+          r
         });
       }
 
-      if (modes.includes('de-lat')) {
+      // ── Deutsch → Latein (+ 2. Fall + Genus für Nomen) ────────
+      if (doDeLat) {
+        let hint = '';
+        if (type === 'noun') {
+          hint = hasFall2 && hasGenus
+            ? 'z.B. aqua,ae f.'
+            : hasFall2 ? 'z.B. aqua,ae' : 'lateinisches Wort';
+        } else if (type === 'verb') {
+          hint = 'Infinitiv, z.B. clamare';
+        } else if (type === 'adj') {
+          hint = 'z.B. bonus/a/um';
+        }
         questions.push({
+          mode: 'de-lat',
           meta: 'Deutsch → Latein',
-          main: de,
-          placeholder: 'Latein eingeben…',
-          answer: lat,
-          answerDisplay: lat,
-          hint: ''
+          main: deDisplay,
+          placeholder: hint || 'Latein eingeben…',
+          answer: '_de-lat_',  // special marker - check handled in Quiz.check
+          answerDisplay: this._formatDeLatAnswer(r),
+          r
         });
       }
 
-      if (modes.includes('fall2') && r.fall2 && r.fall2 !== '–' && r.fall2 !== '#') {
-        questions.push({
-          meta: '2. Fall',
-          main: lat,
-          placeholder: 'Genitiv Singular eingeben…',
-          answer: r.fall2,
-          answerDisplay: r.fall2,
-          hint: 'Genitiv Singular'
-        });
-      }
-
-      if (modes.includes('genus') && r.genus && r.genus !== '–' && r.genus !== '#') {
-        questions.push({
-          meta: 'Geschlecht',
-          main: lat,
-          placeholder: 'm. / f. / n.',
-          answer: r.genus,
-          answerDisplay: r.genus,
-          hint: 'Genus (m., f. oder n.)'
-        });
-      }
-
-      if (modes.includes('dekl') && r.dekl && r.dekl !== '–' && r.dekl !== '#') {
-        questions.push({
-          meta: 'Deklination',
-          main: lat,
-          placeholder: 'z.B. 1. Dekl.',
-          answer: r.dekl,
-          answerDisplay: r.dekl,
-          hint: 'z.B. 1. Dekl., 2. Dekl., ...'
-        });
+      // ── Extrem-Modus ──────────────────────────────────────────
+      if (extreme) {
+        if (type === 'verb') {
+          const conj = Latin.conjugateVerb(r.lat, r.fall2||'');
+          if (conj) {
+            const persons = ['ich','du','er/sie/es','wir','ihr','sie'];
+            const deConj  = German.conjugateVerb(r.de ? r.de.split('%')[0] : '');
+            conj.forms.forEach(([,latForm], i) => {
+              // Latein → Deutsch konjugiert
+              if (doLatDe) {
+                questions.push({
+                  mode: 'lat-de',
+                  meta: `Latein → Deutsch (${persons[i]})`,
+                  main: latForm,
+                  placeholder: 'Deutsch eingeben…',
+                  answer: deConj ? deConj[i] : (r.de||''),
+                  answerDisplay: deConj ? `${persons[i]} ${deConj[i]}` : r.de,
+                  r
+                });
+              }
+              // Deutsch → Latein konjugiert
+              if (doDeLat && deConj) {
+                questions.push({
+                  mode: 'lat-de',
+                  meta: `Deutsch → Latein (${persons[i]})`,
+                  main: `${persons[i]} ${deConj[i]}`,
+                  placeholder: 'Latein eingeben…',
+                  answer: latForm,
+                  answerDisplay: latForm,
+                  r
+                });
+              }
+            });
+          }
+        } else if (type === 'noun' && hasFall2) {
+          const res = Latin.declineNoun(r.lat, r.fall2, r.genus||'');
+          if (res) {
+            const deDecl = German.declineNoun((r.de||'').split('%')[0], r.genus||'');
+            res.cases.forEach((c, i) => {
+              if (doLatDe) {
+                questions.push({
+                  mode: 'lat-de',
+                  meta: `Latein → Deutsch (${c} Sg.)`,
+                  main: res.sg[i],
+                  placeholder: 'Deutsch eingeben…',
+                  answer: deDecl ? deDecl.sg[i] : r.de,
+                  answerDisplay: deDecl ? deDecl.sg[i] : r.de,
+                  r
+                });
+              }
+              if (doDeLat && deDecl) {
+                questions.push({
+                  mode: 'lat-de',
+                  meta: `Deutsch → Latein (${c} Sg.)`,
+                  main: deDecl.sg[i],
+                  placeholder: 'Latein eingeben…',
+                  answer: res.sg[i],
+                  answerDisplay: res.sg[i],
+                  r
+                });
+              }
+            });
+          }
+        }
       }
     });
 
@@ -722,8 +833,9 @@ const App = {
       if (!checked.length) { alert('Bitte wähle mindestens eine Abfrage aus.'); return; }
       const modes   = checked.map(c => c.value);
       const shuffle = document.getElementById('vok-shuffle').checked;
+      const extreme = document.getElementById('vok-extreme').checked;
       const rows    = state.currentVokabelTable.rows || [];
-      const questions = VokabelQuiz.build(rows, modes, shuffle);
+      const questions = VokabelQuiz.build(rows, modes, shuffle, extreme);
       if (!questions.length) { alert('Keine Vokabeln für diese Auswahl vorhanden.'); return; }
       Quiz.startVokabel(questions, state.currentVokabelTable.name);
     } else {
@@ -1900,12 +2012,29 @@ const Quiz = {
     const inp=document.getElementById('answer-input'),val=inp.value.trim();if(!val)return;
     this.answered=true;inp.disabled=true;
     const q=this.questions[this.idx],fb=document.getElementById('feedback-box');
-    if(isCorrect(val,q.answer)){
+
+    let correct = false;
+    let displayAnswer = q.answerDisplay || q.answer;
+
+    if (q.answer === '_de-lat_') {
+      // Deutsch → Latein: flexible check (lat, lat,fall2, lat,fall2 genus)
+      correct = VokabelQuiz._checkDeLatAnswer(val, q.r);
+      displayAnswer = VokabelQuiz._formatDeLatAnswer(q.r);
+    } else if (q.mode === 'lat-de' && this._isVokabel) {
+      // Latein → Deutsch: accept with/without article
+      correct = VokabelQuiz._checkDeAnswer(val, q.r||{de: q.answer});
+      displayAnswer = q.answerDisplay;
+    } else {
+      correct = isCorrect(val, q.answer);
+      const acc = parseAnswers(q.answer);
+      displayAnswer = acc.length > 1 ? acc.join(' / ') : q.answerDisplay;
+    }
+
+    if(correct){
       this.score++;fb.textContent='✓ Richtig!';fb.className='feedback-box correct';
     } else {
-      const acc=parseAnswers(q.answer);
-      const display = acc.length>1 ? acc.join(' / ') : q.answerDisplay;
-      fb.textContent=`✗ Falsch. Richtig: ${display}`;fb.className='feedback-box wrong';
+      fb.textContent='✗ Falsch. Richtig: ' + displayAnswer;
+      fb.className='feedback-box wrong';
     }
     document.getElementById('progress-bar').style.width=((this.idx+1)/this.questions.length*100)+'%';
     document.getElementById('next-btn').classList.remove('hidden');

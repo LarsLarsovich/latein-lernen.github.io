@@ -41,8 +41,8 @@
   <!-- TABELLEN (direkt, kein Tab mehr) -->
   <div id="tab-content-tables">
     <div class="in-dev-banner">
-      <span class="in-dev-icon">🚧</span>
-      <span>Tabellen-Bereich – in Entwicklung</span>
+      <span class="in-dev-icon">⚠️</span>
+      <span>Vokabeln – in development</span>
     </div>
 
     <!-- ── Pronomina ── -->
@@ -126,16 +126,19 @@
     <div id="setup-vokabel" class="phase-section hidden">
       <div class="phase-label">Was soll abgefragt werden?</div>
       <div class="phase-options">
-        <label class="phase-opt"><input type="checkbox" name="vphase" value="lat-de" checked /><span class="phase-box"><span class="phase-icon">🇦🇹</span><span class="phase-name">Latein → Deutsch</span></span></label>
-        <label class="phase-opt"><input type="checkbox" name="vphase" value="de-lat" /><span class="phase-box"><span class="phase-icon">🏛️</span><span class="phase-name">Deutsch → Latein</span></span></label>
-        <label class="phase-opt"><input type="checkbox" name="vphase" value="fall2" /><span class="phase-box"><span class="phase-icon">②</span><span class="phase-name">2. Fall</span></span></label>
-        <label class="phase-opt"><input type="checkbox" name="vphase" value="genus" /><span class="phase-box"><span class="phase-icon">⚥</span><span class="phase-name">Geschlecht</span></span></label>
-        <label class="phase-opt"><input type="checkbox" name="vphase" value="dekl" /><span class="phase-box"><span class="phase-icon">#</span><span class="phase-name">Deklination</span></span></label>
+        <label class="phase-opt"><input type="checkbox" name="vphase" value="lat-de" checked /><span class="phase-box"><span class="phase-icon">🏛️</span><span class="phase-name">Latein → Deutsch</span></span></label>
+        <label class="phase-opt"><input type="checkbox" name="vphase" value="de-lat" /><span class="phase-box"><span class="phase-icon">🇩🇪</span><span class="phase-name">Deutsch → Latein + Infos</span></span></label>
       </div>
-      <div class="shuffle-option">
+      <div class="shuffle-option" style="margin-top:0.8rem;">
         <label class="shuffle-opt">
           <input type="checkbox" id="vok-shuffle" />
           <span class="shuffle-box">Karten mischen</span>
+        </label>
+      </div>
+      <div class="shuffle-option" style="margin-top:0.5rem;">
+        <label class="shuffle-opt">
+          <input type="checkbox" id="vok-extreme" />
+          <span class="shuffle-box">Extrem-Modus: deklinierte/konjugierte Formen abfragen</span>
         </label>
       </div>
     </div>
