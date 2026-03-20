@@ -618,6 +618,10 @@
       <input type="text" id="own-settings-name" class="modal-input" placeholder="Name" />
     </div>
     <div class="field-group">
+      <label>Benutzername</label>
+      <input type="text" id="own-settings-username" class="modal-input" placeholder="benutzername" />
+    </div>
+    <div class="field-group">
       <label>Altes Passwort</label>
       <input type="password" id="own-settings-old" class="modal-input" placeholder="••••••••" />
     </div>
@@ -626,6 +630,7 @@
       <input type="password" id="own-settings-new" class="modal-input" placeholder="••••••••" />
     </div>
     <div class="create-error hidden" id="own-settings-error"></div>
+    <div class="report-success hidden" id="own-settings-success">✓ Gespeichert!</div>
     <button class="start-btn" style="margin-top:0.8rem;" onclick="App.saveOwnSettings()">Speichern</button>
   </div>
 </div>

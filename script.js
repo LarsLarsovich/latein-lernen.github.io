@@ -23,7 +23,7 @@ const COL = {
 };
 
 // ── Constants ────────────────────────────────────────────────
-const SUPER_ADMIN  = { user: 'admin', pass: 'latina2024' };
+const SUPER_ADMIN  = { user: 'admin', pass: 'latina2024' }; // mutable via saveOwnSettings
 // state.currentAdmin = { id, name, isSuperAdmin } when logged in
 const CASES        = [1, 2, 3, 4, 6];
 const CASE_NAMES   = { 1:'Nominativ', 2:'Genitiv', 3:'Dativ', 4:'Akkusativ', 6:'Ablativ' };
@@ -89,51 +89,55 @@ const state = {
 // ── Vokabel Quiz Engine ───────────────────────────────────────
 const VokabelQuiz = {
 
-  // Parse "amica,ae f." or "amica,amicae f." or "discipulus,i m." → {lat, fall2, genus}
-  // Supports abbreviated genitives: "ae" → expands using nominative stem
+  // Parse input like:
+  //   "amica,ae f."       → abbreviated genitive
+  //   "amica,amicae f."   → full genitive
+  //   "flumen,inis"       → abbreviated (3rd decl)
+  //   "amicus,i m."       → abbreviated
+  //   "amicus m."         → no genitive given
+  // Returns { lat, fall2 (full genitive or null), genus, fall2Abbrev }
   _parseInput(input) {
     const s = input.trim();
-    // Extract genus: m., f., or n. at end
-    const genusMatch = s.match(/\b(m\.|f\.|n\.)\s*$/i);
-    const genus = genusMatch ? genusMatch[1].toLowerCase() : null;
-    const withoutGenus = genus ? s.slice(0, s.lastIndexOf(genusMatch[0])).trim() : s;
 
+    // 1. Extract genus at end: m. f. n.
+    const genusMatch = s.match(/\s+(m\.|f\.|n\.)\s*$|^(m\.|f\.|n\.)\s*$|(m\.|f\.|n\.)\s*$/i);
+    const genus = genusMatch ? (genusMatch[1]||genusMatch[2]||genusMatch[3]).toLowerCase() : null;
+    const withoutGenus = genus
+      ? s.slice(0, s.toLowerCase().lastIndexOf(genus)).trim().replace(/,\s*$/, '').trim()
+      : s.trim();
+
+    // 2. Split on comma
     const commaIdx = withoutGenus.indexOf(',');
-    const lat   = commaIdx >= 0 ? withoutGenus.slice(0, commaIdx).trim() : withoutGenus.trim();
-    let   fall2 = commaIdx >= 0 ? withoutGenus.slice(commaIdx + 1).trim() : null;
+    const lat    = commaIdx >= 0 ? withoutGenus.slice(0, commaIdx).trim() : withoutGenus.trim();
+    const fall2Raw = commaIdx >= 0 ? withoutGenus.slice(commaIdx + 1).trim() : null;
 
-    // Expand abbreviated genitives: if fall2 is just an ending (starts with vowel or known ending)
-    // e.g. amica,ae → fall2=ae → expanded to amicae
-    // e.g. servus,i  → fall2=i  → expanded to servi
-    if (fall2 && lat) {
-      const abbrevEndings = ['ae','arum','am','anis','inis','is','i','o','um','us','ui','uum','ei','erum','em'];
-      const isAbbrev = abbrevEndings.includes(fall2.toLowerCase()) && !fall2.includes(lat.slice(0,3));
-      if (isAbbrev) {
-        // Find the longest common prefix between lat and expected full genitive
-        // Strategy: try removing endings from lat to find stem, then add fall2
-        const latLow = lat.toLowerCase();
-        // Try stems by removing 1-4 chars from end of nominative
-        let expanded = null;
-        for (let cut = 1; cut <= 4; cut++) {
-          const stem = latLow.slice(0, latLow.length - cut);
-          if (stem.length >= 2 && (stem + fall2.toLowerCase()).length >= latLow.length) {
-            expanded = stem + fall2.toLowerCase();
-            break;
-          }
-        }
-        if (expanded) fall2 = expanded;
-      }
-    }
+    // 3. Store both the raw input fall2 and note if it looks abbreviated
+    // Abbreviated = known short ending that doesn't contain the nominative stem
+    const abbrevEndingsList = ['ae','arum','is','i','o','um','us','ui','uum','ei','erum','em',
+                                'inis','eris','oris','icis','ucis','ntis','itis','atis','onis','alis'];
+    const isAbbrev = fall2Raw && abbrevEndingsList.some(e => fall2Raw.toLowerCase() === e);
 
-    return { lat: lat.toLowerCase(), fall2: fall2 ? fall2.toLowerCase() : null, genus };
+    return {
+      lat: lat.toLowerCase(),
+      fall2: fall2Raw ? fall2Raw.toLowerCase() : null,
+      fall2IsAbbrev: isAbbrev,
+      genus
+    };
   },
 
-  // Check if answer matches, accepting multiple formats
-  // requireFall2/requireGenus: if true, user MUST provide these fields
-  _checkDeLatAnswer(input, r, requireFall2, requireGenus) {
-    const inp = input.trim().toLowerCase();
-    const parsed = this._parseInput(inp);
+  // Check whether parsed fall2 matches the stored genitive r.fall2
+  // Accepts: exact match OR abbreviated suffix match (e.g. "inis" matches end of "fluminis")
+  _fall2Matches(parsedFall2, storedFall2) {
+    if (!parsedFall2 || !storedFall2) return false;
+    const p = parsedFall2.toLowerCase().trim();
+    const s = storedFall2.toLowerCase().trim();
+    if (p === s) return true;                    // exact: amicae === amicae
+    if (s.endsWith(p) && p.length >= 1) return true; // abbreviated: inis matches fluminis
+    return false;
+  },
 
+  _checkDeLatAnswer(input, r, requireFall2, requireGenus) {
+    const parsed = this._parseInput(input.trim());
     if (!parsed.lat) return false;
     if (parsed.lat !== (r.lat||'').toLowerCase()) return false;
 
@@ -141,14 +145,14 @@ const VokabelQuiz = {
     const hasGenus = r.genus && r.genus !== '–' && r.genus !== '#';
 
     if (requireFall2 && hasFall2) {
-      if (!parsed.fall2) return false; // must provide
-      if (parsed.fall2 !== (r.fall2||'').toLowerCase()) return false;
+      if (!parsed.fall2) return false;
+      if (!this._fall2Matches(parsed.fall2, r.fall2)) return false;
     } else if (parsed.fall2 && hasFall2) {
-      if (parsed.fall2 !== (r.fall2||'').toLowerCase()) return false;
+      if (!this._fall2Matches(parsed.fall2, r.fall2)) return false;
     }
 
     if (requireGenus && hasGenus) {
-      if (!parsed.genus) return false; // must provide
+      if (!parsed.genus) return false;
       if (parsed.genus !== (r.genus||'').toLowerCase()) return false;
     } else if (parsed.genus && hasGenus) {
       if (parsed.genus !== (r.genus||'').toLowerCase()) return false;
@@ -999,9 +1003,15 @@ const App = {
 
   // Change own password (for non-super admins)
   openOwnSettings() {
-    document.getElementById('own-settings-overlay').classList.remove('hidden');
     const admin = state.currentAdmin;
-    if (admin) document.getElementById('own-settings-name').value = admin.name||'';
+    if (!admin) return;
+    document.getElementById('own-settings-name').value = admin.name || '';
+    document.getElementById('own-settings-username').value = admin.isSuperAdmin ? SUPER_ADMIN.user : (admin.username || '');
+    document.getElementById('own-settings-old').value = '';
+    document.getElementById('own-settings-new').value = '';
+    document.getElementById('own-settings-error').classList.add('hidden');
+    document.getElementById('own-settings-success').classList.add('hidden');
+    document.getElementById('own-settings-overlay').classList.remove('hidden');
   },
 
   closeOwnSettings(e) {
@@ -1010,28 +1020,59 @@ const App = {
   },
 
   async saveOwnSettings() {
-    const name    = document.getElementById('own-settings-name').value.trim();
-    const oldPass = document.getElementById('own-settings-old').value;
-    const newPass = document.getElementById('own-settings-new').value;
-    const err     = document.getElementById('own-settings-error');
+    const name     = document.getElementById('own-settings-name').value.trim();
+    const username = document.getElementById('own-settings-username').value.trim().toLowerCase();
+    const oldPass  = document.getElementById('own-settings-old').value;
+    const newPass  = document.getElementById('own-settings-new').value;
+    const err      = document.getElementById('own-settings-error');
+    const succ     = document.getElementById('own-settings-success');
+    err.classList.add('hidden');
 
-    if (state.currentAdmin?.isSuperAdmin) {
-      err.textContent = 'Super-Admin Passwort kann hier nicht geändert werden.';
-      err.classList.remove('hidden'); return;
-    }
-    if (!oldPass||!newPass) { err.textContent='Altes und neues Passwort eingeben.'; err.classList.remove('hidden'); return; }
+    const admin = state.currentAdmin;
+    if (!admin) return;
 
-    try {
-      const doc = await COL.admins.doc(state.currentAdmin.id).get();
-      if (!doc.exists || doc.data().password !== oldPass) {
+    if (admin.isSuperAdmin) {
+      // Super admin: verify old password, allow changing name, username, password
+      // Username/password stored in SUPER_ADMIN constant - since it's client-side,
+      // we store overrides in Firebase under a special 'super' doc
+      if (newPass && !oldPass) { err.textContent='Altes Passwort eingeben.'; err.classList.remove('hidden'); return; }
+      if (oldPass && oldPass !== SUPER_ADMIN.pass) {
         err.textContent = 'Altes Passwort stimmt nicht.'; err.classList.remove('hidden'); return;
       }
-      const updates = { password: newPass };
-      if (name) { updates.name = name; state.currentAdmin.name = name; }
-      await COL.admins.doc(state.currentAdmin.id).update(updates);
-      document.getElementById('own-settings-overlay').classList.add('hidden');
-      alert('Gespeichert!');
-    } catch(e) { err.textContent='Fehler: '+e.message; err.classList.remove('hidden'); }
+      try {
+        const updates = {};
+        if (name) updates.name = name;
+        if (username) updates.username = username;
+        if (newPass) updates.password = newPass;
+        if (Object.keys(updates).length) {
+          await COL.admins.doc('_super').set(updates, {merge: true});
+          // Update local constants
+          if (newPass) SUPER_ADMIN.pass = newPass;
+          if (username) SUPER_ADMIN.user = username;
+          if (name) admin.name = name;
+        }
+        succ.classList.remove('hidden');
+        setTimeout(() => document.getElementById('own-settings-overlay').classList.add('hidden'), 1500);
+      } catch(e) { err.textContent='Fehler: '+e.message; err.classList.remove('hidden'); }
+    } else {
+      // Regular admin
+      if (newPass && !oldPass) { err.textContent='Altes Passwort eingeben.'; err.classList.remove('hidden'); return; }
+      try {
+        if (oldPass) {
+          const doc = await COL.admins.doc(admin.id).get();
+          if (!doc.exists || doc.data().password !== oldPass) {
+            err.textContent = 'Altes Passwort stimmt nicht.'; err.classList.remove('hidden'); return;
+          }
+        }
+        const updates = {};
+        if (name) { updates.name = name; admin.name = name; }
+        if (username) updates.username = username;
+        if (newPass) updates.password = newPass;
+        if (Object.keys(updates).length) await COL.admins.doc(admin.id).update(updates);
+        succ.classList.remove('hidden');
+        setTimeout(() => document.getElementById('own-settings-overlay').classList.add('hidden'), 1500);
+      } catch(e) { err.textContent='Fehler: '+e.message; err.classList.remove('hidden'); }
+    }
   },
 
   toggleDeLatOptions() {
@@ -1179,7 +1220,7 @@ const App = {
     const adminSettingsBtn = document.getElementById('admin-settings-btn');
     if (adminSettingsBtn) adminSettingsBtn.classList.toggle('hidden', !adminData.isSuperAdmin);
     const ownSettingsBtn = document.getElementById('own-settings-btn');
-    if (ownSettingsBtn) ownSettingsBtn.classList.toggle('hidden', adminData.isSuperAdmin); // only for non-super
+    if (ownSettingsBtn) ownSettingsBtn.classList.remove('hidden'); // all admins get own settings
     const bellBtn = document.getElementById('bell-btn');
     if (bellBtn) bellBtn.classList.remove('hidden');
     this.updateBellBadge();
