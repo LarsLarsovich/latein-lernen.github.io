@@ -71,7 +71,17 @@
         <div class="tables-category-heading-line"></div>
       </div>
 
-      <!-- Alle Vokabeln Card -->
+      <!-- Admin: Meldungen -->
+    <div id="reports-section" class="hidden" style="margin-bottom:2rem;">
+      <div class="tables-category-heading">
+        <div class="tables-category-heading-title" style="color:#e05a5a;">⚑ Meldungen</div>
+        <div class="tables-category-heading-line"></div>
+      </div>
+      <div id="reports-grid"></div>
+      <div class="empty-hint" id="reports-empty" style="display:none;">Keine Meldungen vorhanden.</div>
+    </div>
+
+    <!-- Alle Vokabeln Card -->
       <div class="quiz-card alle-vok-card" onclick="Tables.openAlleVokabeln()">
         <div class="alle-vok-icon">∑</div>
         <div class="quiz-card-name">Alle Vokabeln</div>
@@ -127,7 +137,19 @@
       <div class="phase-label">Was soll abgefragt werden?</div>
       <div class="phase-options">
         <label class="phase-opt"><input type="checkbox" name="vphase" value="lat-de" checked /><span class="phase-box"><span class="phase-icon">🏛️</span><span class="phase-name">Latein → Deutsch</span></span></label>
-        <label class="phase-opt"><input type="checkbox" name="vphase" value="de-lat" /><span class="phase-box"><span class="phase-icon">🇩🇪</span><span class="phase-name">Deutsch → Latein + Infos</span></span></label>
+        <label class="phase-opt"><input type="checkbox" name="vphase" value="de-lat" id="vphase-de-lat" onchange="App.toggleDeLatOptions()" /><span class="phase-box"><span class="phase-icon">🇩🇪</span><span class="phase-name">Deutsch → Latein + Infos</span></span></label>
+      </div>
+      <div id="de-lat-options" class="hidden" style="margin-top:0.6rem;padding:0.8rem 1rem;background:var(--bg2);border-radius:var(--radius);border:1px solid var(--border);">
+        <div style="font-size:12px;color:var(--text3);margin-bottom:8px;">Bei Deutsch → Latein verlangen:</div>
+        <label class="shuffle-opt" style="margin-bottom:4px;">
+          <input type="checkbox" id="vok-require-fall2" />
+          <span class="shuffle-box">2. Fall (Genitiv) angeben</span>
+        </label>
+        <label class="shuffle-opt">
+          <input type="checkbox" id="vok-require-genus" />
+          <span class="shuffle-box">Geschlecht (m./f./n.) angeben</span>
+        </label>
+        <div style="font-size:11px;color:var(--text3);margin-top:6px;">Eingabe z.B.: <code style="background:var(--bg3);padding:1px 5px;border-radius:3px;">amica,ae f.</code> oder <code style="background:var(--bg3);padding:1px 5px;border-radius:3px;">amica,ae</code></div>
       </div>
       <div class="shuffle-option" style="margin-top:0.8rem;">
         <label class="shuffle-opt">
@@ -194,6 +216,7 @@
   <div class="back-row">
     <button class="back-btn" onclick="App.goHome();App.switchTab('tables')">← Zurück</button>
     <div class="editor-page-title" id="table-view-title"></div>
+    <button class="report-float-btn" onclick="Report.open('Tabelle: ' + document.getElementById('table-view-title').textContent)" title="Fehler melden">⚑ Melden</button>
     <div style="margin-left:auto;display:flex;gap:8px;" id="table-view-quiz-btn">
       <button class="start-btn" onclick="App.startVokabelQuiz()" id="vok-quiz-start-btn" style="display:none;">Quiz starten →</button>
     </div>
@@ -494,6 +517,7 @@
 <main id="page-vok-detail" class="page">
   <div class="back-row">
     <button class="back-btn" id="vok-detail-back">← Zurück</button>
+    <button class="report-float-btn" onclick="Report.open('Vokabel-Detail: ' + (document.querySelector('.vok-detail-lat')?.textContent||''))" title="Fehler melden">⚑ Melden</button>
     <button class="draft-btn hidden" id="vok-detail-edit-btn" onclick="VokDetail.openOverride()">Formen bearbeiten</button>
   </div>
   <div id="vok-detail-content"></div>
@@ -539,6 +563,23 @@
     </div>
   </div>
 </div>
+
+<!-- MODAL: Fehler melden -->
+<div class="modal-overlay hidden" id="report-overlay" onclick="Report.close(event)">
+  <div class="modal report-modal">
+    <button class="modal-close" onclick="Report.close()">✕</button>
+    <div class="modal-title">Fehler melden</div>
+    <div class="report-context-badge" id="report-context-display"></div>
+    <div class="field-group">
+      <label>Was ist falsch?</label>
+      <textarea id="report-message" class="modal-input report-textarea" placeholder="Beschreibe den Fehler…"></textarea>
+    </div>
+    <div class="create-error hidden" id="report-error"></div>
+    <div class="report-success hidden" id="report-success">✓ Gesendet!</div>
+    <button class="start-btn" id="report-send-btn" onclick="Report.send()">Melden</button>
+  </div>
+</div>
+
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script src="script.js"></script>

@@ -17,7 +17,8 @@ const COL = {
   pronomen:       db.collection('tables_pronomen'),
   vokabel:        db.collection('tables_vokabel'),
   pronomenDrafts: db.collection('drafts_pronomen'),
-  vokabelDrafts:  db.collection('drafts_vokabel')
+  vokabelDrafts:  db.collection('drafts_vokabel'),
+  reports:        db.collection('reports')
 };
 
 // ── Constants ────────────────────────────────────────────────
@@ -86,50 +87,85 @@ const state = {
 // ── Vokabel Quiz Engine ───────────────────────────────────────
 const VokabelQuiz = {
 
-  // Parse "amica,ae f." or "discipulus,i m." or "amica" → {fall2, genus}
+  // Parse "amica,ae f." or "amica,amicae f." or "discipulus,i m." → {lat, fall2, genus}
+  // Supports abbreviated genitives: "ae" → expands using nominative stem
   _parseInput(input) {
     const s = input.trim();
-    // Try to extract genus: ends with m., f., or n.
+    // Extract genus: m., f., or n. at end
     const genusMatch = s.match(/\b(m\.|f\.|n\.)\s*$/i);
     const genus = genusMatch ? genusMatch[1].toLowerCase() : null;
-    // Remove genus from string
     const withoutGenus = genus ? s.slice(0, s.lastIndexOf(genusMatch[0])).trim() : s;
-    // Try to extract fall2: after comma
+
     const commaIdx = withoutGenus.indexOf(',');
     const lat   = commaIdx >= 0 ? withoutGenus.slice(0, commaIdx).trim() : withoutGenus.trim();
-    const fall2 = commaIdx >= 0 ? withoutGenus.slice(commaIdx + 1).trim() : null;
-    return { lat, fall2, genus };
+    let   fall2 = commaIdx >= 0 ? withoutGenus.slice(commaIdx + 1).trim() : null;
+
+    // Expand abbreviated genitives: if fall2 is just an ending (starts with vowel or known ending)
+    // e.g. amica,ae → fall2=ae → expanded to amicae
+    // e.g. servus,i  → fall2=i  → expanded to servi
+    if (fall2 && lat) {
+      const abbrevEndings = ['ae','arum','am','anis','inis','is','i','o','um','us','ui','uum','ei','erum','em'];
+      const isAbbrev = abbrevEndings.includes(fall2.toLowerCase()) && !fall2.includes(lat.slice(0,3));
+      if (isAbbrev) {
+        // Find the longest common prefix between lat and expected full genitive
+        // Strategy: try removing endings from lat to find stem, then add fall2
+        const latLow = lat.toLowerCase();
+        // Try stems by removing 1-4 chars from end of nominative
+        let expanded = null;
+        for (let cut = 1; cut <= 4; cut++) {
+          const stem = latLow.slice(0, latLow.length - cut);
+          if (stem.length >= 2 && (stem + fall2.toLowerCase()).length >= latLow.length) {
+            expanded = stem + fall2.toLowerCase();
+            break;
+          }
+        }
+        if (expanded) fall2 = expanded;
+      }
+    }
+
+    return { lat: lat.toLowerCase(), fall2: fall2 ? fall2.toLowerCase() : null, genus };
   },
 
   // Check if answer matches, accepting multiple formats
-  _checkDeLatAnswer(input, r) {
+  // requireFall2/requireGenus: if true, user MUST provide these fields
+  _checkDeLatAnswer(input, r, requireFall2, requireGenus) {
     const inp = input.trim().toLowerCase();
     const parsed = this._parseInput(inp);
 
-    // Must at minimum have the correct Latin word
     if (!parsed.lat) return false;
-    const latOk = parsed.lat === (r.lat||'').toLowerCase();
-    if (!latOk) return false;
+    if (parsed.lat !== (r.lat||'').toLowerCase()) return false;
 
-    // If fall2 provided, check it
     const hasFall2 = r.fall2 && r.fall2 !== '–' && r.fall2 !== '#';
-    if (parsed.fall2 && hasFall2) {
+    const hasGenus = r.genus && r.genus !== '–' && r.genus !== '#';
+
+    if (requireFall2 && hasFall2) {
+      if (!parsed.fall2) return false; // must provide
+      if (parsed.fall2 !== (r.fall2||'').toLowerCase()) return false;
+    } else if (parsed.fall2 && hasFall2) {
       if (parsed.fall2 !== (r.fall2||'').toLowerCase()) return false;
     }
-    // If genus provided, check it
-    const hasGenus = r.genus && r.genus !== '–' && r.genus !== '#';
-    if (parsed.genus && hasGenus) {
+
+    if (requireGenus && hasGenus) {
+      if (!parsed.genus) return false; // must provide
+      if (parsed.genus !== (r.genus||'').toLowerCase()) return false;
+    } else if (parsed.genus && hasGenus) {
       if (parsed.genus !== (r.genus||'').toLowerCase()) return false;
     }
     return true;
   },
 
-  // Format the expected answer for feedback
-  _formatDeLatAnswer(r) {
-    let parts = [r.lat];
-    if (r.fall2 && r.fall2 !== '–' && r.fall2 !== '#') parts[0] += ',' + r.fall2;
-    if (r.genus && r.genus !== '–' && r.genus !== '#') parts.push(r.genus);
-    return parts.join(' ');
+  _formatDeLatAnswer(r, requireFall2, requireGenus) {
+    const hasFall2 = r.fall2 && r.fall2 !== '–' && r.fall2 !== '#';
+    const hasGenus = r.genus && r.genus !== '–' && r.genus !== '#';
+    let s = r.lat || '';
+    if (requireFall2 && hasFall2) s += ',' + r.fall2;
+    if (requireGenus && hasGenus) s += ' ' + r.genus;
+    if (!requireFall2 && !requireGenus) {
+      // show all available
+      if (hasFall2) s += ',' + r.fall2;
+      if (hasGenus) s += ' ' + r.genus;
+    }
+    return s;
   },
 
   // Check German answer (with or without article)
@@ -183,13 +219,17 @@ const VokabelQuiz = {
         } else if (type === 'adj') {
           hint = 'z.B. bonus/a/um';
         }
+        const reqF2 = VokabelQuiz._requireFall2 || false;
+        const reqGe = VokabelQuiz._requireGenus || false;
         questions.push({
           mode: 'de-lat',
-          meta: 'Deutsch → Latein',
+          meta: 'Deutsch → Latein' + (reqF2||reqGe ? ' (+ Infos)' : ''),
           main: deDisplay,
           placeholder: hint || 'Latein eingeben…',
-          answer: '_de-lat_',  // special marker - check handled in Quiz.check
-          answerDisplay: this._formatDeLatAnswer(r),
+          answer: '_de-lat_',
+          answerDisplay: this._formatDeLatAnswer(r, reqF2, reqGe),
+          requireFall2: reqF2,
+          requireGenus: reqGe,
           r
         });
       }
@@ -678,6 +718,13 @@ const App = {
       }
     }
 
+    // Reports for admin
+    const reportsSection = document.getElementById('reports-section');
+    if (reportsSection) {
+      reportsSection.classList.toggle('hidden', !isAdmin);
+      if (isAdmin) App.loadReports();
+    }
+
     // Vokabel tables - sorted alphabetically
     const vg = document.getElementById('vokabel-grid');
     const ve = document.getElementById('vokabel-empty');
@@ -783,6 +830,12 @@ const App = {
     this.showPage('setup', q.name);
   },
 
+  toggleDeLatOptions() {
+    const checked = document.getElementById('vphase-de-lat')?.checked;
+    const opts = document.getElementById('de-lat-options');
+    if (opts) opts.classList.toggle('hidden', !checked);
+  },
+
   openVokabelQuizSetup(tableId) {
     const t = state.vokabel.find(x=>x.id===tableId);
     if (!t) return;
@@ -834,6 +887,8 @@ const App = {
       const modes   = checked.map(c => c.value);
       const shuffle = document.getElementById('vok-shuffle').checked;
       const extreme = document.getElementById('vok-extreme').checked;
+      VokabelQuiz._requireFall2 = document.getElementById('vok-require-fall2')?.checked || false;
+      VokabelQuiz._requireGenus = document.getElementById('vok-require-genus')?.checked || false;
       const rows    = state.currentVokabelTable.rows || [];
       const questions = VokabelQuiz.build(rows, modes, shuffle, extreme);
       if (!questions.length) { alert('Keine Vokabeln für diese Auswahl vorhanden.'); return; }
@@ -2017,9 +2072,8 @@ const Quiz = {
     let displayAnswer = q.answerDisplay || q.answer;
 
     if (q.answer === '_de-lat_') {
-      // Deutsch → Latein: flexible check (lat, lat,fall2, lat,fall2 genus)
-      correct = VokabelQuiz._checkDeLatAnswer(val, q.r);
-      displayAnswer = VokabelQuiz._formatDeLatAnswer(q.r);
+      correct = VokabelQuiz._checkDeLatAnswer(val, q.r, q.requireFall2, q.requireGenus);
+      displayAnswer = VokabelQuiz._formatDeLatAnswer(q.r, q.requireFall2, q.requireGenus);
     } else if (q.mode === 'lat-de' && this._isVokabel) {
       // Latein → Deutsch: accept with/without article
       correct = VokabelQuiz._checkDeAnswer(val, q.r||{de: q.answer});
@@ -2058,6 +2112,54 @@ document.addEventListener('keydown',e=>{
   if(!document.getElementById('login-overlay').classList.contains('hidden'))App.adminLogin();
 });
 
+// ── Report System ─────────────────────────────────────────────
+const Report = {
+  _context: '',
+
+  open(context) {
+    this._context = context || 'Unbekannt';
+    document.getElementById('report-context-display').textContent = context || '';
+    document.getElementById('report-message').value = '';
+    document.getElementById('report-error').classList.add('hidden');
+    document.getElementById('report-success').classList.add('hidden');
+    document.getElementById('report-overlay').classList.remove('hidden');
+    setTimeout(() => document.getElementById('report-message').focus(), 100);
+  },
+
+  close(e) {
+    if (e && e.target !== document.getElementById('report-overlay')) return;
+    document.getElementById('report-overlay').classList.add('hidden');
+  },
+
+  async send() {
+    const msg = document.getElementById('report-message').value.trim();
+    if (!msg) {
+      document.getElementById('report-error').textContent = 'Bitte schreib eine Nachricht.';
+      document.getElementById('report-error').classList.remove('hidden');
+      return;
+    }
+    const btn = document.getElementById('report-send-btn');
+    btn.textContent = '…'; btn.disabled = true;
+    try {
+      await COL.reports.add({
+        message: msg,
+        context: this._context,
+        timestamp: Date.now(),
+        read: false
+      });
+      document.getElementById('report-error').classList.add('hidden');
+      document.getElementById('report-success').classList.remove('hidden');
+      setTimeout(() => document.getElementById('report-overlay').classList.add('hidden'), 1500);
+    } catch(e) {
+      document.getElementById('report-error').textContent = 'Fehler: ' + e.message;
+      document.getElementById('report-error').classList.remove('hidden');
+    } finally {
+      btn.textContent = 'Melden'; btn.disabled = false;
+    }
+  }
+};
+
+
 // ── Export globals for onclick handlers ──────────────────────
 window.App       = App;
 window.Tables    = Tables;
@@ -2065,5 +2167,6 @@ window.Quiz      = Quiz;
 window.VokDetail = VokDetail;
 window.VokSearch     = VokSearch;
 window.VokabelQuiz  = VokabelQuiz;
+window.Report        = Report;
 
 App.init();
