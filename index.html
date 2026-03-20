@@ -18,7 +18,7 @@
   <div class="logo" onclick="App.goHome()" title="Zur Startseite">Latein</div>
   <div class="topbar-center" id="topbar-center"></div>
   <div class="topbar-right">
-    <button class="add-btn hidden" id="add-btn" onclick="App.openAddMenu()" title="Neu erstellen">+</button>
+    <button class="add-btn hidden" id="add-btn" onclick="App.openAddMenu()" title="Neue Tabelle erstellen">+</button>
     <button class="admin-btn" id="admin-topbtn" onclick="App.handleAdminBtn()">Admin</button>
   </div>
 </header>
@@ -35,33 +35,11 @@
   <div class="hero">
     <div class="hero-label">Latein lernen</div>
     <h1 class="hero-title">Lern<span class="accent">plattform</span></h1>
-    <p class="hero-sub">Quize, Tabellen und Vokabeln – alles an einem Ort.</p>
+    <p class="hero-sub">Tabellen, Quize und Vokabeln – alles an einem Ort.</p>
   </div>
 
-  <!-- Tabs -->
-  <div class="home-tabs">
-    <button class="home-tab active" id="tab-quizes" onclick="App.switchTab('quizes')">Quize</button>
-    <button class="home-tab" id="tab-tables" onclick="App.switchTab('tables')">Tabellen</button>
-  </div>
-
-  <!-- QUIZE TAB -->
-  <div id="tab-content-quizes">
-    <div id="draft-section" class="hidden">
-      <div class="section-header">
-        <div class="section-label">Entwürfe</div>
-        <div class="section-hint">Nur für dich sichtbar</div>
-      </div>
-      <div class="quiz-grid" id="draft-grid"></div>
-      <div class="empty-hint" id="draft-empty" style="display:none;">Keine Entwürfe vorhanden.</div>
-      <div class="section-divider"></div>
-      <div class="section-label" style="margin-bottom:1rem;">Veröffentlicht</div>
-    </div>
-    <div class="quiz-grid" id="quiz-grid"></div>
-    <div class="empty-hint" id="empty-hint" style="display:none;">Noch keine Quize veröffentlicht.</div>
-  </div>
-
-  <!-- TABELLEN TAB -->
-  <div id="tab-content-tables" class="hidden">
+  <!-- TABELLEN (direkt, kein Tab mehr) -->
+  <div id="tab-content-tables">
     <div class="in-dev-banner">
       <span class="in-dev-icon">🚧</span>
       <span>Tabellen-Bereich – in Entwicklung</span>
@@ -218,7 +196,6 @@
     </div>
     <div style="display:flex;gap:8px;" id="table-view-admin-btns" class="hidden">
       <button class="draft-btn" onclick="App.editTableFromView()">Bearbeiten</button>
-      <button class="draft-btn" onclick="App.createQuizFromTable()">→ Pronomen-Quiz</button>
     </div>
   </div>
   <div id="table-view-search" class="hidden">
@@ -422,20 +399,15 @@
     <button class="modal-close" onclick="App.closeAddMenu()">✕</button>
     <div class="modal-title">Was möchtest du erstellen?</div>
     <div class="add-menu-options">
-      <button class="add-menu-btn" onclick="App.closeAddMenu();App.openEditor(null)">
-        <div class="add-menu-icon">📝</div>
-        <div class="add-menu-label">Quiz</div>
-        <div class="add-menu-sub">Pronomen abfragen</div>
-      </button>
       <button class="add-menu-btn" onclick="App.closeAddMenu();Tables.openPronomenEditor(null)">
         <div class="add-menu-icon">🗂️</div>
         <div class="add-menu-label">Pronomen-Tabelle</div>
-        <div class="add-menu-sub">Deklination anzeigen</div>
+        <div class="add-menu-sub">Deklination + Quiz</div>
       </button>
       <button class="add-menu-btn" onclick="App.closeAddMenu();Tables.openVokabelEditor(null)">
         <div class="add-menu-icon">📚</div>
         <div class="add-menu-label">Vokabel-Tabelle</div>
-        <div class="add-menu-sub">Wortschatz verwalten</div>
+        <div class="add-menu-sub">Wortschatz + Quiz</div>
       </button>
     </div>
   </div>

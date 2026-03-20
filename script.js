@@ -355,11 +355,11 @@ const Latin = {
   declineNoun(nom, gen, genus) {
     // Determine declension from genitive
     let decl = 0;
-    if (gen.endsWith('ae'))  decl = 1;
+    if (gen.endsWith('ae'))       decl = 1;
+    else if (gen.endsWith('ei'))  decl = 5;  // must check before 'i'
     else if (gen.endsWith('i'))   decl = 2;
     else if (gen.endsWith('is'))  decl = 3;
     else if (gen.endsWith('us'))  decl = 4;
-    else if (gen.endsWith('ei') || gen.endsWith('ei')) decl = 5;
 
     const n = genus === 'n.';
     let sg = [], pl = [];
@@ -416,11 +416,12 @@ const Latin = {
 
     } else if (decl === 5) {
       // e-Deklination: res, rei / dies, diei
-      // Vok = Nom, Abl Sg = -e
-      const stem = gen.slice(0, -2); // rei → r
-      sg = [nom,       gen,          stem+'ei',  stem+'em',  nom,         stem+'e'];
-      pl = [stem+'es', stem+'erum',  stem+'ebus', stem+'es', stem+'es',  stem+'ebus'];
-      // Note: 5. Dekl has very few words with full plural (mostly dies and res)
+      const stem = gen.slice(0, -2); // rei → r (but stem for pl = nom stem)
+      // sg: res, rei, rei, rem, res, re
+      // pl: res, rerum, rebus, res, res, rebus
+      const plstem = nom.endsWith('es') ? nom.slice(0,-2) : nom.endsWith('s') ? nom.slice(0,-1) : nom;
+      sg = [nom,          gen,             stem+'ei',      stem+'em',     nom,          stem+'e'];
+      pl = [nom,          plstem+'erum',   plstem+'ebus',  nom,           nom,          plstem+'ebus'];
     }
 
     if (!sg.length) return null;
@@ -525,33 +526,15 @@ const App = {
   },
 
   switchTab(tab) {
-    state.currentTab = tab;
-    document.querySelectorAll('.home-tab').forEach(t=>t.classList.remove('active'));
-    document.getElementById('tab-'+tab).classList.add('active');
-    document.getElementById('tab-content-quizes').classList.toggle('hidden', tab!=='quizes');
-    document.getElementById('tab-content-tables').classList.toggle('hidden', tab!=='tables');
+    // Tables only now - tab switching kept for back-compat but tables always shown
+    state.currentTab = 'tables';
+    const tablesEl = document.getElementById('tab-content-tables');
+    if (tablesEl) tablesEl.classList.remove('hidden');
   },
 
   // ── Render home ──────────────────────────────────────────
   renderHome() {
     const isAdmin = state.adminLoggedIn;
-
-    // Drafts
-    document.getElementById('draft-section').classList.toggle('hidden', !isAdmin);
-    if (isAdmin) {
-      const g = document.getElementById('draft-grid');
-      const e = document.getElementById('draft-empty');
-      g.innerHTML = '';
-      if (!state.drafts.length) { e.style.display='block'; }
-      else { e.style.display='none'; state.drafts.forEach(q=>g.appendChild(this._makeDraftCard(q))); }
-    }
-
-    // Published quizes
-    const qg = document.getElementById('quiz-grid');
-    const qe = document.getElementById('empty-hint');
-    qg.innerHTML = '';
-    if (!state.published.length) { qe.style.display='block'; }
-    else { qe.style.display='none'; state.published.forEach(q=>qg.appendChild(this._makePublishedCard(q))); }
 
     // Pronomen drafts (admin only)
     const pdg = document.getElementById('pronomen-draft-grid');
@@ -706,9 +689,31 @@ const App = {
   },
 
   startVokabelQuiz() {
-    const t = state.vokabel.find(x=>x.id===state.tableViewId);
-    if (!t) return;
-    this.openVokabelQuizSetup(t.id);
+    if (state.tableViewType === 'pronomen') {
+      // Open pronomen quiz setup (existing flow)
+      const t = state.pronomen.find(x=>x.id===state.tableViewId);
+      if (!t) return;
+      state.quizType = 'pronomen';
+      // Convert pronomen table to quiz format
+      const quizData = {
+        id: t.id, name: t.name, desc: t.desc||'',
+        sg: t.sg, pl: t.pl, de_sg: t.de_sg, de_pl: t.de_pl
+      };
+      state.currentQuiz = quizData;
+      state.lastQuizId = t.id;
+      state.lastQuizSource = 'pronomen-table';
+      document.getElementById('setup-title').textContent = t.name;
+      document.getElementById('setup-desc').textContent = t.desc||'';
+      document.getElementById('setup-pronomen').classList.remove('hidden');
+      document.getElementById('setup-vokabel').classList.add('hidden');
+      document.querySelectorAll('input[name="phase"]').forEach(cb=>{cb.checked=cb.value==='1';});
+      document.getElementById('shuffle-within').checked = false;
+      this.showPage('setup', t.name);
+    } else {
+      const t = state.vokabel.find(x=>x.id===state.tableViewId);
+      if (!t) return;
+      this.openVokabelQuizSetup(t.id);
+    }
   },
 
   startQuiz() {
@@ -997,9 +1002,9 @@ const Tables = {
     const contentEl = document.getElementById('table-view-content');
     contentEl.innerHTML = type==='pronomen' ? this._renderPronomenTable(t) : this._renderVokabelTable(t);
 
-    // Show quiz button only for vokabel (non-draft)
+    // Show quiz button for all non-draft tables
     const quizBtn = document.getElementById('vok-quiz-start-btn');
-    if (quizBtn) quizBtn.style.display = (type === 'vokabel' && !isDraft) ? 'inline-block' : 'none';
+    if (quizBtn) quizBtn.style.display = (!isDraft) ? 'inline-block' : 'none';
 
     App.showPage('table-view', t.name);
   },
@@ -1351,7 +1356,7 @@ WHAT TO PUT IN EACH FIELD:
 Field 1 - Latin word:
 - Nouns: Nominative singular (e.g. aqua)
 - Adjectives: ALL three gender forms: bonus/a/um or magnus/a/um
-- Verbs: ALWAYS the INFINITIVE (e.g. clamare, ridere, laborare) — NEVER the conjugated form
+- Verbs: ALWAYS the INFINITIVE (e.g. clamare, ridere, laborare) — NEVER the conjugated form (NOT clamat, NOT ridet)
 - Other (adverb, conjunction, particle): the word as-is
 
 Field 2 - Second field:
@@ -1370,7 +1375,8 @@ Field 4 - Declension:
 
 Field 5 - German translation:
 - Separate multiple translations with % (NEVER use / or commas)
-- Verb translations: use bracket notation with % inside: (ich rufe%er ruft%sie ruft%es ruft)
+- Verbs: ALWAYS use the INFINITIVE form (e.g. rufen, lachen, arbeiten) — NEVER conjugated forms
+- Do NOT write "(er ruft%sie ruft%es ruft)" — just write "rufen"
 - Adjectives: just the base meaning (e.g. gut, gross, schlecht)
 
 STRICT RULES:
@@ -1381,12 +1387,14 @@ STRICT RULES:
 5. Do NOT merge or concatenate words
 
 EXAMPLES:
-aqua-aquae-f.-1. Dekl.-Wasser%Flussigkeit
+aqua-aquae-f.-1. Dekl.-Wasser%Flüssigkeit
 bonus/a/um-#-#-#-gut
-magnus/a/um-#-#-#-gross
-clamare-clamo-#-#-(ich rufe%er ruft%sie ruft%es ruft)
-ridere-rideo-#-#-(ich lache%er lacht%sie lacht%es lacht)
-laborare-laboro-#-#-(ich arbeite%er arbeitet%sie arbeitet%es arbeitet)
+magnus/a/um-#-#-#-groß
+clamare-clamo-#-#-rufen
+ridere-rideo-#-#-lachen
+laborare-laboro-#-#-arbeiten
+currere-curro-#-#-laufen
+esse-sum-#-#-sein
 cur-#-#-#-warum
 nunc-#-#-#-jetzt%nun
 non-#-#-#-nicht
