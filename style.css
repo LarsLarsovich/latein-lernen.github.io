@@ -533,3 +533,14 @@ select.modal-input { cursor: pointer; }
 }
 .report-item-footer button:hover { color: var(--text); }
 .reports-empty { padding: 1.5rem; text-align: center; color: var(--text3); font-size: 13px; }
+
+/* ── Report Success Screen ── */
+.report-success-screen {
+  text-align: center; padding: 2rem 1rem;
+}
+.report-success-icon {
+  font-size: 48px; color: #8adc9e; margin-bottom: 0.8rem; line-height: 1;
+}
+.report-success-text {
+  font-size: 16px; color: var(--text2); line-height: 1.5;
+}

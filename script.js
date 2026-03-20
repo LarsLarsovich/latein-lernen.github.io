@@ -963,6 +963,12 @@ const App = {
       document.getElementById('admin-topbtn').classList.remove('active');
       document.getElementById('admin-topbtn').textContent='Admin';
       document.getElementById('add-btn').classList.add('hidden');
+      const bellBtn = document.getElementById('bell-btn');
+      if (bellBtn) bellBtn.classList.add('hidden');
+      const panel = document.getElementById('reports-panel');
+      if (panel) panel.classList.add('hidden');
+      const backdrop = document.getElementById('reports-backdrop');
+      if (backdrop) backdrop.classList.add('hidden');
       this.renderHome();
     } else { this.openLogin(); }
   },
@@ -987,6 +993,9 @@ const App = {
       document.getElementById('admin-topbtn').classList.add('active');
       document.getElementById('admin-topbtn').textContent='Ausloggen';
       document.getElementById('add-btn').classList.remove('hidden');
+      const bellBtn = document.getElementById('bell-btn');
+      if (bellBtn) bellBtn.classList.remove('hidden');
+      this.updateBellBadge();
       this.renderHome();
     } else { document.getElementById('login-error').classList.remove('hidden'); }
   },
@@ -2172,6 +2181,10 @@ const Report = {
     document.getElementById('report-message').value = '';
     document.getElementById('report-error').classList.add('hidden');
     document.getElementById('report-success').classList.add('hidden');
+    document.getElementById('report-form-body').classList.remove('hidden');
+    const btn = document.getElementById('report-send-btn');
+    btn.textContent = 'Melden';
+    btn.disabled = false;
     document.getElementById('report-overlay').classList.remove('hidden');
     setTimeout(() => document.getElementById('report-message').focus(), 100);
   },
@@ -2198,12 +2211,14 @@ const Report = {
         read: false
       });
       document.getElementById('report-error').classList.add('hidden');
+      // Hide send btn, show success message
+      document.getElementById('report-form-body').classList.add('hidden');
       document.getElementById('report-success').classList.remove('hidden');
-      setTimeout(() => document.getElementById('report-overlay').classList.add('hidden'), 1500);
+      // Update bell badge if admin
+      if (state.adminLoggedIn) App.updateBellBadge();
     } catch(e) {
       document.getElementById('report-error').textContent = 'Fehler: ' + e.message;
       document.getElementById('report-error').classList.remove('hidden');
-    } finally {
       btn.textContent = 'Melden'; btn.disabled = false;
     }
   }

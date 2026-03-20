@@ -571,13 +571,18 @@
     <button class="modal-close" onclick="Report.close()">✕</button>
     <div class="modal-title">Fehler melden</div>
     <div class="report-context-badge" id="report-context-display"></div>
-    <div class="field-group">
-      <label>Was ist falsch?</label>
-      <textarea id="report-message" class="modal-input report-textarea" placeholder="Beschreibe den Fehler…"></textarea>
+    <div id="report-form-body">
+      <div class="field-group">
+        <label>Was ist falsch?</label>
+        <textarea id="report-message" class="modal-input report-textarea" placeholder="Beschreibe den Fehler…"></textarea>
+      </div>
+      <div class="create-error hidden" id="report-error"></div>
+      <button class="start-btn" id="report-send-btn" onclick="Report.send()">Melden</button>
     </div>
-    <div class="create-error hidden" id="report-error"></div>
-    <div class="report-success hidden" id="report-success">✓ Gesendet!</div>
-    <button class="start-btn" id="report-send-btn" onclick="Report.send()">Melden</button>
+    <div class="report-success-screen hidden" id="report-success">
+      <div class="report-success-icon">✓</div>
+      <div class="report-success-text">Gesendet! Danke für deinen Hinweis.</div>
+    </div>
   </div>
 </div>
 
