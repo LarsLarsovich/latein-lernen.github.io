@@ -18,12 +18,13 @@ const COL = {
   vokabel:        db.collection('tables_vokabel'),
   pronomenDrafts: db.collection('drafts_pronomen'),
   vokabelDrafts:  db.collection('drafts_vokabel'),
-  reports:        db.collection('reports')
+  reports:        db.collection('reports'),
+  admins:         db.collection('admins')
 };
 
 // ── Constants ────────────────────────────────────────────────
-const ADMIN_USER   = 'admin';
-const ADMIN_PASS   = 'latina2024';
+const SUPER_ADMIN  = { user: 'admin', pass: 'latina2024' };
+// state.currentAdmin = { id, name, isSuperAdmin } when logged in
 const CASES        = [1, 2, 3, 4, 6];
 const CASE_NAMES   = { 1:'Nominativ', 2:'Genitiv', 3:'Dativ', 4:'Akkusativ', 6:'Ablativ' };
 const GENDERS      = ['M', 'W', 'N'];
@@ -75,7 +76,8 @@ const state = {
   adminLoggedIn: false,
   currentTab: 'quizes',
   currentQuiz: null, lastQuizId: null, lastQuizSource: null,
-  quizType: 'pronomen', // 'pronomen' or 'vokabel'
+  quizType: 'pronomen',
+  currentAdmin: null,
   currentVokabelTable: null,
   editingId: null, editingSource: null,
   actionId: null, actionType: null,
@@ -882,6 +884,152 @@ const App = {
     btn.closest('.report-item').remove();
   },
 
+  toggleReportsPanel() {
+    const panel    = document.getElementById('reports-panel');
+    const backdrop = document.getElementById('reports-backdrop');
+    if (!panel) return;
+    const opening = panel.classList.contains('hidden');
+    panel.classList.toggle('hidden', !opening);
+    backdrop.classList.toggle('hidden', !opening);
+    if (opening) this.loadReports();
+  },
+
+  async updateBellBadge() {
+    if (!state.adminLoggedIn) return;
+    try {
+      const snap = await COL.reports.where('read','==',false).get();
+      const count = snap.size;
+      const badge = document.getElementById('bell-badge');
+      const bell  = document.getElementById('bell-btn');
+      if (badge) { badge.textContent = count; badge.classList.toggle('hidden', count === 0); }
+      if (bell)  bell.classList.remove('hidden');
+    } catch(e) { console.error('updateBellBadge:', e); }
+  },
+
+  // ── Admin Management ────────────────────────────────────────
+  openAdminSettings() {
+    document.getElementById('admin-settings-overlay').classList.remove('hidden');
+    this.loadAdminList();
+  },
+
+  closeAdminSettings(e) {
+    if (e && e.target !== document.getElementById('admin-settings-overlay')) return;
+    document.getElementById('admin-settings-overlay').classList.add('hidden');
+  },
+
+  async loadAdminList() {
+    const list = document.getElementById('admin-list');
+    if (!list) return;
+    try {
+      const snap = await COL.admins.orderBy('name').get();
+      list.innerHTML = '';
+      if (snap.empty) { list.innerHTML = '<div class="admin-list-empty">Keine weiteren Admins.</div>'; }
+      snap.docs.forEach(doc => {
+        const d = doc.data();
+        const row = document.createElement('div');
+        row.className = 'admin-list-row';
+        row.innerHTML = `
+          <div class="admin-list-info">
+            <span class="admin-list-name">${escHtml(d.name||d.username)}</span>
+            <span class="admin-list-user">@${escHtml(d.username)}</span>
+          </div>
+          <div class="admin-list-actions">
+            <button onclick="App.editAdmin('${doc.id}','${escHtml(d.name||'')}','${escHtml(d.username)}')">Bearbeiten</button>
+            <button onclick="App.deleteAdmin('${doc.id}',this)" style="color:#e05a5a;">Entfernen</button>
+          </div>`;
+        list.appendChild(row);
+      });
+    } catch(e) { console.error(e); }
+  },
+
+  async saveNewAdmin() {
+    const name = document.getElementById('new-admin-name').value.trim();
+    const user = document.getElementById('new-admin-user').value.trim().toLowerCase();
+    const pass = document.getElementById('new-admin-pass').value;
+    const err  = document.getElementById('new-admin-error');
+    if (!name||!user||!pass) { err.textContent='Alle Felder ausfüllen.'; err.classList.remove('hidden'); return; }
+    if (user === SUPER_ADMIN.user) { err.textContent='Dieser Benutzername ist reserviert.'; err.classList.remove('hidden'); return; }
+    try {
+      // Check for duplicate username
+      const existing = await COL.admins.where('username','==',user).get();
+      if (!existing.empty) { err.textContent='Benutzername bereits vergeben.'; err.classList.remove('hidden'); return; }
+      await COL.admins.add({ name, username: user, password: pass, createdAt: Date.now() });
+      document.getElementById('new-admin-name').value = '';
+      document.getElementById('new-admin-user').value = '';
+      document.getElementById('new-admin-pass').value = '';
+      err.classList.add('hidden');
+      this.loadAdminList();
+    } catch(e) { err.textContent='Fehler: '+e.message; err.classList.remove('hidden'); }
+  },
+
+  editAdmin(id, name, username) {
+    document.getElementById('edit-admin-id').value = id;
+    document.getElementById('edit-admin-name').value = name;
+    document.getElementById('edit-admin-user').value = username;
+    document.getElementById('edit-admin-pass').value = '';
+    document.getElementById('edit-admin-error').classList.add('hidden');
+    document.getElementById('edit-admin-section').classList.remove('hidden');
+    document.getElementById('edit-admin-section').scrollIntoView({behavior:'smooth'});
+  },
+
+  async saveEditAdmin() {
+    const id   = document.getElementById('edit-admin-id').value;
+    const name = document.getElementById('edit-admin-name').value.trim();
+    const user = document.getElementById('edit-admin-user').value.trim().toLowerCase();
+    const pass = document.getElementById('edit-admin-pass').value;
+    const err  = document.getElementById('edit-admin-error');
+    if (!name||!user) { err.textContent='Name und Benutzername erforderlich.'; err.classList.remove('hidden'); return; }
+    const updates = { name, username: user };
+    if (pass) updates.password = pass;
+    try {
+      await COL.admins.doc(id).update(updates);
+      document.getElementById('edit-admin-section').classList.add('hidden');
+      this.loadAdminList();
+    } catch(e) { err.textContent='Fehler: '+e.message; err.classList.remove('hidden'); }
+  },
+
+  async deleteAdmin(id, btn) {
+    if (!confirm('Admin wirklich entfernen?')) return;
+    try { await COL.admins.doc(id).delete(); btn.closest('.admin-list-row').remove(); } catch(e) { alert('Fehler: '+e.message); }
+  },
+
+  // Change own password (for non-super admins)
+  openOwnSettings() {
+    document.getElementById('own-settings-overlay').classList.remove('hidden');
+    const admin = state.currentAdmin;
+    if (admin) document.getElementById('own-settings-name').value = admin.name||'';
+  },
+
+  closeOwnSettings(e) {
+    if (e && e.target !== document.getElementById('own-settings-overlay')) return;
+    document.getElementById('own-settings-overlay').classList.add('hidden');
+  },
+
+  async saveOwnSettings() {
+    const name    = document.getElementById('own-settings-name').value.trim();
+    const oldPass = document.getElementById('own-settings-old').value;
+    const newPass = document.getElementById('own-settings-new').value;
+    const err     = document.getElementById('own-settings-error');
+
+    if (state.currentAdmin?.isSuperAdmin) {
+      err.textContent = 'Super-Admin Passwort kann hier nicht geändert werden.';
+      err.classList.remove('hidden'); return;
+    }
+    if (!oldPass||!newPass) { err.textContent='Altes und neues Passwort eingeben.'; err.classList.remove('hidden'); return; }
+
+    try {
+      const doc = await COL.admins.doc(state.currentAdmin.id).get();
+      if (!doc.exists || doc.data().password !== oldPass) {
+        err.textContent = 'Altes Passwort stimmt nicht.'; err.classList.remove('hidden'); return;
+      }
+      const updates = { password: newPass };
+      if (name) { updates.name = name; state.currentAdmin.name = name; }
+      await COL.admins.doc(state.currentAdmin.id).update(updates);
+      document.getElementById('own-settings-overlay').classList.add('hidden');
+      alert('Gespeichert!');
+    } catch(e) { err.textContent='Fehler: '+e.message; err.classList.remove('hidden'); }
+  },
+
   toggleDeLatOptions() {
     const checked = document.getElementById('vphase-de-lat')?.checked;
     const opts = document.getElementById('de-lat-options');
@@ -959,16 +1107,19 @@ const App = {
   // ── Admin ─────────────────────────────────────────────────
   handleAdminBtn() {
     if (state.adminLoggedIn) {
-      state.adminLoggedIn=false;
+      state.adminLoggedIn = false;
+      state.currentAdmin  = null;
       document.getElementById('admin-topbtn').classList.remove('active');
-      document.getElementById('admin-topbtn').textContent='Admin';
+      document.getElementById('admin-topbtn').textContent = 'Admin';
       document.getElementById('add-btn').classList.add('hidden');
-      const bellBtn = document.getElementById('bell-btn');
-      if (bellBtn) bellBtn.classList.add('hidden');
-      const panel = document.getElementById('reports-panel');
-      if (panel) panel.classList.add('hidden');
-      const backdrop = document.getElementById('reports-backdrop');
-      if (backdrop) backdrop.classList.add('hidden');
+      ['bell-btn','admin-settings-btn','own-settings-btn'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('hidden');
+      });
+      ['reports-panel','reports-backdrop'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('hidden');
+      });
       this.renderHome();
     } else { this.openLogin(); }
   },
@@ -984,20 +1135,51 @@ const App = {
   closeLogin(e) { if(e&&e.target!==document.getElementById('login-overlay'))return; document.getElementById('login-overlay').classList.add('hidden'); },
   closeLoginForced() { document.getElementById('login-overlay').classList.add('hidden'); },
 
-  adminLogin() {
-    const u=document.getElementById('admin-username').value.trim();
-    const p=document.getElementById('admin-password').value;
-    if (u===ADMIN_USER&&p===ADMIN_PASS) {
-      state.adminLoggedIn=true;
-      document.getElementById('login-overlay').classList.add('hidden');
-      document.getElementById('admin-topbtn').classList.add('active');
-      document.getElementById('admin-topbtn').textContent='Ausloggen';
-      document.getElementById('add-btn').classList.remove('hidden');
-      const bellBtn = document.getElementById('bell-btn');
-      if (bellBtn) bellBtn.classList.remove('hidden');
-      this.updateBellBadge();
-      this.renderHome();
-    } else { document.getElementById('login-error').classList.remove('hidden'); }
+  async adminLogin() {
+    const u = document.getElementById('admin-username').value.trim();
+    const p = document.getElementById('admin-password').value;
+
+    // Check super admin first
+    if (u === SUPER_ADMIN.user && p === SUPER_ADMIN.pass) {
+      this._setAdminLoggedIn({ id: 'super', name: 'Super-Admin', isSuperAdmin: true });
+      return;
+    }
+
+    // Check Firebase admins
+    try {
+      const snap = await COL.admins.where('username','==',u).get();
+      if (!snap.empty) {
+        const doc = snap.docs[0];
+        const data = doc.data();
+        if (data.password === p) {
+          this._setAdminLoggedIn({ id: doc.id, name: data.name||u, isSuperAdmin: false });
+          return;
+        }
+      }
+    } catch(e) { console.error(e); }
+
+    document.getElementById('login-error').classList.remove('hidden');
+  },
+
+  _setAdminLoggedIn(adminData) {
+    state.adminLoggedIn = true;
+    state.currentAdmin  = adminData;
+    document.getElementById('login-overlay').classList.add('hidden');
+    document.getElementById('login-error').classList.add('hidden');
+    document.getElementById('admin-username').value = '';
+    document.getElementById('admin-password').value = '';
+    document.getElementById('admin-topbtn').classList.add('active');
+    document.getElementById('admin-topbtn').textContent = 'Ausloggen';
+    document.getElementById('add-btn').classList.remove('hidden');
+    // Super-Admin gets admin management; all admins get own settings
+    const adminSettingsBtn = document.getElementById('admin-settings-btn');
+    if (adminSettingsBtn) adminSettingsBtn.classList.toggle('hidden', !adminData.isSuperAdmin);
+    const ownSettingsBtn = document.getElementById('own-settings-btn');
+    if (ownSettingsBtn) ownSettingsBtn.classList.toggle('hidden', adminData.isSuperAdmin); // only for non-super
+    const bellBtn = document.getElementById('bell-btn');
+    if (bellBtn) bellBtn.classList.remove('hidden');
+    this.updateBellBadge();
+    this.renderHome();
   },
 
   // ── Add menu ──────────────────────────────────────────────

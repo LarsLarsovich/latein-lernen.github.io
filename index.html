@@ -555,6 +555,78 @@
 </div>
 
 
+
+<!-- MODAL: Admin-Verwaltung (Super-Admin only) -->
+<div class="modal-overlay hidden" id="admin-settings-overlay" onclick="App.closeAdminSettings(event)">
+  <div class="modal admin-settings-modal">
+    <button class="modal-close" onclick="App.closeAdminSettings()">✕</button>
+    <div class="modal-title">Admin-Verwaltung</div>
+
+    <div class="admin-section-label">Bestehende Admins</div>
+    <div id="admin-list"></div>
+
+    <div id="edit-admin-section" class="hidden" style="margin-top:1rem;padding:1rem;background:var(--bg3);border-radius:var(--radius);">
+      <div class="admin-section-label">Admin bearbeiten</div>
+      <input type="hidden" id="edit-admin-id" />
+      <div class="field-group">
+        <label>Name</label>
+        <input type="text" id="edit-admin-name" class="modal-input" placeholder="Anzeigename" />
+      </div>
+      <div class="field-group">
+        <label>Benutzername</label>
+        <input type="text" id="edit-admin-user" class="modal-input" placeholder="benutzername" />
+      </div>
+      <div class="field-group">
+        <label>Neues Passwort (leer lassen = unverändert)</label>
+        <input type="password" id="edit-admin-pass" class="modal-input" placeholder="••••••••" />
+      </div>
+      <div class="create-error hidden" id="edit-admin-error"></div>
+      <div style="display:flex;gap:8px;margin-top:0.8rem;">
+        <button class="start-btn" onclick="App.saveEditAdmin()">Speichern</button>
+        <button class="outline-btn" onclick="document.getElementById('edit-admin-section').classList.add('hidden')">Abbrechen</button>
+      </div>
+    </div>
+
+    <div class="admin-section-label" style="margin-top:1.5rem;">Neuen Admin hinzufügen</div>
+    <div class="field-group">
+      <label>Name</label>
+      <input type="text" id="new-admin-name" class="modal-input" placeholder="z.B. Maria" />
+    </div>
+    <div class="field-group">
+      <label>Benutzername</label>
+      <input type="text" id="new-admin-user" class="modal-input" placeholder="z.B. maria" />
+    </div>
+    <div class="field-group">
+      <label>Passwort</label>
+      <input type="password" id="new-admin-pass" class="modal-input" placeholder="••••••••" />
+    </div>
+    <div class="create-error hidden" id="new-admin-error"></div>
+    <button class="start-btn" style="margin-top:0.8rem;" onclick="App.saveNewAdmin()">Admin hinzufügen</button>
+  </div>
+</div>
+
+<!-- MODAL: Eigene Einstellungen -->
+<div class="modal-overlay hidden" id="own-settings-overlay" onclick="App.closeOwnSettings(event)">
+  <div class="modal" style="max-width:400px;">
+    <button class="modal-close" onclick="App.closeOwnSettings()">✕</button>
+    <div class="modal-title">Mein Konto</div>
+    <div class="field-group">
+      <label>Anzeigename</label>
+      <input type="text" id="own-settings-name" class="modal-input" placeholder="Name" />
+    </div>
+    <div class="field-group">
+      <label>Altes Passwort</label>
+      <input type="password" id="own-settings-old" class="modal-input" placeholder="••••••••" />
+    </div>
+    <div class="field-group">
+      <label>Neues Passwort</label>
+      <input type="password" id="own-settings-new" class="modal-input" placeholder="••••••••" />
+    </div>
+    <div class="create-error hidden" id="own-settings-error"></div>
+    <button class="start-btn" style="margin-top:0.8rem;" onclick="App.saveOwnSettings()">Speichern</button>
+  </div>
+</div>
+
 <!-- Reports Panel -->
 <div id="reports-panel" class="reports-panel hidden">
   <div class="reports-panel-header">
