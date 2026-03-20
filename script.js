@@ -74,12 +74,383 @@ const state = {
   adminLoggedIn: false,
   currentTab: 'quizes',
   currentQuiz: null, lastQuizId: null, lastQuizSource: null,
+  quizType: 'pronomen', // 'pronomen' or 'vokabel'
+  currentVokabelTable: null,
   editingId: null, editingSource: null,
   actionId: null, actionType: null,
   tableViewId: null, tableViewType: null,
-  pickerMode: null, // 'quiz-from-table' | 'table-from-quiz'
+  pickerMode: null,
   unsubs: {}
 };
+
+// ── Vokabel Quiz Engine ───────────────────────────────────────
+const VokabelQuiz = {
+
+  build(rows, modes, shuffle) {
+    let questions = [];
+
+    rows.forEach((r, idx) => {
+      if (!r.lat) return;
+      const de = (r.de || '').split('%').join(' / ') || '–';
+      const lat = r.lat;
+
+      if (modes.includes('lat-de')) {
+        questions.push({
+          meta: 'Latein → Deutsch',
+          main: lat,
+          placeholder: 'Deutsch eingeben…',
+          answer: r.de || '',
+          answerDisplay: de,
+          hint: ''
+        });
+      }
+
+      if (modes.includes('de-lat')) {
+        questions.push({
+          meta: 'Deutsch → Latein',
+          main: de,
+          placeholder: 'Latein eingeben…',
+          answer: lat,
+          answerDisplay: lat,
+          hint: ''
+        });
+      }
+
+      if (modes.includes('fall2') && r.fall2 && r.fall2 !== '–' && r.fall2 !== '#') {
+        questions.push({
+          meta: '2. Fall',
+          main: lat,
+          placeholder: 'Genitiv Singular eingeben…',
+          answer: r.fall2,
+          answerDisplay: r.fall2,
+          hint: 'Genitiv Singular'
+        });
+      }
+
+      if (modes.includes('genus') && r.genus && r.genus !== '–' && r.genus !== '#') {
+        questions.push({
+          meta: 'Geschlecht',
+          main: lat,
+          placeholder: 'm. / f. / n.',
+          answer: r.genus,
+          answerDisplay: r.genus,
+          hint: 'Genus (m., f. oder n.)'
+        });
+      }
+
+      if (modes.includes('dekl') && r.dekl && r.dekl !== '–' && r.dekl !== '#') {
+        questions.push({
+          meta: 'Deklination',
+          main: lat,
+          placeholder: 'z.B. 1. Dekl.',
+          answer: r.dekl,
+          answerDisplay: r.dekl,
+          hint: 'z.B. 1. Dekl., 2. Dekl., ...'
+        });
+      }
+    });
+
+    if (shuffle) questions = questions.sort(() => Math.random() - 0.5);
+    return questions;
+  }
+};
+
+// ── Quiz Engine
+
+const German = {
+
+  // Conjugate a German verb in Präsens
+  // Input: translation like "gehen", "machen", or "er geht" → extract infinitive
+  conjugateVerb(de) {
+    if (!de) return null;
+    // Extract infinitive: if "er/sie/es X" → take X, then derive infinitive
+    // Try to get a clean base verb
+    let base = de.toLowerCase()
+      .replace(/^(ich|du|er|sie|es|wir|ihr)\s+/, '')
+      .trim();
+
+    // Common irregulars
+    const irregulars = {
+      'sein':  ['bin','bist','ist','sind','seid','sind'],
+      'haben': ['habe','hast','hat','haben','habt','haben'],
+      'werden':['werde','wirst','wird','werden','werdet','werden'],
+      'gehen': ['gehe','gehst','geht','gehen','geht','gehen'],
+      'kommen':['komme','kommst','kommt','kommen','kommt','kommen'],
+      'geben': ['gebe','gibst','gibt','geben','gebt','geben'],
+      'stehen':['stehe','stehst','steht','stehen','steht','stehen'],
+      'sehen': ['sehe','siehst','sieht','sehen','seht','sehen'],
+      'wissen':['weiß','weißt','weiß','wissen','wisst','wissen'],
+    };
+
+    // Try to find infinitive: if base ends in conjugated form, try to get stem
+    // Most weak verbs: infinitive = stem + en
+    // Try matching base against known verb patterns
+    let inf = base;
+    if (!inf.endsWith('en') && !inf.endsWith('ern') && !inf.endsWith('eln')) {
+      // Likely a conjugated form – try to add 'en'
+      if (inf.endsWith('t')) inf = inf.slice(0,-1) + 'en';
+      else if (inf.endsWith('e')) inf = inf + 'n';
+      else inf = inf + 'en';
+    }
+
+    if (irregulars[inf]) return irregulars[inf];
+
+    // Regular weak verb: stem = infinitive minus -en
+    const stem = inf.endsWith('eln') ? inf.slice(0,-2)
+               : inf.endsWith('ern') ? inf.slice(0,-2)
+               : inf.endsWith('en')  ? inf.slice(0,-2)
+               : inf;
+
+    // Handle stems ending in -t, -d, -fn, -gn, -chn (insert e)
+    const needsE = /[td]$/.test(stem) || /[^aeiou][nm]$/.test(stem);
+    const s2 = needsE ? stem + 'e' : stem;
+
+    return [
+      stem  + 'e',      // ich
+      s2    + 'st',     // du
+      s2    + 't',      // er/sie/es
+      inf.endsWith('eln') ? stem + 'ln' : stem + 'en', // wir
+      s2    + 't',      // ihr
+      inf.endsWith('eln') ? stem + 'ln' : stem + 'en', // sie
+    ];
+  },
+
+  imperativVerb(de) {
+    if (!de) return null;
+    let base = de.toLowerCase().replace(/^(ich|du|er|sie|es|wir|ihr)\s+/, '').trim();
+    let inf = base;
+    if (!inf.endsWith('en')) {
+      if (inf.endsWith('t')) inf = inf.slice(0,-1) + 'en';
+      else if (inf.endsWith('e')) inf = inf + 'n';
+      else inf = inf + 'en';
+    }
+    const irregImp = {
+      'sein':  ['sei','seid'],
+      'haben': ['hab','habt'],
+      'werden':['werd','werdet'],
+      'geben': ['gib','gebt'],
+      'sehen': ['sieh','seht'],
+    };
+    if (irregImp[inf]) return irregImp[inf];
+    const stem = inf.endsWith('en') ? inf.slice(0,-2) : inf;
+    const needsE = /[td]$/.test(stem);
+    return [
+      stem + (needsE ? 'e' : ''),   // Sg.
+      stem + (needsE ? 'et' : 't')  // Pl.
+    ];
+  },
+
+  // Decline a German noun (simplified – using article + base form)
+  declineNoun(word, genus) {
+    if (!word || word === '–') return null;
+    const w = word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+
+    // Determine article
+    const art = genus === 'm.' ? 'der' : genus === 'f.' ? 'die' : genus === 'n.' ? 'das' : null;
+    if (!art) return null;
+
+    // German cases: Nominativ, Genitiv, Dativ, Akkusativ, (Vokativ=Nom), Ablativ=Dativ
+    // Simplified: show der/die/das system with article
+    let sg, pl;
+    if (genus === 'm.') {
+      sg = [`der ${w}`, `des ${w}s`, `dem ${w}`, `den ${w}`, `der ${w}`, `dem ${w}`];
+      pl = [`die ${w}`, `der ${w}`, `den ${w}n`, `die ${w}`, `die ${w}`, `den ${w}n`];
+    } else if (genus === 'f.') {
+      sg = [`die ${w}`, `der ${w}`, `der ${w}`, `die ${w}`, `die ${w}`, `der ${w}`];
+      pl = [`die ${w}n`, `der ${w}n`, `den ${w}n`, `die ${w}n`, `die ${w}n`, `den ${w}n`];
+    } else {
+      sg = [`das ${w}`, `des ${w}s`, `dem ${w}`, `das ${w}`, `das ${w}`, `dem ${w}`];
+      pl = [`die ${w}`, `der ${w}`, `den ${w}n`, `die ${w}`, `die ${w}`, `den ${w}n`];
+    }
+    return { sg, pl };
+  }
+};
+
+// ── Latin Grammar Engine
+
+const Latin = {
+
+  // Detect word type from data
+  detectType(r) {
+    const lat   = (r.lat   || '').trim();
+    const fall2 = (r.fall2 || '').trim();
+    const genus = (r.genus || '').trim();
+    // Adjective: lat contains /
+    if (lat.includes('/')) return 'adj';
+    // Noun: has genus m./f./n.
+    if (['m.','f.','n.'].includes(genus)) return 'noun';
+    // Verb: fall2 looks like 1st person (ends in -o or -m, or starts with same root)
+    if (fall2 && fall2 !== '#' && fall2 !== '–' &&
+        (fall2.endsWith('o') || fall2.endsWith('m') || fall2.endsWith('or'))) return 'verb';
+    // Check infinitive ending
+    if (lat.endsWith('are') || lat.endsWith('ere') || lat.endsWith('ire')) return 'verb';
+    return 'indecl';
+  },
+
+  // ── VERB CONJUGATION (Präsens Aktiv) ────────────────────────
+  conjugateVerb(inf, form1sg) {
+    let stem = '', endings = [], conj = '', impSg = '', impPl = '';
+    if (inf.endsWith('are')) {
+      stem  = inf.slice(0, -3);
+      endings = ['o','as','at','amus','atis','ant'];
+      conj  = '1. Konjugation';
+      impSg = stem + 'a';
+      impPl = stem + 'ate';
+    } else if (inf.endsWith('ire')) {
+      stem  = inf.slice(0, -3);
+      endings = ['io','is','it','imus','itis','iunt'];
+      conj  = '4. Konjugation';
+      impSg = stem + 'i';
+      impPl = stem + 'ite';
+    } else if (inf.endsWith('ere')) {
+      if (form1sg && form1sg.endsWith('eo')) {
+        stem  = inf.slice(0, -3);
+        endings = ['eo','es','et','emus','etis','ent'];
+        conj  = '2. Konjugation';
+        impSg = stem + 'e';
+        impPl = stem + 'ete';
+      } else {
+        stem = inf.slice(0, -3);
+        const sg1   = (form1sg && form1sg !== '#' && form1sg !== '–') ? form1sg : stem + 'o';
+        const stem3 = sg1.endsWith('o') ? sg1.slice(0,-1) : stem;
+        return {
+          conj: '3. Konjugation',
+          forms: [
+            ['1. Sg.', sg1],
+            ['2. Sg.', stem3 + 'is'],
+            ['3. Sg.', stem3 + 'it'],
+            ['1. Pl.', stem3 + 'imus'],
+            ['2. Pl.', stem3 + 'itis'],
+            ['3. Pl.', stem3 + 'unt']
+          ],
+          imperativ: [
+            ['Sg. (du)',  stem3 + 'e'],
+            ['Pl. (ihr)', stem3 + 'ite']
+          ]
+        };
+      }
+    } else {
+      return null;
+    }
+
+    const sg1 = (form1sg && form1sg !== '#' && form1sg !== '–') ? form1sg : stem + endings[0];
+    return {
+      conj,
+      forms: [
+        ['1. Sg. (ich)',        sg1],
+        ['2. Sg. (du)',         stem + endings[1]],
+        ['3. Sg. (er/sie/es)',  stem + endings[2]],
+        ['1. Pl. (wir)',        stem + endings[3]],
+        ['2. Pl. (ihr)',        stem + endings[4]],
+        ['3. Pl. (sie)',        stem + endings[5]]
+      ],
+      imperativ: [
+        ['Sg. (du)',  impSg],
+        ['Pl. (ihr)', impPl]
+      ]
+    };
+  },
+
+  // ── NOUN DECLENSION ──────────────────────────────────────────
+  declineNoun(nom, gen, genus) {
+    // Determine declension from genitive
+    let decl = 0;
+    if (gen.endsWith('ae'))  decl = 1;
+    else if (gen.endsWith('i'))   decl = 2;
+    else if (gen.endsWith('is'))  decl = 3;
+    else if (gen.endsWith('us'))  decl = 4;
+    else if (gen.endsWith('ei') || gen.endsWith('ei')) decl = 5;
+
+    const n = genus === 'n.';
+    let sg = [], pl = [];
+
+    if (decl === 1) {
+      // a-Deklination: porta, portae
+      // Nom/Vok Sg = nom (porta), Abl Sg = -a
+      const stem = gen.slice(0, -2); // portae → port
+      sg = [nom,         gen,          stem+'ae', stem+'am', nom,         stem+'a'];
+      pl = [stem+'ae',   stem+'arum',  stem+'is', stem+'as', stem+'ae',   stem+'is'];
+      // Vok Sg = Nom für a-Dekl ✓
+
+    } else if (decl === 2) {
+      const stem = gen.slice(0, -1); // servi → serv
+      if (n) {
+        // Neutrum: pensum, pensi
+        // Vok = Nom, Akk = Nom
+        sg = [nom,       gen,          stem+'o',  nom,       nom,         stem+'o'];
+        pl = [stem+'a',  stem+'orum',  stem+'is', stem+'a',  stem+'a',    stem+'is'];
+      } else {
+        // Maskulinum: servus, servi → Vok Sg = stem+'e' (serve!)
+        // Ausnahme: filius → fili (Vok auf -i), deus → deus
+        // Standardregel: Vok = stem + 'e'
+        const vokSg = stem + 'e';
+        sg = [nom,       gen,          stem+'o',  stem+'um', vokSg,       stem+'o'];
+        pl = [stem+'i',  stem+'orum',  stem+'is', stem+'os', stem+'i',    stem+'is'];
+        // Vok Pl = Nom Pl ✓
+      }
+
+    } else if (decl === 3) {
+      const stem = gen.slice(0, -2); // corporis → corpor
+      if (n) {
+        // Neutrum 3. Dekl: corpus, corporis
+        // Nom/Akk/Vok = nom (Sg), Abl Sg = -e
+        sg = [nom,        gen,          stem+'i',   nom,        nom,         stem+'e'];
+        pl = [stem+'a',   stem+'um',    stem+'ibus', stem+'a',  stem+'a',    stem+'ibus'];
+      } else {
+        // z.B. rex, regis → reg → Akk: regem, Abl: rege, Vok = Nom
+        sg = [nom,        gen,          stem+'i',   stem+'em',  nom,         stem+'e'];
+        pl = [stem+'es',  stem+'um',    stem+'ibus', stem+'es', stem+'es',   stem+'ibus'];
+      }
+
+    } else if (decl === 4) {
+      const stem = gen.slice(0, -2); // manus → man
+      if (n) {
+        // Neutrum 4. Dekl: cornu, cornus
+        sg = [nom,        gen,          stem+'u',   nom,        nom,         stem+'u'];
+        pl = [stem+'ua',  stem+'uum',   stem+'ibus', stem+'ua', stem+'ua',   stem+'ibus'];
+      } else {
+        // Maskulinum: manus, manus → Vok = Nom
+        sg = [nom,        gen,          stem+'ui',  stem+'um',  nom,         stem+'u'];
+        pl = [stem+'us',  stem+'uum',   stem+'ibus', stem+'us', stem+'us',   stem+'ibus'];
+      }
+
+    } else if (decl === 5) {
+      // e-Deklination: res, rei / dies, diei
+      // Vok = Nom, Abl Sg = -e
+      const stem = gen.slice(0, -2); // rei → r
+      sg = [nom,       gen,          stem+'ei',  stem+'em',  nom,         stem+'e'];
+      pl = [stem+'es', stem+'erum',  stem+'ebus', stem+'es', stem+'es',  stem+'ebus'];
+      // Note: 5. Dekl has very few words with full plural (mostly dies and res)
+    }
+
+    if (!sg.length) return null;
+    const cases = ['Nominativ','Genitiv','Dativ','Akkusativ','Vokativ','Ablativ'];
+    return { decl, sg, pl, cases };
+  },
+
+  // ── ADJECTIVE (1/2 Deklination, bonus/a/um type) ─────────────
+  declineAdj(lat) {
+    // Parse bonus/a/um → stem = bon
+    const parts = lat.split('/');
+    if (parts.length < 2) return null;
+    const mNom = parts[0].trim();
+    // stem: remove -us or -er
+    let stem = mNom.endsWith('us') ? mNom.slice(0,-2)
+             : mNom.endsWith('er') ? mNom
+             : mNom;
+
+    const cases = ['Nominativ','Genitiv','Dativ','Akkusativ','Vokativ','Ablativ'];
+    const m_sg = [mNom,      stem+'i',  stem+'o',  stem+'um', mNom,      stem+'o'];
+    const f_sg = [stem+'a',  stem+'ae', stem+'ae', stem+'am', stem+'a',  stem+'a'];
+    const n_sg = [stem+'um', stem+'i',  stem+'o',  stem+'um', stem+'um', stem+'o'];
+    const m_pl = [stem+'i',  stem+'orum',stem+'is',stem+'os', stem+'i',  stem+'is'];
+    const f_pl = [stem+'ae', stem+'arum',stem+'is',stem+'as', stem+'ae', stem+'is'];
+    const n_pl = [stem+'a',  stem+'orum',stem+'is',stem+'a',  stem+'a',  stem+'is'];
+
+    return { cases, m_sg, f_sg, n_sg, m_pl, f_pl, n_pl };
+  }
+};
+
 
 // ── App ──────────────────────────────────────────────────────
 const App = {
@@ -308,17 +679,53 @@ const App = {
     const q = source==='draft' ? state.drafts.find(x=>x.id===id) : state.published.find(x=>x.id===id);
     if (!q) return;
     state.currentQuiz=q; state.lastQuizId=id; state.lastQuizSource=source;
+    state.quizType = 'pronomen';
     document.getElementById('setup-title').textContent = q.name;
     document.getElementById('setup-desc').textContent  = q.desc||'';
+    document.getElementById('setup-pronomen').classList.remove('hidden');
+    document.getElementById('setup-vokabel').classList.add('hidden');
     document.querySelectorAll('input[name="phase"]').forEach(cb=>{cb.checked=cb.value==='1';});
     document.getElementById('shuffle-within').checked = false;
     this.showPage('setup', q.name);
   },
 
+  openVokabelQuizSetup(tableId) {
+    const t = state.vokabel.find(x=>x.id===tableId);
+    if (!t) return;
+    state.quizType = 'vokabel';
+    state.currentVokabelTable = t;
+    state.lastQuizId = tableId;
+    state.lastQuizSource = 'vokabel';
+    document.getElementById('setup-title').textContent = t.name;
+    document.getElementById('setup-desc').textContent  = (t.rows||[]).length + ' Vokabeln';
+    document.getElementById('setup-pronomen').classList.add('hidden');
+    document.getElementById('setup-vokabel').classList.remove('hidden');
+    document.querySelectorAll('input[name="vphase"]').forEach(cb=>{cb.checked=cb.value==='lat-de';});
+    document.getElementById('vok-shuffle').checked = false;
+    this.showPage('setup', t.name);
+  },
+
+  startVokabelQuiz() {
+    const t = state.vokabel.find(x=>x.id===state.tableViewId);
+    if (!t) return;
+    this.openVokabelQuizSetup(t.id);
+  },
+
   startQuiz() {
-    const checked=[...document.querySelectorAll('input[name="phase"]:checked')];
-    if (!checked.length){alert('Bitte wähle mindestens eine Phase.');return;}
-    Quiz.start(state.currentQuiz, checked.map(c=>parseInt(c.value)), document.getElementById('shuffle-within').checked);
+    if (state.quizType === 'vokabel') {
+      const checked = [...document.querySelectorAll('input[name="vphase"]:checked')];
+      if (!checked.length) { alert('Bitte wähle mindestens eine Abfrage aus.'); return; }
+      const modes   = checked.map(c => c.value);
+      const shuffle = document.getElementById('vok-shuffle').checked;
+      const rows    = state.currentVokabelTable.rows || [];
+      const questions = VokabelQuiz.build(rows, modes, shuffle);
+      if (!questions.length) { alert('Keine Vokabeln für diese Auswahl vorhanden.'); return; }
+      Quiz.startVokabel(questions, state.currentVokabelTable.name);
+    } else {
+      const checked=[...document.querySelectorAll('input[name="phase"]:checked')];
+      if (!checked.length){alert('Bitte wähle mindestens eine Phase.');return;}
+      Quiz.start(state.currentQuiz, checked.map(c=>parseInt(c.value)), document.getElementById('shuffle-within').checked);
+    }
   },
 
   replaySetup() {
@@ -589,6 +996,11 @@ const Tables = {
 
     const contentEl = document.getElementById('table-view-content');
     contentEl.innerHTML = type==='pronomen' ? this._renderPronomenTable(t) : this._renderVokabelTable(t);
+
+    // Show quiz button only for vokabel (non-draft)
+    const quizBtn = document.getElementById('vok-quiz-start-btn');
+    if (quizBtn) quizBtn.style.display = (type === 'vokabel' && !isDraft) ? 'inline-block' : 'none';
+
     App.showPage('table-view', t.name);
   },
 
@@ -1099,7 +1511,7 @@ const VokSearch = {
   },
 
   // ── Alle Vokabeln ──────────────────────────────────────────
-  _sortMode: 'lat', // 'lat' or 'de'
+  _sortMode: 'lat',
 
   openAlleVokabeln() {
     this._sortMode = 'lat';
@@ -1173,278 +1585,7 @@ const VokSearch = {
 
 
 // ── German Grammar Engine ────────────────────────────────────
-
-const German = {
-
-  // Conjugate a German verb in Präsens
-  // Input: translation like "gehen", "machen", or "er geht" → extract infinitive
-  conjugateVerb(de) {
-    if (!de) return null;
-    // Extract infinitive: if "er/sie/es X" → take X, then derive infinitive
-    // Try to get a clean base verb
-    let base = de.toLowerCase()
-      .replace(/^(ich|du|er|sie|es|wir|ihr)\s+/, '')
-      .trim();
-
-    // Common irregulars
-    const irregulars = {
-      'sein':  ['bin','bist','ist','sind','seid','sind'],
-      'haben': ['habe','hast','hat','haben','habt','haben'],
-      'werden':['werde','wirst','wird','werden','werdet','werden'],
-      'gehen': ['gehe','gehst','geht','gehen','geht','gehen'],
-      'kommen':['komme','kommst','kommt','kommen','kommt','kommen'],
-      'geben': ['gebe','gibst','gibt','geben','gebt','geben'],
-      'stehen':['stehe','stehst','steht','stehen','steht','stehen'],
-      'sehen': ['sehe','siehst','sieht','sehen','seht','sehen'],
-      'wissen':['weiß','weißt','weiß','wissen','wisst','wissen'],
-    };
-
-    // Try to find infinitive: if base ends in conjugated form, try to get stem
-    // Most weak verbs: infinitive = stem + en
-    // Try matching base against known verb patterns
-    let inf = base;
-    if (!inf.endsWith('en') && !inf.endsWith('ern') && !inf.endsWith('eln')) {
-      // Likely a conjugated form – try to add 'en'
-      if (inf.endsWith('t')) inf = inf.slice(0,-1) + 'en';
-      else if (inf.endsWith('e')) inf = inf + 'n';
-      else inf = inf + 'en';
-    }
-
-    if (irregulars[inf]) return irregulars[inf];
-
-    // Regular weak verb: stem = infinitive minus -en
-    const stem = inf.endsWith('eln') ? inf.slice(0,-2)
-               : inf.endsWith('ern') ? inf.slice(0,-2)
-               : inf.endsWith('en')  ? inf.slice(0,-2)
-               : inf;
-
-    // Handle stems ending in -t, -d, -fn, -gn, -chn (insert e)
-    const needsE = /[td]$/.test(stem) || /[^aeiou][nm]$/.test(stem);
-    const s2 = needsE ? stem + 'e' : stem;
-
-    return [
-      stem  + 'e',      // ich
-      s2    + 'st',     // du
-      s2    + 't',      // er/sie/es
-      inf.endsWith('eln') ? stem + 'ln' : stem + 'en', // wir
-      s2    + 't',      // ihr
-      inf.endsWith('eln') ? stem + 'ln' : stem + 'en', // sie
-    ];
-  },
-
-  imperativVerb(de) {
-    if (!de) return null;
-    let base = de.toLowerCase().replace(/^(ich|du|er|sie|es|wir|ihr)\s+/, '').trim();
-    let inf = base;
-    if (!inf.endsWith('en')) {
-      if (inf.endsWith('t')) inf = inf.slice(0,-1) + 'en';
-      else if (inf.endsWith('e')) inf = inf + 'n';
-      else inf = inf + 'en';
-    }
-    const irregImp = {
-      'sein':  ['sei','seid'],
-      'haben': ['hab','habt'],
-      'werden':['werd','werdet'],
-      'geben': ['gib','gebt'],
-      'sehen': ['sieh','seht'],
-    };
-    if (irregImp[inf]) return irregImp[inf];
-    const stem = inf.endsWith('en') ? inf.slice(0,-2) : inf;
-    const needsE = /[td]$/.test(stem);
-    return [
-      stem + (needsE ? 'e' : ''),   // Sg.
-      stem + (needsE ? 'et' : 't')  // Pl.
-    ];
-  },
-
-  // Decline a German noun (simplified – using article + base form)
-  declineNoun(word, genus) {
-    if (!word || word === '–') return null;
-    const w = word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
-
-    // Determine article
-    const art = genus === 'm.' ? 'der' : genus === 'f.' ? 'die' : genus === 'n.' ? 'das' : null;
-    if (!art) return null;
-
-    // German cases: Nominativ, Genitiv, Dativ, Akkusativ, (Vokativ=Nom), Ablativ=Dativ
-    // Simplified: show der/die/das system with article
-    let sg, pl;
-    if (genus === 'm.') {
-      sg = [`der ${w}`, `des ${w}s`, `dem ${w}`, `den ${w}`, `der ${w}`, `dem ${w}`];
-      pl = [`die ${w}`, `der ${w}`, `den ${w}n`, `die ${w}`, `die ${w}`, `den ${w}n`];
-    } else if (genus === 'f.') {
-      sg = [`die ${w}`, `der ${w}`, `der ${w}`, `die ${w}`, `die ${w}`, `der ${w}`];
-      pl = [`die ${w}n`, `der ${w}n`, `den ${w}n`, `die ${w}n`, `die ${w}n`, `den ${w}n`];
-    } else {
-      sg = [`das ${w}`, `des ${w}s`, `dem ${w}`, `das ${w}`, `das ${w}`, `dem ${w}`];
-      pl = [`die ${w}`, `der ${w}`, `den ${w}n`, `die ${w}`, `die ${w}`, `den ${w}n`];
-    }
-    return { sg, pl };
-  }
-};
-
-// ── Latin Grammar Engine ─────────────────────────────────────
-
-const Latin = {
-
-  // Detect word type from data
-  detectType(r) {
-    const lat   = (r.lat   || '').trim();
-    const fall2 = (r.fall2 || '').trim();
-    const genus = (r.genus || '').trim();
-    // Adjective: lat contains /
-    if (lat.includes('/')) return 'adj';
-    // Noun: has genus m./f./n.
-    if (['m.','f.','n.'].includes(genus)) return 'noun';
-    // Verb: fall2 looks like 1st person (ends in -o or -m, or starts with same root)
-    if (fall2 && fall2 !== '#' && fall2 !== '–' &&
-        (fall2.endsWith('o') || fall2.endsWith('m') || fall2.endsWith('or'))) return 'verb';
-    // Check infinitive ending
-    if (lat.endsWith('are') || lat.endsWith('ere') || lat.endsWith('ire')) return 'verb';
-    return 'indecl';
-  },
-
-  // ── VERB CONJUGATION (Präsens Aktiv) ────────────────────────
-  conjugateVerb(inf, form1sg) {
-    let stem = '', endings = [], conj = '', impSg = '', impPl = '';
-    if (inf.endsWith('are')) {
-      stem  = inf.slice(0, -3);
-      endings = ['o','as','at','amus','atis','ant'];
-      conj  = '1. Konjugation';
-      impSg = stem + 'a';
-      impPl = stem + 'ate';
-    } else if (inf.endsWith('ire')) {
-      stem  = inf.slice(0, -3);
-      endings = ['io','is','it','imus','itis','iunt'];
-      conj  = '4. Konjugation';
-      impSg = stem + 'i';
-      impPl = stem + 'ite';
-    } else if (inf.endsWith('ere')) {
-      if (form1sg && form1sg.endsWith('eo')) {
-        stem  = inf.slice(0, -3);
-        endings = ['eo','es','et','emus','etis','ent'];
-        conj  = '2. Konjugation';
-        impSg = stem + 'e';
-        impPl = stem + 'ete';
-      } else {
-        stem = inf.slice(0, -3);
-        const sg1   = (form1sg && form1sg !== '#' && form1sg !== '–') ? form1sg : stem + 'o';
-        const stem3 = sg1.endsWith('o') ? sg1.slice(0,-1) : stem;
-        return {
-          conj: '3. Konjugation',
-          forms: [
-            ['1. Sg.', sg1],
-            ['2. Sg.', stem3 + 'is'],
-            ['3. Sg.', stem3 + 'it'],
-            ['1. Pl.', stem3 + 'imus'],
-            ['2. Pl.', stem3 + 'itis'],
-            ['3. Pl.', stem3 + 'unt']
-          ],
-          imperativ: [
-            ['Sg. (du)',  stem3 + 'e'],
-            ['Pl. (ihr)', stem3 + 'ite']
-          ]
-        };
-      }
-    } else {
-      return null;
-    }
-
-    const sg1 = (form1sg && form1sg !== '#' && form1sg !== '–') ? form1sg : stem + endings[0];
-    return {
-      conj,
-      forms: [
-        ['1. Sg. (ich)',        sg1],
-        ['2. Sg. (du)',         stem + endings[1]],
-        ['3. Sg. (er/sie/es)',  stem + endings[2]],
-        ['1. Pl. (wir)',        stem + endings[3]],
-        ['2. Pl. (ihr)',        stem + endings[4]],
-        ['3. Pl. (sie)',        stem + endings[5]]
-      ],
-      imperativ: [
-        ['Sg. (du)',  impSg],
-        ['Pl. (ihr)', impPl]
-      ]
-    };
-  },
-
-  // ── NOUN DECLENSION ──────────────────────────────────────────
-  declineNoun(nom, gen, genus) {
-    // Determine declension from genitive
-    let decl = 0;
-    if (gen.endsWith('ae'))  decl = 1;
-    else if (gen.endsWith('i'))   decl = 2;
-    else if (gen.endsWith('is'))  decl = 3;
-    else if (gen.endsWith('us'))  decl = 4;
-    else if (gen.endsWith('ei') || gen.endsWith('ei')) decl = 5;
-
-    const n = genus === 'n.';
-    let sg = [], pl = [];
-
-    if (decl === 1) {
-      const stem = gen.slice(0, -2); // remove -ae → stem
-      sg = [nom, gen, stem+'ae', stem+'am', nom, stem+'a'];
-      pl = [stem+'ae', stem+'arum', stem+'is', stem+'as', stem+'ae', stem+'is'];
-    } else if (decl === 2) {
-      const stem = gen.slice(0, -1); // remove -i
-      if (n) {
-        sg = [nom, gen, stem+'o', nom, nom, stem+'o'];
-        pl = [stem+'a', stem+'orum', stem+'is', stem+'a', stem+'a', stem+'is'];
-      } else {
-        sg = [nom, gen, stem+'o', stem+'um', nom, stem+'o'];
-        pl = [stem+'i', stem+'orum', stem+'is', stem+'os', stem+'i', stem+'is'];
-      }
-    } else if (decl === 3) {
-      const stem = gen.slice(0, -2); // remove -is
-      if (n) {
-        sg = [nom, gen, stem+'i', nom, nom, stem+'e'];
-        pl = [stem+'ia', stem+'ium', stem+'ibus', stem+'ia', stem+'ia', stem+'ibus'];
-      } else {
-        sg = [nom, gen, stem+'i', stem+'em', nom, stem+'e'];
-        pl = [stem+'es', stem+'um', stem+'ibus', stem+'es', stem+'es', stem+'ibus'];
-      }
-    } else if (decl === 4) {
-      const stem = gen.slice(0, -2); // remove -us
-      if (n) {
-        sg = [nom, gen, stem+'u', nom, nom, stem+'u'];
-        pl = [stem+'ua', stem+'uum', stem+'ibus', stem+'ua', stem+'ua', stem+'ibus'];
-      } else {
-        sg = [nom, gen, stem+'ui', stem+'um', nom, stem+'u'];
-        pl = [stem+'us', stem+'uum', stem+'ibus', stem+'us', stem+'us', stem+'ibus'];
-      }
-    } else if (decl === 5) {
-      const stem = gen.slice(0, -2); // remove -ei
-      sg = [nom, gen, stem+'ei', stem+'em', nom, stem+'e'];
-      pl = [stem+'es', stem+'erum', stem+'ebus', stem+'es', stem+'es', stem+'ebus'];
-    }
-
-    if (!sg.length) return null;
-    const cases = ['Nominativ','Genitiv','Dativ','Akkusativ','Vokativ','Ablativ'];
-    return { decl, sg, pl, cases };
-  },
-
-  // ── ADJECTIVE (1/2 Deklination, bonus/a/um type) ─────────────
-  declineAdj(lat) {
-    // Parse bonus/a/um → stem = bon
-    const parts = lat.split('/');
-    if (parts.length < 2) return null;
-    const mNom = parts[0].trim();
-    // stem: remove -us or -er
-    let stem = mNom.endsWith('us') ? mNom.slice(0,-2)
-             : mNom.endsWith('er') ? mNom
-             : mNom;
-
-    const cases = ['Nominativ','Genitiv','Dativ','Akkusativ','Vokativ','Ablativ'];
-    const m_sg = [mNom,      stem+'i',  stem+'o',  stem+'um', mNom,      stem+'o'];
-    const f_sg = [stem+'a',  stem+'ae', stem+'ae', stem+'am', stem+'a',  stem+'a'];
-    const n_sg = [stem+'um', stem+'i',  stem+'o',  stem+'um', stem+'um', stem+'o'];
-    const m_pl = [stem+'i',  stem+'orum',stem+'is',stem+'os', stem+'i',  stem+'is'];
-    const f_pl = [stem+'ae', stem+'arum',stem+'is',stem+'as', stem+'ae', stem+'is'];
-    const n_pl = [stem+'a',  stem+'orum',stem+'is',stem+'a',  stem+'a',  stem+'is'];
-
-    return { cases, m_sg, f_sg, n_sg, m_pl, f_pl, n_pl };
-  }
-};
+ ─────────────────────────────────────
 
 // ── Vokabel Detail View ───────────────────────────────────────
 const VokDetail = {
@@ -1688,13 +1829,22 @@ const VokDetail = {
   }
 };
 
-// ── Quiz Engine ──────────────────────────────────────────────
+ ──────────────────────────────────────────────
 const Quiz = {
   questions:[], idx:0, score:0, answered:false,
   start(quiz,phases,shuffle){
     this.questions=this.build(quiz,phases,shuffle);
     this.idx=0;this.score=0;this.answered=false;
+    this._isVokabel=false;
     App.showPage('quiz',quiz.name); this.render();
+  },
+
+  startVokabel(questions, name) {
+    this.questions = questions;
+    this.idx=0; this.score=0; this.answered=false;
+    this._isVokabel = true;
+    App.showPage('quiz', name);
+    this.render();
   },
   build(q,phases,shuffle){
     let qs=[];
@@ -1724,10 +1874,12 @@ const Quiz = {
   render(){
     const q=this.questions[this.idx],total=this.questions.length;
     const labels={1:'Phase 1 – Singular',2:'Phase 2 – Plural',3:'Phase 3 – Gemischt',4:'Phase 4 – Deutsch → Latein',5:'Phase 5 – Latein → Deutsch'};
-    document.getElementById('quiz-phase-badge').textContent=labels[q.phase]||'';
+    // For vokabel questions use meta directly, for pronomen use labels
+    const badge = this._isVokabel ? (q.meta||'') : (labels[q.phase]||'');
+    document.getElementById('quiz-phase-badge').textContent=badge;
     document.getElementById('quiz-progress-text').textContent=`${this.idx+1} / ${total}`;
     document.getElementById('progress-bar').style.width=(this.idx/total*100)+'%';
-    document.getElementById('q-meta').textContent=q.meta;
+    document.getElementById('q-meta').textContent=this._isVokabel ? (q.hint||'') : q.meta;
     document.getElementById('q-main').textContent=q.main;
     const inp=document.getElementById('answer-input');
     inp.placeholder=q.placeholder||'';inp.value='';inp.disabled=false;inp.focus();
@@ -1740,8 +1892,13 @@ const Quiz = {
     const inp=document.getElementById('answer-input'),val=inp.value.trim();if(!val)return;
     this.answered=true;inp.disabled=true;
     const q=this.questions[this.idx],fb=document.getElementById('feedback-box');
-    if(isCorrect(val,q.answer)){this.score++;fb.textContent='✓ Richtig!';fb.className='feedback-box correct';}
-    else{const acc=parseAnswers(q.answer);fb.textContent=`✗ Falsch. Richtig: ${acc.length>1?acc.join(' / '):q.answerDisplay}`;fb.className='feedback-box wrong';}
+    if(isCorrect(val,q.answer)){
+      this.score++;fb.textContent='✓ Richtig!';fb.className='feedback-box correct';
+    } else {
+      const acc=parseAnswers(q.answer);
+      const display = acc.length>1 ? acc.join(' / ') : q.answerDisplay;
+      fb.textContent=`✗ Falsch. Richtig: ${display}`;fb.className='feedback-box wrong';
+    }
     document.getElementById('progress-bar').style.width=((this.idx+1)/this.questions.length*100)+'%';
     document.getElementById('next-btn').classList.remove('hidden');
   },
@@ -1769,6 +1926,7 @@ window.App       = App;
 window.Tables    = Tables;
 window.Quiz      = Quiz;
 window.VokDetail = VokDetail;
-window.VokSearch = VokSearch;
+window.VokSearch     = VokSearch;
+window.VokabelQuiz  = VokabelQuiz;
 
 App.init();

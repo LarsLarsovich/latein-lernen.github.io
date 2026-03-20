@@ -63,9 +63,8 @@
   <!-- TABELLEN TAB -->
   <div id="tab-content-tables" class="hidden">
     <div class="in-dev-banner">
-      <span class="in-dev-icon">⚠️</span>
-      <span>in development</span>
-       <span class="in-dev-icon">⚠️</span>
+      <span class="in-dev-icon">🚧</span>
+      <span>Tabellen-Bereich – in Entwicklung</span>
     </div>
 
     <!-- ── Pronomina ── -->
@@ -126,7 +125,9 @@
   <div class="setup-card">
     <div class="setup-title" id="setup-title"></div>
     <div class="setup-desc" id="setup-desc"></div>
-    <div class="phase-section">
+
+    <!-- Pronomen setup -->
+    <div id="setup-pronomen" class="phase-section">
       <div class="phase-label">Welche Phasen möchtest du üben?</div>
       <div class="phase-options">
         <label class="phase-opt"><input type="checkbox" name="phase" value="1" checked /><span class="phase-box"><span class="phase-num">1</span><span class="phase-name">Singular</span></span></label>
@@ -142,7 +143,26 @@
         </label>
       </div>
     </div>
-    <button class="start-btn" onclick="App.startQuiz()">Quiz starten →</button>
+
+    <!-- Vokabel setup -->
+    <div id="setup-vokabel" class="phase-section hidden">
+      <div class="phase-label">Was soll abgefragt werden?</div>
+      <div class="phase-options">
+        <label class="phase-opt"><input type="checkbox" name="vphase" value="lat-de" checked /><span class="phase-box"><span class="phase-icon">🇦🇹</span><span class="phase-name">Latein → Deutsch</span></span></label>
+        <label class="phase-opt"><input type="checkbox" name="vphase" value="de-lat" /><span class="phase-box"><span class="phase-icon">🏛️</span><span class="phase-name">Deutsch → Latein</span></span></label>
+        <label class="phase-opt"><input type="checkbox" name="vphase" value="fall2" /><span class="phase-box"><span class="phase-icon">②</span><span class="phase-name">2. Fall</span></span></label>
+        <label class="phase-opt"><input type="checkbox" name="vphase" value="genus" /><span class="phase-box"><span class="phase-icon">⚥</span><span class="phase-name">Geschlecht</span></span></label>
+        <label class="phase-opt"><input type="checkbox" name="vphase" value="dekl" /><span class="phase-box"><span class="phase-icon">#</span><span class="phase-name">Deklination</span></span></label>
+      </div>
+      <div class="shuffle-option">
+        <label class="shuffle-opt">
+          <input type="checkbox" id="vok-shuffle" />
+          <span class="shuffle-box">Karten mischen</span>
+        </label>
+      </div>
+    </div>
+
+    <button class="start-btn" id="setup-start-btn" onclick="App.startQuiz()">Quiz starten →</button>
   </div>
 </main>
 
@@ -193,9 +213,12 @@
   <div class="back-row">
     <button class="back-btn" onclick="App.goHome();App.switchTab('tables')">← Zurück</button>
     <div class="editor-page-title" id="table-view-title"></div>
-    <div style="margin-left:auto;display:flex;gap:8px;" id="table-view-admin-btns" class="hidden">
+    <div style="margin-left:auto;display:flex;gap:8px;" id="table-view-quiz-btn">
+      <button class="start-btn" onclick="App.startVokabelQuiz()" id="vok-quiz-start-btn" style="display:none;">Quiz starten →</button>
+    </div>
+    <div style="display:flex;gap:8px;" id="table-view-admin-btns" class="hidden">
       <button class="draft-btn" onclick="App.editTableFromView()">Bearbeiten</button>
-      <button class="draft-btn" onclick="App.createQuizFromTable()">→ Quiz erstellen</button>
+      <button class="draft-btn" onclick="App.createQuizFromTable()">→ Pronomen-Quiz</button>
     </div>
   </div>
   <div id="table-view-search" class="hidden">
