@@ -1171,6 +1171,118 @@ const VokSearch = {
   }
 };
 
+
+// ── German Grammar Engine ────────────────────────────────────
+
+const German = {
+
+  // Conjugate a German verb in Präsens
+  // Input: translation like "gehen", "machen", or "er geht" → extract infinitive
+  conjugateVerb(de) {
+    if (!de) return null;
+    // Extract infinitive: if "er/sie/es X" → take X, then derive infinitive
+    // Try to get a clean base verb
+    let base = de.toLowerCase()
+      .replace(/^(ich|du|er|sie|es|wir|ihr)\s+/, '')
+      .trim();
+
+    // Common irregulars
+    const irregulars = {
+      'sein':  ['bin','bist','ist','sind','seid','sind'],
+      'haben': ['habe','hast','hat','haben','habt','haben'],
+      'werden':['werde','wirst','wird','werden','werdet','werden'],
+      'gehen': ['gehe','gehst','geht','gehen','geht','gehen'],
+      'kommen':['komme','kommst','kommt','kommen','kommt','kommen'],
+      'geben': ['gebe','gibst','gibt','geben','gebt','geben'],
+      'stehen':['stehe','stehst','steht','stehen','steht','stehen'],
+      'sehen': ['sehe','siehst','sieht','sehen','seht','sehen'],
+      'wissen':['weiß','weißt','weiß','wissen','wisst','wissen'],
+    };
+
+    // Try to find infinitive: if base ends in conjugated form, try to get stem
+    // Most weak verbs: infinitive = stem + en
+    // Try matching base against known verb patterns
+    let inf = base;
+    if (!inf.endsWith('en') && !inf.endsWith('ern') && !inf.endsWith('eln')) {
+      // Likely a conjugated form – try to add 'en'
+      if (inf.endsWith('t')) inf = inf.slice(0,-1) + 'en';
+      else if (inf.endsWith('e')) inf = inf + 'n';
+      else inf = inf + 'en';
+    }
+
+    if (irregulars[inf]) return irregulars[inf];
+
+    // Regular weak verb: stem = infinitive minus -en
+    const stem = inf.endsWith('eln') ? inf.slice(0,-2)
+               : inf.endsWith('ern') ? inf.slice(0,-2)
+               : inf.endsWith('en')  ? inf.slice(0,-2)
+               : inf;
+
+    // Handle stems ending in -t, -d, -fn, -gn, -chn (insert e)
+    const needsE = /[td]$/.test(stem) || /[^aeiou][nm]$/.test(stem);
+    const s2 = needsE ? stem + 'e' : stem;
+
+    return [
+      stem  + 'e',      // ich
+      s2    + 'st',     // du
+      s2    + 't',      // er/sie/es
+      inf.endsWith('eln') ? stem + 'ln' : stem + 'en', // wir
+      s2    + 't',      // ihr
+      inf.endsWith('eln') ? stem + 'ln' : stem + 'en', // sie
+    ];
+  },
+
+  imperativVerb(de) {
+    if (!de) return null;
+    let base = de.toLowerCase().replace(/^(ich|du|er|sie|es|wir|ihr)\s+/, '').trim();
+    let inf = base;
+    if (!inf.endsWith('en')) {
+      if (inf.endsWith('t')) inf = inf.slice(0,-1) + 'en';
+      else if (inf.endsWith('e')) inf = inf + 'n';
+      else inf = inf + 'en';
+    }
+    const irregImp = {
+      'sein':  ['sei','seid'],
+      'haben': ['hab','habt'],
+      'werden':['werd','werdet'],
+      'geben': ['gib','gebt'],
+      'sehen': ['sieh','seht'],
+    };
+    if (irregImp[inf]) return irregImp[inf];
+    const stem = inf.endsWith('en') ? inf.slice(0,-2) : inf;
+    const needsE = /[td]$/.test(stem);
+    return [
+      stem + (needsE ? 'e' : ''),   // Sg.
+      stem + (needsE ? 'et' : 't')  // Pl.
+    ];
+  },
+
+  // Decline a German noun (simplified – using article + base form)
+  declineNoun(word, genus) {
+    if (!word || word === '–') return null;
+    const w = word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+
+    // Determine article
+    const art = genus === 'm.' ? 'der' : genus === 'f.' ? 'die' : genus === 'n.' ? 'das' : null;
+    if (!art) return null;
+
+    // German cases: Nominativ, Genitiv, Dativ, Akkusativ, (Vokativ=Nom), Ablativ=Dativ
+    // Simplified: show der/die/das system with article
+    let sg, pl;
+    if (genus === 'm.') {
+      sg = [`der ${w}`, `des ${w}s`, `dem ${w}`, `den ${w}`, `der ${w}`, `dem ${w}`];
+      pl = [`die ${w}`, `der ${w}`, `den ${w}n`, `die ${w}`, `die ${w}`, `den ${w}n`];
+    } else if (genus === 'f.') {
+      sg = [`die ${w}`, `der ${w}`, `der ${w}`, `die ${w}`, `die ${w}`, `der ${w}`];
+      pl = [`die ${w}n`, `der ${w}n`, `den ${w}n`, `die ${w}n`, `die ${w}n`, `den ${w}n`];
+    } else {
+      sg = [`das ${w}`, `des ${w}s`, `dem ${w}`, `das ${w}`, `das ${w}`, `dem ${w}`];
+      pl = [`die ${w}`, `der ${w}`, `den ${w}n`, `die ${w}`, `die ${w}`, `den ${w}n`];
+    }
+    return { sg, pl };
+  }
+};
+
 // ── Latin Grammar Engine ─────────────────────────────────────
 
 const Latin = {
@@ -1377,49 +1489,73 @@ const VokDetail = {
     if (Object.keys(override).length) html += `<span class="vok-meta-chip" style="color:#8adc9e;border-color:#1e4a30;">manuell</span>`;
     html += `</div></div>`;
 
-    // ── Grammar table ──────────────────────────────────────────
+    // ── Grammar tables (Latin + German) ───────────────────────
     if (type === 'verb') {
       const autoConj = Latin.conjugateVerb(r.lat || '', r.fall2 || '');
-      const persons = ['ich','du','er / sie / es','wir','ihr','sie'];
-      const keys = ['p1sg','p2sg','p3sg','p1pl','p2pl','p3pl'];
-      const auto = autoConj ? autoConj.forms.map(([,f])=>f) : ['','','','','',''];
+      const persons  = ['ich','du','er / sie / es','wir','ihr','sie'];
+      const keys     = ['p1sg','p2sg','p3sg','p1pl','p2pl','p3pl'];
+      const auto     = autoConj ? autoConj.forms.map(([,f])=>f) : ['','','','','',''];
       const conjLabel = autoConj ? autoConj.conj : 'unbekannte Konjugation';
+
+      // Get base German translation (first % variant, strip brackets)
+      const deBase = (r.de||'').split('%')[0].replace(/\(.*?\)/g,'').trim() || r.de || '–';
+      // German present tense – derive from translation
+      // Pattern: "er lacht" → stem = "lacht" → ich lache, du lachst, ...
+      const deConj = German.conjugateVerb(deBase);
+
       html += `<div class="forms-section-title" style="margin-top:1.5rem;">Konjugation – Präsens Aktiv <span style="font-weight:400;color:var(--text3);font-size:11px;">(${conjLabel})</span></div>`;
-      html += `<div class="dekl-table-wrap"><table class="dekl-table"><thead><tr><th>Person</th><th>Latein</th></tr></thead><tbody>`;
+      html += `<div class="dekl-table-wrap"><table class="dekl-table"><thead><tr><th>Person</th><th>Latein</th><th>Deutsch</th></tr></thead><tbody>`;
       keys.forEach((k, i) => {
-        const form = override[k] || auto[i] || '–';
+        const latForm = override[k] || auto[i] || '–';
         const isManual = !!override[k];
-        html += `<tr><td class="case-cell">${persons[i]}</td><td><strong${isManual?' style="color:#8adc9e;"':''}>${form}</strong></td></tr>`;
+        const deForm  = deConj ? deConj[i] : '–';
+        html += `<tr><td class="case-cell">${persons[i]}</td><td><strong${isManual?' style="color:#8adc9e;"':''}>${latForm}</strong></td><td style="color:var(--text2);">${deForm}</td></tr>`;
       });
       html += `</tbody></table></div>`;
-      // Imperativ table
+
+      // Imperativ
       if (autoConj && autoConj.imperativ) {
+        const deImp = German.imperativVerb(deBase);
         html += `<div class="forms-section-title" style="margin-top:1.2rem;">Imperativ – Präsens</div>`;
-        html += `<div class="dekl-table-wrap"><table class="dekl-table"><thead><tr><th>Form</th><th>Latein</th></tr></thead><tbody>`;
-        autoConj.imperativ.forEach(([label, form]) => {
+        html += `<div class="dekl-table-wrap"><table class="dekl-table"><thead><tr><th>Form</th><th>Latein</th><th>Deutsch</th></tr></thead><tbody>`;
+        autoConj.imperativ.forEach(([label, latForm], i) => {
           const ovKey = 'imp_' + label.split(' ')[0].toLowerCase();
           const manualForm = override[ovKey];
-          html += `<tr><td class="case-cell">${label}</td><td><strong${manualForm?' style="color:#8adc9e;"':''}>${manualForm||form||'–'}</strong></td></tr>`;
+          const deImpForm = deImp ? deImp[i] : '–';
+          html += `<tr><td class="case-cell">${label}</td><td><strong${manualForm?' style="color:#8adc9e;"':''}>${manualForm||latForm||'–'}</strong></td><td style="color:var(--text2);">${deImpForm}</td></tr>`;
         });
         html += `</tbody></table></div>`;
       }
+
     } else if (type === 'noun') {
       const res = Latin.declineNoun(r.lat||'', r.fall2||'', r.genus||'');
       const caseKeys = ['nom','gen','dat','akk','vok','abl'];
-      const cases = ['Nominativ','Genitiv','Dativ','Akkusativ','Vokativ','Ablativ'];
+      const cases    = ['Nominativ','Genitiv','Dativ','Akkusativ','Vokativ','Ablativ'];
+      const deWord   = (r.de||'').split('%')[0].trim();
+      const deDecl   = German.declineNoun(deWord, r.genus||'');
       if (res) {
         html += `<div class="forms-section-title" style="margin-top:1.5rem;">Deklination – ${res.decl}. Deklination</div>`;
-        html += `<div class="dekl-table-wrap"><table class="dekl-table"><thead><tr><th>Kasus</th><th>Singular</th><th>Plural</th></tr></thead><tbody>`;
+        html += `<div class="dekl-table-wrap"><table class="dekl-table"><thead><tr><th>Kasus</th><th>Lat. Sg.</th><th>Lat. Pl.</th><th>De. Sg.</th><th>De. Pl.</th></tr></thead><tbody>`;
         cases.forEach((c, i) => {
           const sg = override['sg_'+caseKeys[i]] || res.sg[i] || '–';
           const pl = override['pl_'+caseKeys[i]] || res.pl[i] || '–';
           const isMSg = !!override['sg_'+caseKeys[i]], isMPl = !!override['pl_'+caseKeys[i]];
-          html += `<tr><td class="case-cell">${c}</td><td><strong${isMSg?' style="color:#8adc9e;"':''}>${sg}</strong></td><td${isMPl?' style="color:#8adc9e;"':''}>${pl}</td></tr>`;
+          const deSg = deDecl ? deDecl.sg[i] : '–';
+          const dePl = deDecl ? deDecl.pl[i] : '–';
+          html += `<tr>
+            <td class="case-cell">${c}</td>
+            <td><strong${isMSg?' style="color:#8adc9e;"':''}>${sg}</strong></td>
+            <td${isMPl?' style="color:#8adc9e;"':''}>${pl}</td>
+            <td style="color:var(--text2);">${deSg}</td>
+            <td style="color:var(--text2);">${dePl}</td>
+          </tr>`;
         });
         html += `</tbody></table></div>`;
       }
+
     } else if (type === 'adj') {
       const res = Latin.declineAdj(r.lat||'');
+      const deWord = (r.de||'').split('%')[0].trim();
       if (res) {
         html += `<div class="forms-section-title" style="margin-top:1.5rem;">Deklination – Adjektiv (1./2. Dekl.)</div>`;
         html += `<div class="dekl-table-wrap"><table class="dekl-table"><thead><tr><th>Kasus</th><th>M Sg.</th><th>F Sg.</th><th>N Sg.</th><th>M Pl.</th><th>F Pl.</th><th>N Pl.</th></tr></thead><tbody>`;
@@ -1427,6 +1563,10 @@ const VokDetail = {
           html += `<tr><td class="case-cell">${c}</td><td><strong>${res.m_sg[i]}</strong></td><td>${res.f_sg[i]}</td><td>${res.n_sg[i]}</td><td>${res.m_pl[i]}</td><td>${res.f_pl[i]}</td><td>${res.n_pl[i]}</td></tr>`;
         });
         html += `</tbody></table></div>`;
+        // German adjective note
+        if (deWord) {
+          html += `<div style="font-size:13px;color:var(--text3);margin-top:8px;">Deutsch: <em>${deWord}</em> – Steigerung: ${deWord}er · ${deWord}(e)st</div>`;
+        }
       }
     } else {
       html += `<div class="forms-section-title" style="margin-top:1.5rem;">Indeklinabel</div>`;
