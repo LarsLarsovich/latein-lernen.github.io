@@ -1077,7 +1077,7 @@ const VokSearch = {
       [...this._allForms(r)].some(f => f.includes(q));
   },
 
-  _renderRows(rows, tableId, showSource) {
+  _renderRows(rows, tableId, showSource, fromAlle) {
     if (!rows.length) return '<div class="empty-hint">Keine Vokabeln gefunden.</div>';
     let html = '<div class="dekl-table-wrap"><table class="dekl-table vok-table"><thead><tr>';
     html += '<th>Latein</th><th>2. Fall</th><th>Genus</th><th>Dekl.</th><th>Übersetzung</th>';
@@ -1086,7 +1086,8 @@ const VokSearch = {
     rows.forEach(({r, idx, tid, tname}) => {
       const de = (r.de||'–').split('%').join(' / ');
       const clickId = tid || tableId;
-      html += `<tr class="vok-row-clickable" onclick="VokDetail.open(${idx},'${clickId}')">
+      const alleParam = fromAlle ? ',true' : '';
+      html += `<tr class="vok-row-clickable" onclick="VokDetail.open(${idx},'${clickId}'${alleParam})">
         <td><strong>${r.lat||'–'}</strong></td>
         <td>${r.fall2||'–'}</td><td>${r.genus||'–'}</td><td>${r.dekl||'–'}</td>
         <td>${de}</td>`;
@@ -1149,7 +1150,7 @@ const VokSearch = {
       matched.sort((a,b) => (a.r.de||'').localeCompare(b.r.de||'', 'de', {sensitivity:'base'}));
     }
     document.getElementById('alle-count-badge').textContent = matched.length + ' Vokabeln';
-    document.getElementById('alle-vok-results').innerHTML = this._renderRows(matched, null, true);
+    document.getElementById('alle-vok-results').innerHTML = this._renderRows(matched, null, true, true);
   },
 
   // ── Table-specific search ──────────────────────────────────
@@ -1334,9 +1335,10 @@ const VokDetail = {
   _currentRowIndex: null,
   _currentOverrideKey: null,
 
-  open(rowIndex, tableId) {
+  open(rowIndex, tableId, fromAlle) {
     this.currentTableId = tableId;
     this._currentRowIndex = rowIndex;
+    this._fromAlle = !!fromAlle;
     const t = state.vokabel.find(x => x.id === tableId);
     if (!t) return;
     const r = t.rows[rowIndex];
@@ -1414,7 +1416,18 @@ const VokDetail = {
     }
 
     document.getElementById('vok-detail-content').innerHTML = html;
-    document.getElementById('vok-detail-back').onclick = () => Tables.viewTable(tableId, 'vokabel');
+    // Determine where to go back: alle-vokabeln page or specific table
+    const fromAlleVok = document.getElementById('page-alle-vokabeln').classList.contains('active') ||
+                        (state._vokDetailSource === 'alle');
+    state._vokDetailSource = fromAlleVok ? 'alle' : 'table';
+    document.getElementById('vok-detail-back').onclick = () => {
+      if (state._vokDetailSource === 'alle') {
+        // Go back to alle-vokabeln and re-render with current state
+        App.showPage('alle-vokabeln', 'Alle Vokabeln');
+      } else {
+        Tables.viewTable(tableId, 'vokabel');
+      }
+    };
     App.showPage('vok-detail', r.lat || '');
   },
 
