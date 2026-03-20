@@ -575,3 +575,25 @@ select.modal-input { cursor: pointer; }
   cursor: pointer; color: var(--text2); transition: all 0.15s;
 }
 .admin-list-actions button:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ── Topbar Reports Button ── */
+.topbar-reports-btn {
+  font-family: var(--font-body); font-size: 13px; font-weight: 500;
+  padding: 6px 14px; background: var(--bg3);
+  border: 1px solid var(--border2); border-radius: 20px;
+  color: var(--text2); cursor: pointer; transition: all 0.15s;
+  position: relative;
+}
+.topbar-reports-btn:hover { border-color: var(--accent); color: var(--accent); }
+.topbar-reports-btn .badge {
+  position: absolute; top: -4px; right: -4px;
+  background: #e05a5a; color: #fff; font-size: 10px; font-weight: 700;
+  border-radius: 10px; padding: 1px 5px; min-width: 16px; text-align: center;
+  line-height: 14px; display: none;
+}
+.topbar-icon-btn {
+  background: none; border: none; font-size: 16px;
+  cursor: pointer; padding: 4px 6px; border-radius: 6px;
+  transition: background 0.15s; opacity: 0.75;
+}
+.topbar-icon-btn:hover { background: var(--bg3); opacity: 1; }

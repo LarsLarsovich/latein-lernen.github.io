@@ -899,10 +899,14 @@ const App = {
     try {
       const snap = await COL.reports.where('read','==',false).get();
       const count = snap.size;
-      const badge = document.getElementById('bell-badge');
-      const bell  = document.getElementById('bell-btn');
-      if (badge) { badge.textContent = count; badge.classList.toggle('hidden', count === 0); }
-      if (bell)  bell.classList.remove('hidden');
+      const bell = document.getElementById('bell-btn');
+      if (!bell) return;
+      bell.classList.remove('hidden');
+      // Update badge
+      let badge = bell.querySelector('.badge');
+      if (!badge) { badge = document.createElement('span'); badge.className = 'badge'; bell.appendChild(badge); }
+      badge.textContent = count;
+      badge.style.display = count > 0 ? 'block' : 'none';
     } catch(e) { console.error('updateBellBadge:', e); }
   },
 
