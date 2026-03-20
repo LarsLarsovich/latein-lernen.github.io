@@ -1585,7 +1585,7 @@ const VokSearch = {
 
 
 // ── German Grammar Engine ────────────────────────────────────
- ─────────────────────────────────────
+// ─────────────────────────────────────
 
 // ── Vokabel Detail View ───────────────────────────────────────
 const VokDetail = {
@@ -1829,7 +1829,7 @@ const VokDetail = {
   }
 };
 
- ──────────────────────────────────────────────
+// ──────────────────────────────────────────────
 const Quiz = {
   questions:[], idx:0, score:0, answered:false,
   start(quiz,phases,shuffle){
