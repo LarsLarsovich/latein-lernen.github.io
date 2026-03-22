@@ -70,16 +70,18 @@
         <div class="tables-category-heading-line"></div>
       </div>
 
-      <div class="in-dev-banner" style="margin-bottom:1rem;">
-        <span class="in-dev-icon">⚠️</span>
-        <span>Vokabeln können fehlerhaft sein. Bitte bei Fehlern melden.</span>
-      </div>
+      <!-- Alle Vokabeln + Eigenes Quiz Cards -->
+      <div class="quiz-grid" style="margin-bottom:0.8rem;">
+        <div class="quiz-card alle-vok-card" onclick="Tables.openAlleVokabeln()">
+          <div class="alle-vok-icon">∑</div>
+          <div class="quiz-card-name">Alle Vokabeln</div>
+  
+        </div>
+        <div class="quiz-card alle-vok-card" onclick="App.openCustomQuiz()" style="border-color:var(--border2);">
+          <div class="alle-vok-icon" style="color:var(--text2);">✎</div>
+          <div class="quiz-card-name">Eigenes Quiz</div>
 
-      <!-- Alle Vokabeln Card -->
-      <div class="quiz-card alle-vok-card" onclick="Tables.openAlleVokabeln()">
-        <div class="alle-vok-icon">∑</div>
-        <div class="quiz-card-name">Alle Vokabeln</div>
-        <div class="quiz-card-desc" id="alle-vok-count">Wird geladen…</div>
+        </div>
       </div>
 
       <div id="vokabel-draft-section" class="hidden" style="margin-top:1rem;">
@@ -102,7 +104,7 @@
 ══════════════════════════════════════════ -->
 <main id="page-setup" class="page">
   <div class="back-row">
-    <button class="back-btn" onclick="App.goHome()">← Zurück</button>
+    <button class="back-btn" onclick="App.goBack()">← Zurück</button>
   </div>
   <div class="setup-card">
     <div class="setup-title" id="setup-title"></div>
@@ -151,12 +153,7 @@
           <span class="shuffle-box">Karten mischen</span>
         </label>
       </div>
-      <div class="shuffle-option" style="margin-top:0.5rem;">
-        <label class="shuffle-opt">
-          <input type="checkbox" id="vok-extreme" />
-          <span class="shuffle-box">Extrem-Modus: deklinierte/konjugierte Formen abfragen</span>
-        </label>
-      </div>
+
     </div>
 
     <button class="start-btn" id="setup-start-btn" onclick="App.startQuiz()">Quiz starten →</button>
@@ -171,7 +168,7 @@
     <button class="back-btn" onclick="App.goHome()">← Abbrechen</button>
     <div class="phase-badge" id="quiz-phase-badge"></div>
     <div class="quiz-progress-text" id="quiz-progress-text"></div>
-    <button class="report-float-btn" onclick="Report.open('Quiz: ' + document.getElementById('quiz-phase-badge').textContent + ' – ' + document.getElementById('q-main').textContent.slice(0,50))" title="Fehler melden">⚑ Melden</button>
+    <button class="report-float-btn" onclick="Quiz.reportCurrent()" title="Fehler melden">⚑ Melden</button>
   </div>
   <div class="quiz-area">
     <div class="progress-bar-wrap"><div class="progress-bar-fill" id="progress-bar"></div></div>
@@ -209,7 +206,7 @@
 ══════════════════════════════════════════ -->
 <main id="page-table-view" class="page">
   <div class="back-row">
-    <button class="back-btn" onclick="App.goHome();App.switchTab('tables')">← Zurück</button>
+    <button class="back-btn" onclick="App.goBack()">← Zurück</button>
     <div class="editor-page-title" id="table-view-title"></div>
     <button class="report-float-btn" onclick="Report.open('Tabelle: ' + document.getElementById('table-view-title').textContent)" title="Fehler melden">⚑ Melden</button>
     <div style="margin-left:auto;display:flex;gap:8px;" id="table-view-quiz-btn">
@@ -478,9 +475,10 @@
 <!-- ALLE VOKABELN -->
 <main id="page-alle-vokabeln" class="page">
   <div class="back-row">
-    <button class="back-btn" onclick="App.goHome();App.switchTab('tables')">← Zurück</button>
+    <button class="back-btn" onclick="App.goBack()">← Zurück</button>
     <div class="editor-page-title">Alle Vokabeln</div>
     <div class="vok-count-badge" id="alle-count-badge"></div>
+    <button class="start-btn" onclick="App.openAlleVokabelQuiz()" style="margin-left:auto;padding:8px 18px;">Quiz starten →</button>
   </div>
   <div class="vok-search-bar">
     <input type="text" id="alle-search-input" class="vok-search-input" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Suchen… (Latein, Deutsch, oder deklinierte Form)" oninput="VokSearch.search()"  autocorrect="off" autocapitalize="off" spellcheck="false"/>
@@ -512,8 +510,9 @@
 <main id="page-vok-detail" class="page">
   <div class="back-row">
     <button class="back-btn" id="vok-detail-back">← Zurück</button>
-    <button class="report-float-btn" onclick="Report.open('Vokabel-Detail: ' + (document.querySelector('.vok-detail-lat')?.textContent||''))" title="Fehler melden">⚑ Melden</button>
-    <button class="draft-btn hidden" id="vok-detail-edit-btn" onclick="VokDetail.openOverride()">Formen bearbeiten</button>
+    <button class="report-float-btn" onclick="VokDetail.reportCurrent()" title="Fehler melden">⚑ Melden</button>
+    <button class="draft-btn hidden" id="vok-detail-edit-btn" onclick="VokDetail.openBasicEdit()">Bearbeiten</button>
+    <button class="draft-btn hidden" id="vok-detail-forms-btn" onclick="VokDetail.openOverride()">Formen</button>
   </div>
   <div id="vok-detail-content"></div>
 </main>
@@ -521,7 +520,7 @@
 <!-- IMPRESSUM -->
 <main id="page-impressum" class="page">
   <div class="back-row">
-    <button class="back-btn" onclick="App.goHome()">← Zurück</button>
+    <button class="back-btn" onclick="App.goBack()">← Zurück</button>
   </div>
   <div class="impressum-wrap">
     <h1 class="impressum-title">Impressum</h1>
@@ -560,6 +559,114 @@
 </div>
 
 
+
+
+<!-- MODAL: Alle Vokabeln Quiz -->
+<div class="modal-overlay hidden" id="alle-quiz-overlay" onclick="App.closeAlleQuiz(event)">
+  <div class="modal" style="max-width:420px;">
+    <button class="modal-close" onclick="App.closeAlleQuiz()">✕</button>
+    <div class="modal-title">Quiz – Alle Vokabeln</div>
+    <div class="field-group">
+      <label>Wie viele Vokabeln abfragen?</label>
+      <div style="display:flex;align-items:center;gap:12px;margin-top:6px;">
+        <input type="range" id="alle-quiz-count" min="1" max="100" value="20"
+          oninput="document.getElementById('alle-quiz-count-label').textContent=this.value"
+          style="flex:1;" />
+        <span id="alle-quiz-count-label" style="font-size:20px;font-weight:700;color:var(--accent);min-width:32px;text-align:right;">20</span>
+      </div>
+      <div style="font-size:12px;color:var(--text3);margin-top:4px;" id="alle-quiz-max-hint"></div>
+    </div>
+    <div id="alle-quiz-mode-section">
+      <div class="phase-label" style="margin-top:1rem;">Was soll abgefragt werden?</div>
+      <div class="phase-options">
+        <label class="phase-opt"><input type="checkbox" name="aqphase" value="lat-de" checked /><span class="phase-box"><span class="phase-icon">🏛️</span><span class="phase-name">Latein → Deutsch</span></span></label>
+        <label class="phase-opt"><input type="checkbox" name="aqphase" value="de-lat" id="aq-de-lat" onchange="App.toggleAqDeLatOpts()" /><span class="phase-box"><span class="phase-icon">🇩🇪</span><span class="phase-name">Deutsch → Latein</span></span></label>
+      </div>
+      <div id="aq-de-lat-opts" class="hidden" style="margin-top:0.5rem;padding:0.7rem 1rem;background:var(--bg2);border-radius:var(--radius);border:1px solid var(--border);">
+        <div style="font-size:12px;color:var(--text3);margin-bottom:6px;">Zusätzlich verlangen:</div>
+        <label class="shuffle-opt" style="margin-bottom:4px;"><input type="checkbox" id="aq-require-fall2" /><span class="shuffle-box">2. Fall angeben</span></label>
+        <label class="shuffle-opt"><input type="checkbox" id="aq-require-genus" /><span class="shuffle-box">Geschlecht angeben</span></label>
+      </div>
+      <div class="shuffle-option" style="margin-top:0.8rem;">
+        <label class="shuffle-opt"><input type="checkbox" id="aq-shuffle" checked /><span class="shuffle-box">Karten mischen</span></label>
+      </div>
+    </div>
+    <button class="start-btn" style="margin-top:1.2rem;width:100%;" onclick="App.startAlleVokabelQuiz()">Quiz starten →</button>
+  </div>
+</div>
+
+<!-- MODAL: Eigenes Quiz -->
+<div class="modal-overlay hidden" id="custom-quiz-overlay" onclick="App.closeCustomQuiz(event)">
+  <div class="modal custom-quiz-modal">
+    <button class="modal-close" onclick="App.closeCustomQuiz()">✕</button>
+    <div class="modal-title">Eigenes Quiz</div>
+    <div class="phase-label">Listen auswählen:</div>
+    <div id="custom-quiz-list" style="max-height:300px;overflow-y:auto;margin-bottom:1rem;"></div>
+    <div class="phase-label" style="margin-top:0.5rem;">Was abfragen?</div>
+    <div class="phase-options">
+      <label class="phase-opt"><input type="checkbox" name="cqphase" value="lat-de" checked /><span class="phase-box"><span class="phase-icon">🏛️</span><span class="phase-name">Latein → Deutsch</span></span></label>
+      <label class="phase-opt"><input type="checkbox" name="cqphase" value="de-lat" id="cq-de-lat" onchange="App.toggleCqDeLatOpts()" /><span class="phase-box"><span class="phase-icon">🇩🇪</span><span class="phase-name">Deutsch → Latein</span></span></label>
+    </div>
+    <div id="cq-de-lat-opts" class="hidden" style="margin-top:0.5rem;padding:0.7rem 1rem;background:var(--bg2);border-radius:var(--radius);border:1px solid var(--border);">
+      <div style="font-size:12px;color:var(--text3);margin-bottom:6px;">Zusätzlich verlangen:</div>
+      <label class="shuffle-opt" style="margin-bottom:4px;"><input type="checkbox" id="cq-require-fall2" /><span class="shuffle-box">2. Fall angeben</span></label>
+      <label class="shuffle-opt"><input type="checkbox" id="cq-require-genus" /><span class="shuffle-box">Geschlecht angeben</span></label>
+    </div>
+    <div class="shuffle-option" style="margin-top:0.8rem;">
+      <label class="shuffle-opt"><input type="checkbox" id="cq-shuffle" checked /><span class="shuffle-box">Karten mischen</span></label>
+    </div>
+
+    <button class="start-btn" style="margin-top:1.2rem;width:100%;" onclick="App.startCustomQuiz()">Quiz starten →</button>
+  </div>
+</div>
+
+
+<!-- MODAL: Vokabel bearbeiten (Admin) -->
+<div class="modal-overlay hidden" id="basic-edit-overlay" onclick="VokDetail.closeBasicEdit(event)">
+  <div class="modal" style="max-width:460px;">
+    <button class="modal-close" onclick="VokDetail.closeBasicEdit()">✕</button>
+    <div class="modal-title">Vokabel bearbeiten</div>
+    <div class="field-group">
+      <label>Latein</label>
+      <input type="text" id="basic-edit-lat" class="modal-input" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="z.B. aqua" />
+    </div>
+    <div class="field-group">
+      <label>2. Fall (Genitiv)</label>
+      <input type="text" id="basic-edit-fall2" class="modal-input" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="z.B. aquae" />
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div class="field-group">
+        <label>Genus</label>
+        <select id="basic-edit-genus" class="modal-input">
+        <option value="–">–</option>
+        <option value="m.">m.</option>
+        <option value="f.">f.</option>
+        <option value="n.">n.</option>
+        </select>
+      </div>
+      <div class="field-group">
+        <label>Deklination</label>
+        <select id="basic-edit-dekl" class="modal-input">
+        <option value="–">–</option>
+        <option value="1. Dekl.">1. Dekl.</option>
+        <option value="2. Dekl.">2. Dekl.</option>
+        <option value="3. Dekl.">3. Dekl.</option>
+        <option value="4. Dekl.">4. Dekl.</option>
+        <option value="5. Dekl.">5. Dekl.</option>
+        </select>
+      </div>
+    </div>
+    <div class="field-group">
+      <label>Übersetzung</label>
+      <input type="text" id="basic-edit-de" class="modal-input" autocorrect="off" spellcheck="false" placeholder="z.B. Wasser%Flüssigkeit" />
+    </div>
+    <div class="create-error hidden" id="basic-edit-error"></div>
+    <div class="editor-actions" style="margin-top:1rem;">
+      <button class="start-btn" onclick="VokDetail.saveBasicEdit()">Speichern</button>
+      <button class="outline-btn" onclick="VokDetail.closeBasicEdit()">Abbrechen</button>
+    </div>
+  </div>
+</div>
 
 <!-- MODAL: Admin-Verwaltung (Super-Admin only) -->
 <div class="modal-overlay hidden" id="admin-settings-overlay" onclick="App.closeAdminSettings(event)">
@@ -668,11 +775,47 @@
   </div>
 </div>
 
+
+<!-- NEWS BANNER -->
+<div class="news-overlay hidden" id="news-overlay" onclick="App.closeNewsBanner()">
+  <div class="news-modal">
+    <button class="news-close" onclick="event.stopPropagation();App.closeNewsBanner()">✕</button>
+    <div class="news-tag">Jetzt neu</div>
+    <div class="news-title">Was gibt es Neues?</div>
+    <ul class="news-list">
+      <li class="news-item">
+        <span class="news-icon">∑</span>
+        <div>
+          <div class="news-item-title">Quiz mit allen Vokabeln</div>
+          <div class="news-item-desc">Starte ein Quiz aus dem gesamten Wortschatz – mit Anzahlauswahl.</div>
+        </div>
+      </li>
+      <li class="news-item">
+        <span class="news-icon">✎</span>
+        <div>
+          <div class="news-item-title">Eigenes Quiz erstellen</div>
+          <div class="news-item-desc">Wähle genau die Lectiones aus, die du lernen möchtest.</div>
+        </div>
+      </li>
+      <li class="news-item">
+        <span class="news-icon">✓</span>
+        <div>
+          <div class="news-item-title">Vokabeln geprüft</div>
+          <div class="news-item-desc">Alle Vokabeln wurden auf ihre Richtigkeit überprüft.</div>
+        </div>
+      </li>
+    </ul>
+    <button class="news-btn" onclick="event.stopPropagation();App.closeNewsBanner()">Alles klar!</button>
+  </div>
+</div>
+
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script src="script.js"></script>
 <footer class="site-footer">
   <button class="footer-link" onclick="App.showPage('impressum')">Impressum</button>
+  <span class="footer-sep">·</span>
+  <span class="footer-hint">Vokabeln können fehlerhaft sein – bitte bei Fehlern melden.</span>
 </footer>
 </body>
 </html>

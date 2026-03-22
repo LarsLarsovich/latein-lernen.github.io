@@ -34,11 +34,58 @@ const GENDER_CLASS = { M:'m', W:'f', N:'n' };
 const GENUS_OPTS   = ['–','m.','f.','n.'];
 const DEKL_OPTS    = ['–','1. Dekl.','2. Dekl.','3. Dekl.','4. Dekl.','5. Dekl.'];
 
+// Parse answer string handling:
+//   wieder(um)  → ["wieder", "wiederum"]   optional suffix/part
+//   gehen (+Dat.) → ["gehen"]              annotation stripped
+//   esse%est    → ["esse", "est"]           multiple forms
+//   (+Akk.)     → []                       pure annotation = empty
 function parseAnswers(raw) {
-  return (raw||'').toLowerCase().split('%').map(s=>s.trim()).filter(Boolean);
+  if (!raw) return [];
+  const variants = new Set();
+
+  // Annotation pattern: brackets containing only grammar markers (no normal letters a-z äöü)
+  // Pure annotation: (+Akk.) (+Dat.) (Pl.) (m.) (Sg.) etc.
+  const annotationRe = /^\([+]?[A-ZÄÖÜ][a-zA-ZäöüÄÖÜ.\s+]*\)$/;
+  // Trailing annotation to strip: word (+Dat.) → word
+  const stripAnnotationRe = /\s*\([+]?[A-ZÄÖÜ][a-zA-ZäöüÄÖÜ.\s+]*\)\s*/g;
+
+  raw.split('%').forEach(seg => {
+    seg = seg.trim();
+    if (!seg) return;
+    const segLow = seg.toLowerCase();
+
+    // If the whole segment is an annotation, skip it
+    if (annotationRe.test(seg)) return;
+
+    // Strip trailing/leading annotations
+    const stripped = seg.replace(stripAnnotationRe, ' ').replace(/\s+/g,' ').trim();
+    const strippedLow = stripped.toLowerCase();
+
+    // Check for optional part: wieder(um), vor(her), irgend(wie) etc.
+    // Only match if bracket content is purely lowercase letters (word suffix, not grammar marker)
+    const optMatch = strippedLow.match(/^(.*?)\(([a-zäöü]+)\)(.*)$/);
+    if (optMatch) {
+      const before = optMatch[1].trim();
+      const opt    = optMatch[2].trim();
+      const after  = optMatch[3].trim();
+      const without = (before + (after ? ' ' + after : '')).replace(/\s+/g,' ').trim();
+      const withIt  = (before + opt + (after ? ' ' + after : '')).replace(/\s+/g,' ').trim();
+      if (without) variants.add(without);
+      if (withIt)  variants.add(withIt);
+    } else if (strippedLow) {
+      variants.add(strippedLow);
+    }
+  });
+
+  return [...variants].filter(Boolean);
 }
 function isCorrect(input, raw) {
-  return parseAnswers(raw).includes(input.trim().toLowerCase());
+  const inp = input.trim().toLowerCase();
+  const answers = parseAnswers(raw);
+  if (answers.includes(inp)) return true;
+  // Also check stripped input (remove trailing annotations user might copy)
+  const inpStripped = inp.replace(/\s*\([^)]*\)\s*/g,'').trim();
+  return answers.includes(inpStripped);
 }
 
 // Expand "(er%sie%es) geht" → "er geht%sie geht%es geht"
@@ -139,7 +186,9 @@ const VokabelQuiz = {
   _checkDeLatAnswer(input, r, requireFall2, requireGenus) {
     const parsed = this._parseInput(input.trim());
     if (!parsed.lat) return false;
-    if (parsed.lat !== (r.lat||'').toLowerCase()) return false;
+    // Support multiple Latin forms via % (e.g. esse%est)
+    const latForms = (r.lat||'').toLowerCase().split('%').map(s=>s.trim());
+    if (!latForms.includes(parsed.lat)) return false;
 
     const hasFall2 = r.fall2 && r.fall2 !== '–' && r.fall2 !== '#';
     const hasGenus = r.genus && r.genus !== '–' && r.genus !== '#';
@@ -177,15 +226,16 @@ const VokabelQuiz = {
   // Check German answer (with or without article)
   _checkDeAnswer(input, r) {
     const inp = input.trim().toLowerCase();
-    const deWords = (r.de || '').split('%').map(d => d.trim().toLowerCase());
-    // Direct match
-    if (deWords.some(d => d === inp)) return true;
-    // Strip article: der/die/das/ein/eine
-    const stripped = inp.replace(/^(der|die|das|ein|eine)\s+/i, '');
-    return deWords.some(d => {
-      const dStripped = d.replace(/^(der|die|das|ein|eine)\s+/i, '');
-      return dStripped === stripped || d === stripped;
-    });
+    // Strip article from input
+    const inpNoArt = inp.replace(/^(der|die|das|ein|eine)\s+/i, '').trim();
+    const answers = parseAnswers(r.de || '');
+    for (const ans of answers) {
+      if (ans === inp || ans === inpNoArt) return true;
+      // Strip article from answer too
+      const ansNoArt = ans.replace(/^(der|die|das|ein|eine)\s+/i, '').trim();
+      if (ansNoArt === inp || ansNoArt === inpNoArt) return true;
+    }
+    return false;
   },
 
   build(rows, modes, shuffle, extreme) {
@@ -650,6 +700,16 @@ const App = {
     this.renderHome();
     this.showPage('home');
 
+    // Show news banner once for all users
+    try {
+      if (!localStorage.getItem('news_v3')) {
+        setTimeout(() => {
+          const overlay = document.getElementById('news-overlay');
+          if (overlay) overlay.classList.remove('hidden');
+        }, 900);
+      }
+    } catch(e) {}
+
     // Live listeners
     const listen = (col, key, sort) => {
       if (state.unsubs[key]) state.unsubs[key]();
@@ -669,17 +729,41 @@ const App = {
 
   _onHome() { return document.getElementById('page-home').classList.contains('active'); },
 
+  // Simple page navigation - each page knows where "back" goes
+  _prevPage: null,
+
   showPage(id, name) {
+    const current = document.querySelector('.page.active')?.id?.replace('page-','');
+    if (current && current !== id) {
+      this._prevPage = current === 'home' ? null : current;
+    }
     document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
     document.getElementById('page-'+id)?.classList.add('active');
     window.scrollTo(0,0);
     document.getElementById('topbar-center').textContent = name||'';
   },
 
+  goBack() {
+    // If there's a previous page, go there once – but never loop
+    if (this._prevPage && this._prevPage !== 'home') {
+      const target = this._prevPage;
+      this._prevPage = null; // clear so next back goes home
+      document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+      document.getElementById('page-'+target)?.classList.add('active');
+      window.scrollTo(0,0);
+    } else {
+      this.goHome();
+    }
+  },
+
   goHome() {
     document.querySelectorAll('.modal-overlay').forEach(m=>m.classList.add('hidden'));
+    this._prevPage = null;
     this.renderHome();
-    this.showPage('home');
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    document.getElementById('page-home')?.classList.add('active');
+    window.scrollTo(0,0);
+    document.getElementById('topbar-center').textContent = '';
   },
 
   switchTab(tab) {
@@ -842,7 +926,7 @@ const App = {
         const div = document.createElement('div');
         div.className = 'report-item' + (doc.read ? ' report-read' : '');
         div.innerHTML = `
-          <div class="report-item-context" onclick="App.navigateToReport('${escHtml(doc.context||'')}',this)">${escHtml(doc.context||'Unbekannt')} <span class="report-nav-hint">→</span></div>
+          <div class="report-item-context" onclick="App.navigateToReport('${escHtml(doc.encodedContext||'')}',this)">${escHtml(doc.context||'Unbekannt')} <span class="report-nav-hint">→</span></div>
           <div class="report-item-msg">${escHtml(doc.message||'')}</div>
           <div class="report-item-footer">
             <span>${date}</span>
@@ -855,25 +939,27 @@ const App = {
     } catch(e) { console.error('loadReports error:', e); }
   },
 
-  navigateToReport(context, el) {
-    // Close panel
+  navigateToReport(encoded, el) {
     document.getElementById('reports-panel').classList.add('hidden');
     document.getElementById('reports-backdrop').classList.add('hidden');
-    // Navigate based on context prefix
-    if (context.startsWith('Quiz:')) {
-      // Go back to setup for last quiz
-      if (state.lastQuizId) App.replaySetup();
-    } else if (context.startsWith('Vokabel-Detail:')) {
-      const word = context.replace('Vokabel-Detail:','').trim();
-      // Find the word in all tables and open it
-      for (const t of state.vokabel) {
-        const idx = (t.rows||[]).findIndex(r => r.lat === word);
-        if (idx >= 0) { VokDetail.open(idx, t.id); return; }
+    if (!encoded) return;
+
+    if (encoded.startsWith('VOK:')) {
+      const parts = encoded.split(':');
+      const tid = parts[1], idx = parseInt(parts[2]);
+      if (tid && !isNaN(idx)) { VokDetail.open(idx, tid); return; }
+    }
+    if (encoded.startsWith('QUIZ:')) {
+      const parts = encoded.split(':');
+      const tid = parts[1], idx = parseInt(parts[2]);
+      if (tid && !isNaN(idx)) { VokDetail.open(idx, tid); return; }
+      const word = parts[3];
+      if (word) {
+        for (const t of state.vokabel) {
+          const i = (t.rows||[]).findIndex(r => r.lat === word);
+          if (i >= 0) { VokDetail.open(i, t.id); return; }
+        }
       }
-    } else if (context.startsWith('Tabelle:')) {
-      const name = context.replace('Tabelle:','').trim();
-      const tv = state.vokabel.find(t=>t.name===name) || state.pronomen.find(t=>t.name===name);
-      if (tv) Tables.viewTable(tv.id, state.vokabel.includes(tv)?'vokabel':'pronomen');
     }
   },
 
@@ -881,11 +967,13 @@ const App = {
     try { await COL.reports.doc(id).update({read: true}); } catch(e) {}
     btn.closest('.report-item').classList.add('report-read');
     btn.textContent = '✓ Gelesen';
+    this.updateBellBadge();
   },
 
   async deleteReport(id, btn) {
     try { await COL.reports.doc(id).delete(); } catch(e) {}
     btn.closest('.report-item').remove();
+    this.updateBellBadge();
   },
 
   toggleReportsPanel() {
@@ -1075,10 +1163,104 @@ const App = {
     }
   },
 
+
+  // ── Alle Vokabeln Quiz ────────────────────────────────────────
+  openAlleVokabelQuiz() {
+    const total = state.vokabel.reduce((s,t)=>(t.rows?.length||0)+s, 0);
+    const slider = document.getElementById('alle-quiz-count');
+    const label  = document.getElementById('alle-quiz-count-label');
+    const hint   = document.getElementById('alle-quiz-max-hint');
+    if (slider) { slider.max = total; slider.value = Math.min(20, total); }
+    if (label)  label.textContent = Math.min(20, total);
+    if (hint)   hint.textContent  = `Max. ${total} Vokabeln verfügbar`;
+    document.getElementById('alle-quiz-overlay').classList.remove('hidden');
+  },
+
+  closeAlleQuiz(e) {
+    if (e && e.target !== document.getElementById('alle-quiz-overlay')) return;
+    document.getElementById('alle-quiz-overlay').classList.add('hidden');
+  },
+
+  startAlleVokabelQuiz() {
+    const count  = parseInt(document.getElementById('alle-quiz-count').value) || 20;
+    const modes  = [...document.querySelectorAll('input[name="aqphase"]:checked')].map(c=>c.value);
+    if (!modes.length) { alert('Bitte mindestens eine Abfrageart wählen.'); return; }
+    const shuffle = document.getElementById('aq-shuffle')?.checked ?? true;
+    VokabelQuiz._requireFall2 = document.getElementById('aq-require-fall2')?.checked || false;
+    VokabelQuiz._requireGenus = document.getElementById('aq-require-genus')?.checked || false;
+
+    const sorted = [...state.vokabel].sort((a,b)=>a.name.localeCompare(b.name,'de',{numeric:true}));
+    let allRows = [];
+    sorted.forEach(t => (t.rows||[]).forEach(r => allRows.push(r)));
+    allRows = allRows.sort(() => Math.random() - 0.5).slice(0, count);
+
+    const questions = VokabelQuiz.build(allRows, modes, shuffle, false);
+    if (!questions.length) { alert('Keine Vokabeln gefunden.'); return; }
+
+    document.getElementById('alle-quiz-overlay').classList.add('hidden');
+    state.quizType = 'vokabel';
+    state.currentVokabelTable = { name: 'Alle Vokabeln', rows: allRows };
+    Quiz.startVokabel(questions, 'Alle Vokabeln');
+  },
+
+  // ── Eigenes Quiz ─────────────────────────────────────────────
+  openCustomQuiz() {
+    const list = document.getElementById('custom-quiz-list');
+    if (!list) return;
+    const sorted = [...state.vokabel].sort((a,b)=>a.name.localeCompare(b.name,'de',{numeric:true}));
+    list.innerHTML = sorted.map(t => `
+      <label class="custom-quiz-item">
+        <input type="checkbox" name="cqlist" value="${t.id}" />
+        <span class="custom-quiz-name">${escHtml(t.name)}</span>
+        <span class="custom-quiz-count">${(t.rows||[]).length} Vok.</span>
+      </label>`).join('');
+    document.getElementById('custom-quiz-overlay').classList.remove('hidden');
+  },
+
+  closeCustomQuiz(e) {
+    if (e && e.target !== document.getElementById('custom-quiz-overlay')) return;
+    document.getElementById('custom-quiz-overlay').classList.add('hidden');
+  },
+
+  startCustomQuiz() {
+    const selectedIds = [...document.querySelectorAll('input[name="cqlist"]:checked')].map(c=>c.value);
+    if (!selectedIds.length) { alert('Bitte mindestens eine Liste auswählen.'); return; }
+    const modes   = [...document.querySelectorAll('input[name="cqphase"]:checked')].map(c=>c.value);
+    if (!modes.length) { alert('Bitte mindestens eine Abfrageart wählen.'); return; }
+    const shuffle = document.getElementById('cq-shuffle')?.checked ?? true;
+    VokabelQuiz._requireFall2 = document.getElementById('cq-require-fall2')?.checked || false;
+    VokabelQuiz._requireGenus = document.getElementById('cq-require-genus')?.checked || false;
+
+    const allRows = [];
+    selectedIds.forEach(id => {
+      const t = state.vokabel.find(x=>x.id===id);
+      if (t) (t.rows||[]).forEach(r => allRows.push(r));
+    });
+
+    const questions = VokabelQuiz.build(allRows, modes, shuffle, false);
+    if (!questions.length) { alert('Keine Vokabeln in den gewählten Listen.'); return; }
+
+    document.getElementById('custom-quiz-overlay').classList.add('hidden');
+    const names = selectedIds.map(id => state.vokabel.find(x=>x.id===id)?.name||'').filter(Boolean);
+    state.quizType = 'vokabel';
+    state.currentVokabelTable = { name: names.join(', '), rows: allRows };
+    Quiz.startVokabel(questions, names.join(' + '));
+  },
+
   toggleDeLatOptions() {
     const checked = document.getElementById('vphase-de-lat')?.checked;
     const opts = document.getElementById('de-lat-options');
     if (opts) opts.classList.toggle('hidden', !checked);
+  },
+
+  toggleAqDeLatOpts() {
+    const checked = document.getElementById('aq-de-lat')?.checked;
+    document.getElementById('aq-de-lat-opts')?.classList.toggle('hidden', !checked);
+  },
+
+  toggleCqDeLatOpts() {
+    const checked = document.getElementById('cq-de-lat')?.checked;
+    document.getElementById('cq-de-lat-opts')?.classList.toggle('hidden', !checked);
   },
 
   openVokabelQuizSetup(tableId) {
@@ -1131,7 +1313,7 @@ const App = {
       if (!checked.length) { alert('Bitte wähle mindestens eine Abfrage aus.'); return; }
       const modes   = checked.map(c => c.value);
       const shuffle = document.getElementById('vok-shuffle').checked;
-      const extreme = document.getElementById('vok-extreme').checked;
+      const extreme = false;
       VokabelQuiz._requireFall2 = document.getElementById('vok-require-fall2')?.checked || false;
       VokabelQuiz._requireGenus = document.getElementById('vok-require-genus')?.checked || false;
       const rows    = state.currentVokabelTable.rows || [];
@@ -1150,10 +1332,17 @@ const App = {
   },
 
   // ── Admin ─────────────────────────────────────────────────
+  closeNewsBanner() {
+    const overlay = document.getElementById('news-overlay');
+    if (overlay) overlay.classList.add('hidden');
+    try { localStorage.setItem('news_v3', '1'); } catch(err) {}
+  },
+
   handleAdminBtn() {
     if (state.adminLoggedIn) {
       state.adminLoggedIn = false;
       state.currentAdmin  = null;
+      try { sessionStorage.removeItem('adminData'); } catch(e) {}
       document.getElementById('admin-topbtn').classList.remove('active');
       document.getElementById('admin-topbtn').textContent = 'Admin';
       document.getElementById('add-btn').classList.add('hidden');
@@ -1209,6 +1398,8 @@ const App = {
   _setAdminLoggedIn(adminData) {
     state.adminLoggedIn = true;
     state.currentAdmin  = adminData;
+    // Persist in sessionStorage so reload keeps admin logged in
+    try { sessionStorage.setItem('adminData', JSON.stringify(adminData)); } catch(e) {}
     document.getElementById('login-overlay').classList.add('hidden');
     document.getElementById('login-error').classList.add('hidden');
     document.getElementById('admin-username').value = '';
@@ -1216,11 +1407,10 @@ const App = {
     document.getElementById('admin-topbtn').classList.add('active');
     document.getElementById('admin-topbtn').textContent = 'Ausloggen';
     document.getElementById('add-btn').classList.remove('hidden');
-    // Super-Admin gets admin management; all admins get own settings
     const adminSettingsBtn = document.getElementById('admin-settings-btn');
     if (adminSettingsBtn) adminSettingsBtn.classList.toggle('hidden', !adminData.isSuperAdmin);
     const ownSettingsBtn = document.getElementById('own-settings-btn');
-    if (ownSettingsBtn) ownSettingsBtn.classList.remove('hidden'); // all admins get own settings
+    if (ownSettingsBtn) ownSettingsBtn.classList.remove('hidden');
     const bellBtn = document.getElementById('bell-btn');
     if (bellBtn) bellBtn.classList.remove('hidden');
     this.updateBellBadge();
@@ -2061,7 +2251,7 @@ const VokDetail = {
   open(rowIndex, tableId, fromAlle) {
     this.currentTableId = tableId;
     this._currentRowIndex = rowIndex;
-    this._fromAlle = !!fromAlle;
+    // fromAlle handled by _prevPage
     const t = state.vokabel.find(x => x.id === tableId);
     if (!t) return;
     const r = t.rows[rowIndex];
@@ -2070,8 +2260,10 @@ const VokDetail = {
     this._currentOverrideKey = tableId + '_' + rowIndex;
 
     // Show admin edit button
-    const editBtn = document.getElementById('vok-detail-edit-btn');
-    if (editBtn) editBtn.classList.toggle('hidden', !state.adminLoggedIn);
+    const editBtn  = document.getElementById('vok-detail-edit-btn');
+    const formsBtn = document.getElementById('vok-detail-forms-btn');
+    if (editBtn)  editBtn.classList.toggle('hidden',  !state.adminLoggedIn);
+    if (formsBtn) formsBtn.classList.toggle('hidden', !state.adminLoggedIn);
 
     // Get manual override if exists
     const override = (t.overrides && t.overrides[rowIndex]) || {};
@@ -2177,21 +2369,57 @@ const VokDetail = {
 
     document.getElementById('vok-detail-content').innerHTML = html;
     // Determine where to go back: alle-vokabeln page or specific table
-    const fromAlleVok = document.getElementById('page-alle-vokabeln').classList.contains('active') ||
-                        (state._vokDetailSource === 'alle');
-    state._vokDetailSource = fromAlleVok ? 'alle' : 'table';
-    document.getElementById('vok-detail-back').onclick = () => {
-      if (state._vokDetailSource === 'alle') {
-        // Go back to alle-vokabeln and re-render with current state
-        App.showPage('alle-vokabeln', 'Alle Vokabeln');
-      } else {
-        Tables.viewTable(tableId, 'vokabel');
-      }
-    };
+    // Set back button - goBack() will use _prevPage which showPage() sets automatically
+    document.getElementById('vok-detail-back').onclick = () => App.goBack();
     App.showPage('vok-detail', r.lat || '');
   },
 
   // ── Manual Override ──────────────────────────────────────────
+  openBasicEdit() {
+    const r = this._currentRow;
+    const t = state.vokabel.find(x => x.id === this.currentTableId);
+    if (!r || !t) return;
+    document.getElementById('basic-edit-lat').value   = r.lat   || '';
+    document.getElementById('basic-edit-fall2').value = r.fall2 || '';
+    document.getElementById('basic-edit-genus').value = r.genus || '–';
+    document.getElementById('basic-edit-dekl').value  = r.dekl  || '–';
+    document.getElementById('basic-edit-de').value    = r.de    || '';
+    document.getElementById('basic-edit-error').classList.add('hidden');
+    document.getElementById('basic-edit-overlay').classList.remove('hidden');
+  },
+
+  closeBasicEdit(e) {
+    if (e && e.target !== document.getElementById('basic-edit-overlay')) return;
+    document.getElementById('basic-edit-overlay').classList.add('hidden');
+  },
+
+  async saveBasicEdit() {
+    const t   = state.vokabel.find(x => x.id === this.currentTableId);
+    const idx = this._currentRowIndex;
+    if (!t || idx == null) return;
+    const err = document.getElementById('basic-edit-error');
+
+    const lat   = document.getElementById('basic-edit-lat').value.trim();
+    const fall2 = document.getElementById('basic-edit-fall2').value.trim();
+    const genus = document.getElementById('basic-edit-genus').value;
+    const dekl  = document.getElementById('basic-edit-dekl').value;
+    const de    = document.getElementById('basic-edit-de').value.trim();
+
+    if (!lat) { err.textContent='Lateinisches Wort darf nicht leer sein.'; err.classList.remove('hidden'); return; }
+
+    // Update row in memory and Firebase
+    const rows = [...(t.rows||[])];
+    rows[idx] = { ...rows[idx], lat, fall2, genus, dekl, de };
+    t.rows = rows;
+
+    try {
+      await COL.vokabel.doc(t.id).update({ rows });
+      document.getElementById('basic-edit-overlay').classList.add('hidden');
+      // Reopen detail to refresh
+      this.open(idx, this.currentTableId, this._fromAlle);
+    } catch(e) { err.textContent='Fehler: '+e.message; err.classList.remove('hidden'); }
+  },
+
   openOverride() {
     const r = this._currentRow;
     if (!r) return;
@@ -2282,6 +2510,20 @@ const VokDetail = {
       this.open(idx, this.currentTableId);
     } catch(e) {
       alert('Fehler beim Speichern: ' + e.message);
+    }
+  },
+
+  reportCurrent() {
+    const tid = this.currentTableId;
+    const idx = this._currentRowIndex;
+    const r   = this._currentRow;
+    if (tid != null && idx != null && r) {
+      const t = state.vokabel.find(x => x.id === tid);
+      const label = `${r.lat||'?'} (${t?.name||'Vokabel'})`;
+      Report._encodedContext = `VOK:${tid}:${idx}`;
+      Report.open(label);
+    } else {
+      Report.open('Vokabel-Detail');
     }
   },
 
@@ -2380,6 +2622,24 @@ const Quiz = {
     document.getElementById('next-btn').classList.remove('hidden');
   },
   next(){this.idx++;if(this.idx>=this.questions.length)this.showResult();else this.render();},
+
+  reportCurrent() {
+    const q = this.questions[this.idx];
+    if (!q) { Report.open('Quiz'); return; }
+    const r = q.r;
+    if (r && this._isVokabel) {
+      const t = state.vokabel.find(x => (x.rows||[]).includes(r));
+      if (t) {
+        const idx = t.rows.indexOf(r);
+        const label = `Quiz: ${r.lat||q.main||'?'} (${t.name})`;
+        Report._encodedContext = `QUIZ:${t.id}:${idx}:${r.lat||''}`;
+        Report.open(label);
+        return;
+      }
+    }
+    Report._encodedContext = null;
+    Report.open(`Quiz: ${q.main?.slice(0,40)||''}`);
+  },
   showResult(){
     const total=this.questions.length,pct=Math.round(this.score/total*100);
     document.getElementById('result-score').textContent=`${this.score}/${total}`;
@@ -2434,9 +2694,11 @@ const Report = {
       await COL.reports.add({
         message: msg,
         context: this._context,
+        encodedContext: Report._encodedContext || null,
         timestamp: Date.now(),
         read: false
       });
+      Report._encodedContext = null;
       document.getElementById('report-error').classList.add('hidden');
       // Hide send btn, show success message
       document.getElementById('report-form-body').classList.add('hidden');
