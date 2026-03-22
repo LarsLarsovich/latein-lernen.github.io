@@ -126,6 +126,12 @@
           <span class="shuffle-box">Karten innerhalb der Kategorien mischen</span>
         </label>
       </div>
+      <div class="shuffle-option" style="margin-top:4px;">
+        <label class="shuffle-opt">
+          <input type="checkbox" id="pruefung-pronomen" />
+          <span class="shuffle-box">Prüfungsmodus <span style="color:var(--text3);font-size:11px;">(keine Wiederholung)</span></span>
+        </label>
+      </div>
     </div>
 
     <!-- Vokabel setup -->
@@ -153,6 +159,12 @@
           <span class="shuffle-box">Karten mischen</span>
         </label>
       </div>
+      <div class="shuffle-option" style="margin-top:4px;">
+        <label class="shuffle-opt">
+          <input type="checkbox" id="pruefung-vokabel" />
+          <span class="shuffle-box">Prüfungsmodus <span style="color:var(--text3);font-size:11px;">(keine Wiederholung)</span></span>
+        </label>
+      </div>
 
     </div>
 
@@ -171,7 +183,7 @@
     <button class="report-float-btn" onclick="Quiz.reportCurrent()" title="Fehler melden">⚑ Melden</button>
   </div>
   <div class="quiz-area">
-    <div class="progress-bar-wrap"><div class="progress-bar-fill" id="progress-bar"></div></div>
+    <div class="progress-bar-wrap" id="progress-bar-wrap"><div class="progress-bar-fill" id="progress-bar"></div></div>
     <div class="q-card">
       <div class="q-meta" id="q-meta"></div>
       <div class="q-main" id="q-main"></div>
@@ -192,11 +204,16 @@
   <div class="result-wrap">
     <div class="result-icon" id="result-icon">🏛️</div>
     <div class="result-score" id="result-score"></div>
-    <div class="result-label">richtig beantwortet</div>
+    <div class="result-label" id="result-label">richtig beantwortet</div>
     <div class="result-msg" id="result-msg"></div>
+    <div class="result-chart-wrap" id="result-chart-wrap">
+      <canvas id="result-chart" width="200" height="200"></canvas>
+      <div class="result-chart-legend" id="result-chart-legend"></div>
+    </div>
+    <div class="result-pct" id="result-pct"></div>
     <div class="result-btns">
       <button class="start-btn" onclick="App.goHome()">Zum Menü</button>
-      <button class="outline-btn" onclick="App.replaySetup()">Nochmal</button>
+      <button class="outline-btn" id="result-nochmal-btn" onclick="App.replaySetup()">Nochmal</button>
     </div>
   </div>
 </main>

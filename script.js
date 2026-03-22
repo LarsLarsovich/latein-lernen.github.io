@@ -362,6 +362,64 @@ const VokabelQuiz = {
   }
 };
 
+
+// ── Diff highlight: mark wrong/missing chars in correct answer ──
+function diffHighlight(input, correct) {
+  // Find the best matching correct variant
+  const inp = input.trim().toLowerCase();
+  const cor = correct.trim().toLowerCase();
+
+  if (inp === cor) return escHtml(correct);
+
+  // Character-level diff using Wagner-Fischer
+  const a = inp, b = cor;
+  const m = a.length, n = b.length;
+
+  // Build DP table
+  const dp = Array.from({length: m+1}, (_,i) => Array.from({length: n+1}, (_,j) => {
+    if (i===0) return j;
+    if (j===0) return i;
+    return 0;
+  }));
+  for (let i=1; i<=m; i++) {
+    for (let j=1; j<=n; j++) {
+      dp[i][j] = a[i-1]===b[j-1]
+        ? dp[i-1][j-1]
+        : 1 + Math.min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]);
+    }
+  }
+
+  // Traceback
+  const ops = []; // 'match','replace','insert','delete'
+  let i=m, j=n;
+  while (i>0 || j>0) {
+    if (i>0 && j>0 && a[i-1]===b[j-1]) {
+      ops.unshift({type:'match', c: b[j-1]}); i--; j--;
+    } else if (j>0 && (i===0 || dp[i][j-1]<=dp[i-1][j] && dp[i][j-1]<=dp[i-1][j-1])) {
+      ops.unshift({type:'insert', c: b[j-1]}); j--;  // char in correct but not in input → missing
+    } else if (i>0 && (j===0 || dp[i-1][j]<=dp[i][j-1] && dp[i-1][j]<=dp[i-1][j-1])) {
+      ops.unshift({type:'delete', c: a[i-1]}); i--;  // extra char in input → skip
+    } else {
+      ops.unshift({type:'replace', c: b[j-1]}); i--; j--;
+    }
+  }
+
+  // Build HTML from correct answer perspective
+  let html = '';
+  ops.forEach(op => {
+    const ch = escHtml(op.c);
+    if (op.type === 'match') {
+      html += ch;
+    } else if (op.type === 'replace') {
+      html += `<mark class="diff-wrong">${ch}</mark>`;
+    } else if (op.type === 'insert') {
+      html += `<mark class="diff-missing">${ch}</mark>`;
+    }
+    // 'delete' = extra chars user typed, we don't show those
+  });
+  return html;
+}
+
 // ── Quiz Engine
 
 const German = {
@@ -1328,7 +1386,9 @@ const App = {
   },
 
   replaySetup() {
-    if (state.lastQuizId) this.openSetup(state.lastQuizId,state.lastQuizSource); else this.goHome();
+    if (!state.lastQuizId) { this.goHome(); return; }
+    if (state.quizType === 'vokabel') this.openVokabelQuizSetup(state.lastQuizId);
+    else this.openSetup(state.lastQuizId, state.lastQuizSource);
   },
 
   // ── Admin ─────────────────────────────────────────────────
@@ -2536,18 +2596,31 @@ const VokDetail = {
 const Quiz = {
   questions:[], idx:0, score:0, answered:false,
   start(quiz,phases,shuffle){
-    this.questions=this.build(quiz,phases,shuffle);
-    this.idx=0;this.score=0;this.answered=false;
-    this._isVokabel=false;
+    const pruefung = document.getElementById('pruefung-pronomen')?.checked || false;
+    this._initQuiz(this.build(quiz,phases,shuffle), false, pruefung);
     App.showPage('quiz',quiz.name); this.render();
   },
 
   startVokabel(questions, name) {
-    this.questions = questions;
-    this.idx=0; this.score=0; this.answered=false;
-    this._isVokabel = true;
+    const pruefung = document.getElementById('pruefung-vokabel')?.checked || false;
+    this._initQuiz(questions, true, pruefung);
     App.showPage('quiz', name);
     this.render();
+  },
+
+  _initQuiz(questions, isVokabel, pruefung) {
+    this.questions    = questions;
+    this._allQuestions = [...questions];  // original set
+    this.idx          = 0;
+    this.score        = 0;
+    this.answered     = false;
+    this._isVokabel   = isVokabel;
+    this._pruefung    = pruefung;
+    this._round       = 0;               // current repetition round
+    this._wrongInRound = [];             // wrong answers this round
+    this._roundSizes  = [questions.length]; // size of each round for progress bar
+    this._firstCorrect = {};             // key → round when first answered correctly
+    this._totalAnswered = 0;
   },
   build(q,phases,shuffle){
     let qs=[];
@@ -2577,11 +2650,12 @@ const Quiz = {
   render(){
     const q=this.questions[this.idx],total=this.questions.length;
     const labels={1:'Phase 1 – Singular',2:'Phase 2 – Plural',3:'Phase 3 – Gemischt',4:'Phase 4 – Deutsch → Latein',5:'Phase 5 – Latein → Deutsch'};
-    // For vokabel questions use meta directly, for pronomen use labels
     const badge = this._isVokabel ? (q.meta||'') : (labels[q.phase]||'');
-    document.getElementById('quiz-phase-badge').textContent=badge;
+    // Show round indicator if in repetition
+    const roundLabel = this._round > 0 ? ` · Runde ${this._round+1}` : '';
+    document.getElementById('quiz-phase-badge').textContent = badge + roundLabel;
     document.getElementById('quiz-progress-text').textContent=`${this.idx+1} / ${total}`;
-    document.getElementById('progress-bar').style.width=(this.idx/total*100)+'%';
+    this._renderProgressBar();
     document.getElementById('q-meta').textContent=this._isVokabel ? (q.hint||'') : q.meta;
     document.getElementById('q-main').textContent=q.main;
     const inp=document.getElementById('answer-input');
@@ -2589,6 +2663,38 @@ const Quiz = {
     document.getElementById('feedback-box').className='feedback-box hidden';
     document.getElementById('next-btn').classList.add('hidden');
     this.answered=false;
+  },
+
+  _renderProgressBar() {
+    const wrap = document.getElementById('progress-bar-wrap');
+    if (!wrap) return;
+    // Build segmented bar: each round is a segment
+    const sizes = this._roundSizes;
+    const totalQ = sizes.reduce((a,b)=>a+b, 0);
+    // How many answered so far globally
+    const globalDone = sizes.slice(0, this._round).reduce((a,b)=>a+b, 0) + this.idx;
+    
+    if (sizes.length <= 1) {
+      // Simple bar
+      wrap.innerHTML = '<div class="progress-bar-fill" id="progress-bar"></div>';
+      document.getElementById('progress-bar').style.width = (this.idx / sizes[0] * 100) + '%';
+      return;
+    }
+    
+    // Segmented bar
+    let html = '';
+    let cumulative = 0;
+    sizes.forEach((size, i) => {
+      const pct = (size / totalQ * 100).toFixed(2);
+      const done = i < this._round ? size : (i === this._round ? this.idx : 0);
+      const fillPct = (done / size * 100).toFixed(2);
+      const isActive = i === this._round;
+      html += `<div class="pb-segment${i > 0 ? ' pb-segment-gap' : ''}" style="width:${pct}%">
+        <div class="pb-segment-fill${isActive ? ' pb-active' : i < this._round ? ' pb-done' : ''}" style="width:${fillPct}%"></div>
+      </div>`;
+      cumulative += size;
+    });
+    wrap.innerHTML = html;
   },
   check(){
     if(this.answered)return;
@@ -2603,25 +2709,61 @@ const Quiz = {
       correct = VokabelQuiz._checkDeLatAnswer(val, q.r, q.requireFall2, q.requireGenus);
       displayAnswer = VokabelQuiz._formatDeLatAnswer(q.r, q.requireFall2, q.requireGenus);
     } else if (q.mode === 'lat-de' && this._isVokabel) {
-      // Latein → Deutsch: accept with/without article
       correct = VokabelQuiz._checkDeAnswer(val, q.r||{de: q.answer});
       displayAnswer = q.answerDisplay;
     } else {
       correct = isCorrect(val, q.answer);
       const acc = parseAnswers(q.answer);
-      displayAnswer = acc.length > 1 ? acc.join(' / ') : q.answerDisplay;
+      displayAnswer = acc.length > 1 ? acc.join(' / ') : (q.answerDisplay||q.answer);
     }
 
+    const qKey = q.main + '||' + (q.answer||'');
+
     if(correct){
-      this.score++;fb.textContent='✓ Richtig!';fb.className='feedback-box correct';
+      this.score++;
+      fb.textContent='✓ Richtig!';
+      fb.className='feedback-box correct';
+      if (this._firstCorrect[qKey] === undefined) {
+        this._firstCorrect[qKey] = this._round;
+      }
     } else {
-      fb.textContent='✗ Falsch. Richtig: ' + displayAnswer;
+      // Show correct answer with diff highlighting
+      const bestMatch = parseAnswers(displayAnswer).reduce((best, ans) => {
+        const d = ans.split('').filter((c,i) => c !== (val.toLowerCase()[i]||'')).length;
+        return (!best || d < best.d) ? {ans, d} : best;
+      }, null);
+      const showAnswer = bestMatch ? bestMatch.ans : displayAnswer;
+      const highlighted = diffHighlight(val, showAnswer);
+      fb.innerHTML = `✗ Richtig: ${highlighted}`;
       fb.className='feedback-box wrong';
+      if (!this._pruefung) {
+        const alreadyWrong = this._wrongInRound.some(w => w.main===q.main && w.answer===q.answer);
+        if (!alreadyWrong) this._wrongInRound.push(q);
+      }
     }
-    document.getElementById('progress-bar').style.width=((this.idx+1)/this.questions.length*100)+'%';
+    this._renderProgressBar();
     document.getElementById('next-btn').classList.remove('hidden');
   },
-  next(){this.idx++;if(this.idx>=this.questions.length)this.showResult();else this.render();},
+  next(){
+    this.idx++;
+    if(this.idx >= this.questions.length) {
+      // End of current round
+      if (!this._pruefung && this._wrongInRound.length > 0) {
+        // Start new repetition round
+        this._round++;
+        this._roundSizes.push(this._wrongInRound.length);
+        this.questions = this._wrongInRound.sort(() => Math.random() - 0.5);
+        this._wrongInRound = [];
+        this.idx = 0;
+        this.score = 0;
+        this.render();
+      } else {
+        this.showResult();
+      }
+    } else {
+      this.render();
+    }
+  },
 
   reportCurrent() {
     const q = this.questions[this.idx];
@@ -2641,13 +2783,106 @@ const Quiz = {
     Report.open(`Quiz: ${q.main?.slice(0,40)||''}`);
   },
   showResult(){
-    const total=this.questions.length,pct=Math.round(this.score/total*100);
-    document.getElementById('result-score').textContent=`${this.score}/${total}`;
-    const t=[[100,'Perfekt! Absolut fehlerfrei.','🏆'],[80,'Sehr gut! Fast alles richtig.','🏛️'],[60,'Gut! Noch etwas üben.','📜'],[40,'Es geht. Mehr Übung hilft!','⚡'],[0,'Weiter üben – du schaffst das!','🌿']];
-    const [,msg,icon]=t.find(([x])=>pct>=x);
+    const allQ = this._allQuestions;
+    const total = allQ.length;
+    const roundCount = this._roundSizes.length;
+
+    // Count how many needed each round (1st try, 2nd try, 3rd+)
+    const roundCounts = {}; // round → count of questions first correct in that round
+    let neverCorrect = 0;
+    allQ.forEach(q => {
+      const key = q.main + '||' + (q.answer||'');
+      const r = this._firstCorrect[key];
+      if (r === undefined) { neverCorrect++; }
+      else { roundCounts[r] = (roundCounts[r]||0) + 1; }
+    });
+
+    const firstTry = roundCounts[0] || 0;
+    const pct = Math.round(firstTry / total * 100);
+
+    // Scores
+    if (this._pruefung) {
+      document.getElementById('result-score').textContent = `${firstTry}/${total}`;
+      document.getElementById('result-label').textContent = 'richtig beantwortet';
+      document.getElementById('result-pct').textContent = pct + '%';
+      document.getElementById('result-chart-wrap').style.display = 'none';
+    } else {
+      document.getElementById('result-score').textContent = total + '';
+      document.getElementById('result-label').textContent = 'Vokabeln abgeschlossen';
+      document.getElementById('result-pct').textContent = '';
+      document.getElementById('result-chart-wrap').style.display = '';
+      this._drawChart(roundCounts, neverCorrect, total);
+    }
+
+    const msgs=[[100,'Perfekt! Alle beim ersten Versuch!','🏆'],[80,'Sehr gut! Fast alles direkt richtig.','🏛️'],[60,'Gut! Noch etwas üben.','📜'],[40,'Es geht. Mehr Übung hilft!','⚡'],[0,'Weiter üben – du schaffst das!','🌿']];
+    const [,msg,icon]=msgs.find(([x])=>pct>=x);
     document.getElementById('result-icon').textContent=icon;
     document.getElementById('result-msg').textContent=msg;
     App.showPage('result');
+  },
+
+  _drawChart(roundCounts, neverCorrect, total) {
+    const canvas = document.getElementById('result-chart');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const cx = 100, cy = 100, r = 80, innerR = 45;
+    
+    // Colors: 1st try green, 2nd orange, 3rd+ red shades, never grey
+    const colors = ['#4CAF93','#e07b2a','#e05a5a','#c04040','#a03030','#777'];
+    
+    // Build segments
+    const segments = [];
+    const maxRound = Math.max(...Object.keys(roundCounts).map(Number), 0);
+    for (let i = 0; i <= maxRound; i++) {
+      if (roundCounts[i]) {
+        const label = i === 0 ? '1. Versuch' : i === 1 ? '2. Versuch' : `${i+1}. Versuch`;
+        segments.push({ count: roundCounts[i], color: colors[Math.min(i, colors.length-1)], label });
+      }
+    }
+    if (neverCorrect > 0) {
+      segments.push({ count: neverCorrect, color: '#555', label: 'Nicht geschafft' });
+    }
+
+    ctx.clearRect(0, 0, 200, 200);
+    let startAngle = -Math.PI / 2;
+
+    segments.forEach(seg => {
+      const slice = (seg.count / total) * Math.PI * 2;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.arc(cx, cy, r, startAngle, startAngle + slice);
+      ctx.closePath();
+      ctx.fillStyle = seg.color;
+      ctx.fill();
+      startAngle += slice;
+    });
+
+    // Inner circle (donut)
+    ctx.beginPath();
+    ctx.arc(cx, cy, innerR, 0, Math.PI * 2);
+    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--bg') || '#111';
+    ctx.fill();
+
+    // Center text
+    ctx.fillStyle = '#fff';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = 'bold 22px sans-serif';
+    ctx.fillText(Math.round((roundCounts[0]||0)/total*100) + '%', cx, cy - 8);
+    ctx.font = '11px sans-serif';
+    ctx.fillStyle = '#aaa';
+    ctx.fillText('1. Versuch', cx, cy + 12);
+
+    // Legend
+    const legendEl = document.getElementById('result-chart-legend');
+    if (legendEl) {
+      legendEl.innerHTML = segments.map(s =>
+        `<div class="chart-legend-item">
+          <span class="chart-legend-dot" style="background:${s.color}"></span>
+          <span>${s.label}: <strong>${s.count}</strong></span>
+        </div>`
+      ).join('');
+    }
   }
 };
 
