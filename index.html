@@ -56,11 +56,11 @@
           <div class="section-hint">Nur für dich sichtbar</div>
         </div>
         <div class="quiz-grid" id="pronomen-draft-grid"></div>
-        <div class="empty-hint" id="pronomen-draft-empty" style="display:none;">Keine Entwürfe.</div>
+        <div class="empty-hint hidden" id="pronomen-draft-empty">Keine Entwürfe.</div>
         <div class="section-divider"></div>
       </div>
       <div class="quiz-grid" id="pronomen-grid"></div>
-      <div class="empty-hint" id="pronomen-empty" style="display:none;">Keine Pronomen-Tabellen vorhanden.</div>
+      <div class="empty-hint hidden" id="pronomen-empty">Keine Pronomen-Tabellen vorhanden.</div>
     </div>
 
     <!-- ── Vokabeln ── -->
@@ -71,30 +71,30 @@
       </div>
 
       <!-- Alle Vokabeln + Eigenes Quiz Cards -->
-      <div class="quiz-grid" style="margin-bottom:0.8rem;">
+      <div class="quiz-grid quiz-grid--mb">
         <div class="quiz-card alle-vok-card" onclick="Tables.openAlleVokabeln()">
           <div class="alle-vok-icon">∑</div>
           <div class="quiz-card-name">Alle Vokabeln</div>
   
         </div>
-        <div class="quiz-card alle-vok-card" onclick="App.openCustomQuiz()" style="border-color:var(--border2);">
-          <div class="alle-vok-icon" style="color:var(--text2);">✎</div>
+        <div class="quiz-card alle-vok-card" onclick="App.openCustomQuiz()" class="quiz-card alle-vok-card alle-vok-card--secondary">
+          <div class="alle-vok-icon alle-vok-icon--muted">✎</div>
           <div class="quiz-card-name">Eigenes Quiz</div>
 
         </div>
       </div>
 
-      <div id="vokabel-draft-section" class="hidden" style="margin-top:1rem;">
+      <div id="vokabel-draft-section" class="hidden vokabel-draft-section">
         <div class="section-header">
           <div class="section-label">Entwürfe</div>
           <div class="section-hint">Nur für dich sichtbar</div>
         </div>
         <div class="quiz-grid" id="vokabel-draft-grid"></div>
-        <div class="empty-hint" id="vokabel-draft-empty" style="display:none;">Keine Entwürfe.</div>
+        <div class="empty-hint hidden" id="vokabel-draft-empty">Keine Entwürfe.</div>
         <div class="section-divider"></div>
       </div>
-      <div class="quiz-grid" id="vokabel-grid" style="margin-top:1rem;"></div>
-      <div class="empty-hint" id="vokabel-empty" style="display:none;">Keine Vokabel-Tabellen vorhanden.</div>
+      <div class="quiz-grid quiz-grid--mt" id="vokabel-grid"></div>
+      <div class="empty-hint hidden" id="vokabel-empty">Keine Vokabel-Tabellen vorhanden.</div>
     </div>
   </div>
 </main>
@@ -126,10 +126,10 @@
           <span class="shuffle-box">Karten innerhalb der Kategorien mischen</span>
         </label>
       </div>
-      <div class="shuffle-option" style="margin-top:4px;">
+      <div class="shuffle-option shuffle-option--sm">
         <label class="shuffle-opt">
           <input type="checkbox" id="pruefung-pronomen" />
-          <span class="shuffle-box">Prüfungsmodus <span style="color:var(--text3);font-size:11px;">(keine Wiederholung)</span></span>
+          <span class="shuffle-box">Prüfungsmodus <span class="pruefung-hint">(keine Wiederholung)</span></span>
         </label>
       </div>
     </div>
@@ -141,9 +141,9 @@
         <label class="phase-opt"><input type="checkbox" name="vphase" value="lat-de" checked /><span class="phase-box"><span class="phase-icon">🏛️</span><span class="phase-name">Latein → Deutsch</span></span></label>
         <label class="phase-opt"><input type="checkbox" name="vphase" value="de-lat" id="vphase-de-lat" onchange="App.toggleDeLatOptions()" /><span class="phase-box"><span class="phase-icon">🇩🇪</span><span class="phase-name">Deutsch → Latein + Infos</span></span></label>
       </div>
-      <div id="de-lat-options" class="hidden" style="margin-top:0.6rem;padding:0.8rem 1rem;background:var(--bg2);border-radius:var(--radius);border:1px solid var(--border);">
-        <div style="font-size:12px;color:var(--text3);margin-bottom:8px;">Bei Deutsch → Latein verlangen:</div>
-        <label class="shuffle-opt" style="margin-bottom:4px;">
+      <div id="de-lat-options" class="hidden de-lat-options-box">
+        <div class="de-lat-options-hint">Bei Deutsch → Latein verlangen:</div>
+        <label class="shuffle-opt shuffle-opt--mb">
           <input type="checkbox" id="vok-require-fall2" />
           <span class="shuffle-box">2. Fall (Genitiv) angeben</span>
         </label>
@@ -151,18 +151,18 @@
           <input type="checkbox" id="vok-require-genus" />
           <span class="shuffle-box">Geschlecht (m./f./n.) angeben</span>
         </label>
-        <div style="font-size:11px;color:var(--text3);margin-top:6px;">Eingabe z.B.: <code style="background:var(--bg3);padding:1px 5px;border-radius:3px;">amica,ae f.</code> oder <code style="background:var(--bg3);padding:1px 5px;border-radius:3px;">amica,ae</code></div>
+        <div class="de-lat-example-row">Eingabe z.B.: <code>amica,ae f.</code> oder <code>amica,ae</code></div>
       </div>
-      <div class="shuffle-option" style="margin-top:0.8rem;">
+      <div class="shuffle-option shuffle-option--gap">
         <label class="shuffle-opt">
           <input type="checkbox" id="vok-shuffle" />
           <span class="shuffle-box">Karten mischen</span>
         </label>
       </div>
-      <div class="shuffle-option" style="margin-top:4px;">
+      <div class="shuffle-option shuffle-option--sm">
         <label class="shuffle-opt">
           <input type="checkbox" id="pruefung-vokabel" />
-          <span class="shuffle-box">Prüfungsmodus <span style="color:var(--text3);font-size:11px;">(keine Wiederholung)</span></span>
+          <span class="shuffle-box">Prüfungsmodus <span class="pruefung-hint">(keine Wiederholung)</span></span>
         </label>
       </div>
 
@@ -226,15 +226,15 @@
     <button class="back-btn" onclick="App.goBack()">← Zurück</button>
     <div class="editor-page-title" id="table-view-title"></div>
     <button class="report-float-btn" onclick="Report.open('Tabelle: ' + document.getElementById('table-view-title').textContent)" title="Fehler melden">⚑ Melden</button>
-    <div style="margin-left:auto;display:flex;gap:8px;" id="table-view-quiz-btn">
-      <button class="start-btn" onclick="App.startVokabelQuiz()" id="vok-quiz-start-btn" style="display:none;">Quiz starten →</button>
+    <div class="table-view-quiz-btn" id="table-view-quiz-btn">
+      <button class="start-btn" onclick="App.startVokabelQuiz()" id="vok-quiz-start-btn" class="start-btn btn--hidden">Quiz starten →</button>
     </div>
-    <div style="display:flex;gap:8px;" id="table-view-admin-btns" class="hidden">
+    <div class="table-view-admin-btns hidden" id="table-view-admin-btns">
       <button class="draft-btn" onclick="App.editTableFromView()">Bearbeiten</button>
     </div>
   </div>
   <div id="table-view-search" class="hidden">
-    <div class="vok-search-bar" style="margin-bottom:1rem;">
+    <div class="vok-search-bar">
       <input type="text" id="table-search-input" class="vok-search-input" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Suchen…" oninput="VokSearch.searchTable()"  autocorrect="off" autocapitalize="off" spellcheck="false"/>
       <div class="vok-filters">
         <select class="vok-filter-select" id="table-filter-genus" onchange="VokSearch.searchTable()">
@@ -264,7 +264,7 @@
   <div class="back-row">
     <button class="back-btn" onclick="App.goHome()">← Abbrechen</button>
     <div class="editor-page-title" id="editor-page-title">Neues Quiz</div>
-    <button class="draft-btn" style="margin-left:auto;" id="editor-from-table-btn" onclick="App.openTablePickerForQuiz()" title="Aus Tabelle übernehmen">← Aus Tabelle</button>
+    <button class="draft-btn btn--ml-auto" id="editor-from-table-btn" onclick="App.openTablePickerForQuiz()" title="Aus Tabelle übernehmen">← Aus Tabelle</button>
   </div>
   <div class="editor-wrap">
     <div class="editor-meta">
@@ -301,7 +301,7 @@
   <div class="back-row">
     <button class="back-btn" onclick="App.goHome()">← Abbrechen</button>
     <div class="editor-page-title" id="pronomen-editor-title">Neue Pronomen-Tabelle</div>
-    <button class="draft-btn" style="margin-left:auto;" id="pronomen-from-quiz-btn" onclick="App.openQuizPickerForTable()" title="Aus Quiz übernehmen">← Aus Quiz</button>
+    <button class="draft-btn btn--ml-auto" id="pronomen-from-quiz-btn" onclick="App.openQuizPickerForTable()" title="Aus Quiz übernehmen">← Aus Quiz</button>
   </div>
   <div class="editor-wrap">
     <div class="editor-meta">
@@ -381,14 +381,14 @@
     <div id="vok-form-view">
       <div class="forms-section-title">Vokabeln</div>
       <div id="vokabel-rows"></div>
-      <button class="outline-btn" style="margin-top:0.8rem;" onclick="Tables.addVokabelRow()">+ Zeile hinzufügen</button>
+      <button class="outline-btn btn--mt" onclick="Tables.addVokabelRow()">+ Zeile hinzufügen</button>
     </div>
 
     <!-- Text editor view -->
     <div id="vok-text-view" class="hidden">
-      <div class="forms-section-title" style="display:flex;align-items:center;justify-content:space-between;">
+      <div class="forms-section-title forms-section-title--row">
         <span>AI-Import</span>
-        <button class="outline-btn" style="padding:4px 12px;font-size:12px;" onclick="Tables.importTextVokabeln()">Importieren →</button>
+        <button class="outline-btn btn--sm" onclick="Tables.importTextVokabeln()">Importieren →</button>
       </div>
       <div class="vok-text-hint">
         Jede Zeile: <code>Latein-2.Fall-Genus-Deklination-Deutsch</code> &nbsp;·&nbsp; Leere Felder: <code>#</code> &nbsp;·&nbsp; Mehrere Bedeutungen: <code>%</code>
@@ -465,7 +465,7 @@
     <div class="card-action-desc" id="card-action-desc"></div>
     <div class="card-action-btns">
       <button class="start-btn" onclick="App.editFromModal()">Bearbeiten</button>
-      <button class="draft-btn" id="card-action-publish-btn" onclick="App.publishFromModal()" style="display:none;">Veröffentlichen</button>
+      <button class="draft-btn" id="card-action-publish-btn" onclick="App.publishFromModal()" class="draft-btn btn--hidden">Veröffentlichen</button>
       <button class="danger-btn" onclick="App.deleteFromModal()">Löschen</button>
       <button class="outline-btn" onclick="App.closeCardAction()">Abbrechen</button>
     </div>
@@ -495,7 +495,7 @@
     <button class="back-btn" onclick="App.goBack()">← Zurück</button>
     <div class="editor-page-title">Alle Vokabeln</div>
     <div class="vok-count-badge" id="alle-count-badge"></div>
-    <button class="start-btn" onclick="App.openAlleVokabelQuiz()" style="margin-left:auto;padding:8px 18px;">Quiz starten →</button>
+    <button class="start-btn btn--ml-auto btn--sm-pad" onclick="App.openAlleVokabelQuiz()">Quiz starten →</button>
   </div>
   <div class="vok-search-bar">
     <input type="text" id="alle-search-input" class="vok-search-input" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Suchen… (Latein, Deutsch, oder deklinierte Form)" oninput="VokSearch.search()"  autocorrect="off" autocapitalize="off" spellcheck="false"/>
@@ -547,7 +547,7 @@
     </div>
     <div class="impressum-section">
       <div class="impressum-label">E-Mail</div>
-      <div class="impressum-value"><a href="mailto:e.zinke@grg7.at">e.zinke@grg7.at</a></div>
+      <div class="impressum-value"><a href="/cdn-cgi/l/email-protection#f095de8a999e9b95b0978297c7de9184"><span class="__cf_email__" data-cfemail="75105b0f1c1b1e1035120712425b1401">[email&#160;protected]</span></a></div>
     </div>
     <div class="impressum-section">
       <div class="impressum-label">Zweck der Website</div>
@@ -568,7 +568,7 @@
     <div class="modal-title" id="override-modal-title">Formen bearbeiten</div>
     <div class="override-hint">Hier kannst du die automatisch generierten Formen manuell überschreiben. Leer lassen = automatisch berechnen.</div>
     <div id="override-fields"></div>
-    <div class="editor-actions" style="margin-top:1.2rem;">
+    <div class="editor-actions editor-actions--sm">
       <button class="start-btn" onclick="VokDetail.saveOverride()">Speichern</button>
       <button class="outline-btn" onclick="VokDetail.closeOverride()">Abbrechen</button>
     </div>
@@ -580,38 +580,38 @@
 
 <!-- MODAL: Alle Vokabeln Quiz -->
 <div class="modal-overlay hidden" id="alle-quiz-overlay" onclick="App.closeAlleQuiz(event)">
-  <div class="modal" style="max-width:420px;">
+  <div class="modal modal--sm">
     <button class="modal-close" onclick="App.closeAlleQuiz()">✕</button>
     <div class="modal-title">Quiz – Alle Vokabeln</div>
     <div class="field-group">
       <label>Wie viele Vokabeln abfragen?</label>
-      <div style="display:flex;align-items:center;gap:12px;margin-top:6px;">
+      <div class="alle-quiz-count-row">
         <input type="range" id="alle-quiz-count" min="1" max="100" value="20"
           oninput="document.getElementById('alle-quiz-count-label').textContent=this.value"
-          style="flex:1;" />
-        <span id="alle-quiz-count-label" style="font-size:20px;font-weight:700;color:var(--accent);min-width:32px;text-align:right;">20</span>
+          class="flex-1" />
+        <span id="alle-quiz-count-label" class="alle-quiz-count-label">20</span>
       </div>
-      <div style="font-size:12px;color:var(--text3);margin-top:4px;" id="alle-quiz-max-hint"></div>
+      <div class="alle-quiz-max-hint" id="alle-quiz-max-hint"></div>
     </div>
     <div id="alle-quiz-mode-section">
-      <div class="phase-label" style="margin-top:1rem;">Was soll abgefragt werden?</div>
+      <div class="phase-label phase-label--gap">Was soll abgefragt werden?</div>
       <div class="phase-options">
         <label class="phase-opt"><input type="checkbox" name="aqphase" value="lat-de" checked /><span class="phase-box"><span class="phase-icon">🏛️</span><span class="phase-name">Latein → Deutsch</span></span></label>
         <label class="phase-opt"><input type="checkbox" name="aqphase" value="de-lat" id="aq-de-lat" onchange="App.toggleAqDeLatOpts()" /><span class="phase-box"><span class="phase-icon">🇩🇪</span><span class="phase-name">Deutsch → Latein</span></span></label>
       </div>
-      <div id="aq-de-lat-opts" class="hidden" style="margin-top:0.5rem;padding:0.7rem 1rem;background:var(--bg2);border-radius:var(--radius);border:1px solid var(--border);">
-        <div style="font-size:12px;color:var(--text3);margin-bottom:6px;">Zusätzlich verlangen:</div>
-        <label class="shuffle-opt" style="margin-bottom:4px;"><input type="checkbox" id="aq-require-fall2" /><span class="shuffle-box">2. Fall angeben</span></label>
+      <div id="aq-de-lat-opts" class="hidden de-lat-options-box de-lat-options-box--sm">
+        <div class="de-lat-options-hint">Zusätzlich verlangen:</div>
+        <label class="shuffle-opt shuffle-opt--mb"><input type="checkbox" id="aq-require-fall2" /><span class="shuffle-box">2. Fall angeben</span></label>
         <label class="shuffle-opt"><input type="checkbox" id="aq-require-genus" /><span class="shuffle-box">Geschlecht angeben</span></label>
       </div>
-      <div class="shuffle-option" style="margin-top:0.8rem;">
+      <div class="shuffle-option shuffle-option--gap">
         <label class="shuffle-opt"><input type="checkbox" id="aq-shuffle" checked /><span class="shuffle-box">Karten mischen</span></label>
       </div>
-      <div class="shuffle-option" style="margin-top:4px;">
-        <label class="shuffle-opt"><input type="checkbox" id="aq-pruefung" /><span class="shuffle-box">Prüfungsmodus <span style="color:var(--text3);font-size:11px;">(keine Wiederholung)</span></span></label>
+      <div class="shuffle-option shuffle-option--sm">
+        <label class="shuffle-opt"><input type="checkbox" id="aq-pruefung" /><span class="shuffle-box">Prüfungsmodus <span class="pruefung-hint">(keine Wiederholung)</span></span></label>
       </div>
     </div>
-    <button class="start-btn" style="margin-top:1.2rem;width:100%;" onclick="App.startAlleVokabelQuiz()">Quiz starten →</button>
+    <button class="start-btn btn--fullwidth btn--mt-lg" onclick="App.startAlleVokabelQuiz()">Quiz starten →</button>
   </div>
 </div>
 
@@ -621,32 +621,32 @@
     <button class="modal-close" onclick="App.closeCustomQuiz()">✕</button>
     <div class="modal-title">Eigenes Quiz</div>
     <div class="phase-label">Listen auswählen:</div>
-    <div id="custom-quiz-list" style="max-height:300px;overflow-y:auto;margin-bottom:1rem;"></div>
-    <div class="phase-label" style="margin-top:0.5rem;">Was abfragen?</div>
+    <div id="custom-quiz-list" class="custom-quiz-list"></div>
+    <div class="phase-label phase-label--sm">Was abfragen?</div>
     <div class="phase-options">
       <label class="phase-opt"><input type="checkbox" name="cqphase" value="lat-de" checked /><span class="phase-box"><span class="phase-icon">🏛️</span><span class="phase-name">Latein → Deutsch</span></span></label>
       <label class="phase-opt"><input type="checkbox" name="cqphase" value="de-lat" id="cq-de-lat" onchange="App.toggleCqDeLatOpts()" /><span class="phase-box"><span class="phase-icon">🇩🇪</span><span class="phase-name">Deutsch → Latein</span></span></label>
     </div>
-    <div id="cq-de-lat-opts" class="hidden" style="margin-top:0.5rem;padding:0.7rem 1rem;background:var(--bg2);border-radius:var(--radius);border:1px solid var(--border);">
-      <div style="font-size:12px;color:var(--text3);margin-bottom:6px;">Zusätzlich verlangen:</div>
-      <label class="shuffle-opt" style="margin-bottom:4px;"><input type="checkbox" id="cq-require-fall2" /><span class="shuffle-box">2. Fall angeben</span></label>
+    <div id="cq-de-lat-opts" class="hidden de-lat-options-box de-lat-options-box--sm">
+      <div class="de-lat-options-hint">Zusätzlich verlangen:</div>
+      <label class="shuffle-opt shuffle-opt--mb"><input type="checkbox" id="cq-require-fall2" /><span class="shuffle-box">2. Fall angeben</span></label>
       <label class="shuffle-opt"><input type="checkbox" id="cq-require-genus" /><span class="shuffle-box">Geschlecht angeben</span></label>
     </div>
-    <div class="shuffle-option" style="margin-top:0.8rem;">
+    <div class="shuffle-option shuffle-option--gap">
       <label class="shuffle-opt"><input type="checkbox" id="cq-shuffle" checked /><span class="shuffle-box">Karten mischen</span></label>
     </div>
-    <div class="shuffle-option" style="margin-top:4px;">
-      <label class="shuffle-opt"><input type="checkbox" id="pruefung-custom" /><span class="shuffle-box">Prüfungsmodus <span style="color:var(--text3);font-size:11px;">(keine Wiederholung)</span></span></label>
+    <div class="shuffle-option shuffle-option--sm">
+      <label class="shuffle-opt"><input type="checkbox" id="pruefung-custom" /><span class="shuffle-box">Prüfungsmodus <span class="pruefung-hint">(keine Wiederholung)</span></span></label>
     </div>
 
-    <button class="start-btn" style="margin-top:1.2rem;width:100%;" onclick="App.startCustomQuiz()">Quiz starten →</button>
+    <button class="start-btn btn--fullwidth btn--mt-lg" onclick="App.startCustomQuiz()">Quiz starten →</button>
   </div>
 </div>
 
 
 <!-- MODAL: Vokabel bearbeiten (Admin) -->
 <div class="modal-overlay hidden" id="basic-edit-overlay" onclick="VokDetail.closeBasicEdit(event)">
-  <div class="modal" style="max-width:460px;">
+  <div class="modal modal--md">
     <button class="modal-close" onclick="VokDetail.closeBasicEdit()">✕</button>
     <div class="modal-title">Vokabel bearbeiten</div>
     <div class="field-group">
@@ -657,7 +657,7 @@
       <label>2. Fall (Genitiv)</label>
       <input type="text" id="basic-edit-fall2" class="modal-input" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="z.B. aquae" />
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+    <div class="field-grid-2col">
       <div class="field-group">
         <label>Genus</label>
         <select id="basic-edit-genus" class="modal-input">
@@ -684,7 +684,7 @@
       <input type="text" id="basic-edit-de" class="modal-input" autocorrect="off" spellcheck="false" placeholder="z.B. Wasser%Flüssigkeit" />
     </div>
     <div class="create-error hidden" id="basic-edit-error"></div>
-    <div class="editor-actions" style="margin-top:1rem;">
+    <div class="editor-actions editor-actions--sm">
       <button class="start-btn" onclick="VokDetail.saveBasicEdit()">Speichern</button>
       <button class="outline-btn" onclick="VokDetail.closeBasicEdit()">Abbrechen</button>
     </div>
@@ -700,7 +700,7 @@
     <div class="admin-section-label">Bestehende Admins</div>
     <div id="admin-list"></div>
 
-    <div id="edit-admin-section" class="hidden" style="margin-top:1rem;padding:1rem;background:var(--bg3);border-radius:var(--radius);">
+    <div id="edit-admin-section" class="hidden edit-admin-section">
       <div class="admin-section-label">Admin bearbeiten</div>
       <input type="hidden" id="edit-admin-id" />
       <div class="field-group">
@@ -716,13 +716,13 @@
         <input type="password" id="edit-admin-pass" class="modal-input" placeholder="••••••••" />
       </div>
       <div class="create-error hidden" id="edit-admin-error"></div>
-      <div style="display:flex;gap:8px;margin-top:0.8rem;">
+      <div class="btn-row">
         <button class="start-btn" onclick="App.saveEditAdmin()">Speichern</button>
         <button class="outline-btn" onclick="document.getElementById('edit-admin-section').classList.add('hidden')">Abbrechen</button>
       </div>
     </div>
 
-    <div class="admin-section-label" style="margin-top:1.5rem;">Neuen Admin hinzufügen</div>
+    <div class="admin-section-label admin-section-label--gap">Neuen Admin hinzufügen</div>
     <div class="field-group">
       <label>Name</label>
       <input type="text" id="new-admin-name" class="modal-input" placeholder="z.B. Maria" />
@@ -736,13 +736,13 @@
       <input type="password" id="new-admin-pass" class="modal-input" placeholder="••••••••" />
     </div>
     <div class="create-error hidden" id="new-admin-error"></div>
-    <button class="start-btn" style="margin-top:0.8rem;" onclick="App.saveNewAdmin()">Admin hinzufügen</button>
+    <button class="start-btn btn--mt" onclick="App.saveNewAdmin()">Admin hinzufügen</button>
   </div>
 </div>
 
 <!-- MODAL: Eigene Einstellungen -->
 <div class="modal-overlay hidden" id="own-settings-overlay" onclick="App.closeOwnSettings(event)">
-  <div class="modal" style="max-width:400px;">
+  <div class="modal modal--xs">
     <button class="modal-close" onclick="App.closeOwnSettings()">✕</button>
     <div class="modal-title">Mein Konto</div>
     <div class="field-group">
@@ -763,7 +763,7 @@
     </div>
     <div class="create-error hidden" id="own-settings-error"></div>
     <div class="report-success hidden" id="own-settings-success">✓ Gespeichert!</div>
-    <button class="start-btn" style="margin-top:0.8rem;" onclick="App.saveOwnSettings()">Speichern</button>
+    <button class="start-btn btn--mt" onclick="App.saveOwnSettings()">Speichern</button>
   </div>
 </div>
 
@@ -771,11 +771,11 @@
 <div id="reports-panel" class="reports-panel hidden">
   <div class="reports-panel-header">
     <span>Meldungen</span>
-    <button onclick="App.toggleReportsPanel()" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:18px;">✕</button>
+    <button onclick="App.toggleReportsPanel()" class="panel-close-btn">✕</button>
   </div>
   <div id="reports-list"></div>
 </div>
-<div id="reports-backdrop" class="hidden" onclick="App.toggleReportsPanel()" style="position:fixed;inset:0;z-index:199;"></div>
+<div id="reports-backdrop" class="hidden reports-backdrop" onclick="App.toggleReportsPanel()"></div>
 
 <!-- MODAL: Fehler melden -->
 <div class="modal-overlay hidden" id="report-overlay" onclick="Report.close(event)">
@@ -832,9 +832,43 @@
   </div>
 </div>
 
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-<script src="script.js"></script>
+<!-- ── Split JS files (load order matters) ─────────────────── -->
+<script src="js/firebase.js"></script>
+<script src="js/constants.js"></script>
+<script src="js/state.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/grammar.js"></script>
+<script src="js/quiz-engine.js"></script>
+<script src="js/report.js"></script>
+<script src="js/vok-detail.js"></script>
+<script src="js/tables.js"></script>
+<script src="js/app.js"></script>
+<script>
+// ── Keyboard-Shortcuts ────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Enter') return;
+  if (document.getElementById('page-quiz').classList.contains('active')) {
+    if (!Quiz.answered) Quiz.check(); else Quiz.next();
+    return;
+  }
+  if (!document.getElementById('login-overlay').classList.contains('hidden')) {
+    App.adminLogin();
+  }
+});
+
+// ── Globals für onclick-Handler ───────────────────────────────
+window.App        = App;
+window.Tables     = Tables;
+window.Quiz       = Quiz;
+window.VokDetail  = VokDetail;
+window.VokSearch  = VokSearch;
+window.VokabelQuiz = VokabelQuiz;
+window.Report     = Report;
+
+App.init();
+</script>
 <footer class="site-footer">
   <button class="footer-link" onclick="App.showPage('impressum')">Impressum</button>
   <span class="footer-sep">·</span>
