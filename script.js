@@ -124,6 +124,7 @@ const state = {
   currentTab: 'quizes',
   currentQuiz: null, lastQuizId: null, lastQuizSource: null,
   quizType: 'pronomen',
+  _quizOrigin: null, // 'table'|'alle'|'custom'
   currentAdmin: null,
   currentVokabelTable: null,
   editingId: null, editingSource: null,
@@ -1255,8 +1256,10 @@ const App = {
     const questions = VokabelQuiz.build(allRows, modes, shuffle, false);
     if (!questions.length) { alert('Keine Vokabeln gefunden.'); return; }
 
+    Quiz._pendingPruefung = document.getElementById('aq-pruefung')?.checked || false;
     document.getElementById('alle-quiz-overlay').classList.add('hidden');
     state.quizType = 'vokabel';
+    state._quizOrigin = 'alle';
     state.currentVokabelTable = { name: 'Alle Vokabeln', rows: allRows };
     Quiz.startVokabel(questions, 'Alle Vokabeln');
   },
@@ -1298,9 +1301,13 @@ const App = {
     const questions = VokabelQuiz.build(allRows, modes, shuffle, false);
     if (!questions.length) { alert('Keine Vokabeln in den gewählten Listen.'); return; }
 
+    // Store pruefung flag for startVokabel
+    Quiz._pendingPruefung = pruefungCustom;
     document.getElementById('custom-quiz-overlay').classList.add('hidden');
     const names = selectedIds.map(id => state.vokabel.find(x=>x.id===id)?.name||'').filter(Boolean);
     state.quizType = 'vokabel';
+    state._quizOrigin = 'custom';
+    state._customQuizIds = selectedIds;
     state.currentVokabelTable = { name: names.join(', '), rows: allRows };
     Quiz.startVokabel(questions, names.join(' + '));
   },
@@ -1328,6 +1335,7 @@ const App = {
     state.currentVokabelTable = t;
     state.lastQuizId = tableId;
     state.lastQuizSource = 'vokabel';
+    state._quizOrigin = 'table';
     document.getElementById('setup-title').textContent = t.name;
     document.getElementById('setup-desc').textContent  = (t.rows||[]).length + ' Vokabeln';
     document.getElementById('setup-pronomen').classList.add('hidden');
@@ -1386,9 +1394,25 @@ const App = {
   },
 
   replaySetup() {
-    if (!state.lastQuizId) { this.goHome(); return; }
-    if (state.quizType === 'vokabel') this.openVokabelQuizSetup(state.lastQuizId);
-    else this.openSetup(state.lastQuizId, state.lastQuizSource);
+    const origin = state._quizOrigin;
+    if (origin === 'alle') {
+      this.openAlleVokabelQuiz();
+    } else if (origin === 'custom') {
+      this.openCustomQuiz();
+      // Restore selection
+      setTimeout(() => {
+        (state._customQuizIds||[]).forEach(id => {
+          const cb = document.querySelector(`input[name="cqlist"][value="${id}"]`);
+          if (cb) cb.checked = true;
+        });
+      }, 50);
+    } else if (origin === 'table' && state.lastQuizId) {
+      this.openVokabelQuizSetup(state.lastQuizId);
+    } else if (state.lastQuizId) {
+      this.openSetup(state.lastQuizId, state.lastQuizSource);
+    } else {
+      this.goHome();
+    }
   },
 
   // ── Admin ─────────────────────────────────────────────────
@@ -2423,8 +2447,25 @@ const VokDetail = {
         }
       }
     } else {
-      html += `<div class="forms-section-title" style="margin-top:1.5rem;">Indeklinabel</div>`;
-      html += `<div class="empty-hint">Dieses Wort wird nicht dekliniert oder konjugiert.</div>`;
+      // Check if there are manual overrides for this indeclinable
+      const hasManual = Object.keys(override).some(k => k.startsWith('sg_') || k.startsWith('pl_'));
+      if (hasManual) {
+        const caseKeys = ['nom','gen','dat','akk','vok','abl'];
+        const cases    = ['Nominativ','Genitiv','Dativ','Akkusativ','Vokativ','Ablativ'];
+        html += `<div class="forms-section-title" style="margin-top:1.5rem;">Formen (manuell)</div>`;
+        html += `<div class="dekl-table-wrap"><table class="dekl-table"><thead><tr><th>Kasus</th><th>Singular</th><th>Plural</th></tr></thead><tbody>`;
+        cases.forEach((c, i) => {
+          const sg = override['sg_'+caseKeys[i]] || '';
+          const pl = override['pl_'+caseKeys[i]] || '';
+          if (sg || pl) {
+            html += `<tr><td class="case-cell">${c}</td><td><strong>${sg||'–'}</strong></td><td>${pl||'–'}</td></tr>`;
+          }
+        });
+        html += `</tbody></table></div>`;
+      } else {
+        html += `<div class="forms-section-title" style="margin-top:1.5rem;">Indeklinabel</div>`;
+        html += `<div class="empty-hint" style="margin-top:0.5rem;">Dieses Wort wird nicht dekliniert. Als Admin können Formen manuell eingetragen werden.</div>`;
+      }
     }
 
     document.getElementById('vok-detail-content').innerHTML = html;
@@ -2519,7 +2560,21 @@ const VokDetail = {
       });
       fields += '</div>';
     } else {
-      fields = '<div style="color:var(--text2);font-size:14px;">Für diesen Worttyp gibt es keine Formen zum Bearbeiten.</div>';
+      // For indeclinables or unrecognized types, show free-text override fields
+      const caseKeys = ['nom','gen','dat','akk','vok','abl'];
+      const cases = ['Nominativ','Genitiv','Dativ','Akkusativ','Vokativ','Ablativ'];
+      fields += '<div class="override-hint" style="font-size:12px;color:var(--text3);margin-bottom:8px;">Manuelle Formen eingeben (leer = wird nicht angezeigt)</div>';
+      fields += '<div class="override-section-label">Singular</div><div class="override-grid">';
+      cases.forEach((c, i) => {
+        fields += `<div class="override-field"><label>${c}</label><input type="text" id="ov_sg_${caseKeys[i]}" class="modal-input" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="" value="${override['sg_'+caseKeys[i]]||''}"/></div>`;
+      });
+      fields += '</div><div class="override-section-label">Plural</div><div class="override-grid">';
+      cases.forEach((c, i) => {
+        fields += `<div class="override-field"><label>${c}</label><input type="text" id="ov_pl_${caseKeys[i]}" class="modal-input" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="" value="${override['pl_'+caseKeys[i]]||''}"/></div>`;
+      });
+      fields += '</div>';
+      // Add delete all button
+      fields += `<button class="danger-btn" style="margin-top:0.8rem;font-size:13px;" onclick="VokDetail.clearOverride()">Alle Formen löschen</button>`;
     }
 
     document.getElementById('override-fields').innerHTML = fields;
@@ -2529,6 +2584,19 @@ const VokDetail = {
   closeOverride(e) {
     if (e && e.target !== document.getElementById('override-overlay')) return;
     document.getElementById('override-overlay').classList.add('hidden');
+  },
+
+  async clearOverride() {
+    const t = state.vokabel.find(x => x.id === this.currentTableId);
+    if (!t) return;
+    const idx = this._currentRowIndex;
+    if (!t.overrides) t.overrides = {};
+    delete t.overrides[idx];
+    try {
+      await COL.vokabel.doc(t.id).update({ overrides: t.overrides });
+      document.getElementById('override-overlay').classList.add('hidden');
+      this.open(idx, this.currentTableId, this._fromAlle);
+    } catch(e) { alert('Fehler: ' + e.message); }
   },
 
   async saveOverride() {
@@ -2548,7 +2616,7 @@ const VokDetail = {
       ['p1sg','p2sg','p3sg','p1pl','p2pl','p3pl'].forEach(k => {
         const v = readField('ov_' + k); if (v) override[k] = v;
       });
-    } else if (type === 'noun') {
+    } else if (type === 'noun' || type === 'indecl' || type === 'adj') {
       ['nom','gen','dat','akk','vok','abl'].forEach(k => {
         const sg = readField('ov_sg_' + k); if (sg) override['sg_'+k] = sg;
         const pl = readField('ov_pl_' + k); if (pl) override['pl_'+k] = pl;
@@ -2602,7 +2670,11 @@ const Quiz = {
   },
 
   startVokabel(questions, name) {
-    const pruefung = document.getElementById('pruefung-vokabel')?.checked || false;
+    // Use pending pruefung flag (from alle/custom quiz) or setup checkbox
+    const pruefung = (this._pendingPruefung !== undefined ? this._pendingPruefung : null)
+      ?? document.getElementById('pruefung-vokabel')?.checked
+      ?? false;
+    this._pendingPruefung = undefined;
     this._initQuiz(questions, true, pruefung);
     App.showPage('quiz', name);
     this.render();
@@ -2728,13 +2800,22 @@ const Quiz = {
       }
     } else {
       // Show correct answer with diff highlighting
-      const bestMatch = parseAnswers(displayAnswer).reduce((best, ans) => {
-        const d = ans.split('').filter((c,i) => c !== (val.toLowerCase()[i]||'')).length;
+      const variants = parseAnswers(displayAnswer);
+      // Find closest variant to what user typed
+      const bestMatch = variants.reduce((best, ans) => {
+        let d = 0;
+        const a = val.toLowerCase(), b = ans.toLowerCase();
+        const max = Math.max(a.length, b.length);
+        for (let i=0; i<max; i++) { if (a[i] !== b[i]) d++; }
         return (!best || d < best.d) ? {ans, d} : best;
       }, null);
-      const showAnswer = bestMatch ? bestMatch.ans : displayAnswer;
+      const showAnswer = bestMatch ? bestMatch.ans : (displayAnswer||'').replace(/%/g,' / ');
       const highlighted = diffHighlight(val, showAnswer);
-      fb.innerHTML = `✗ Richtig: ${highlighted}`;
+      // Show all variants if multiple
+      const allVariants = variants.length > 1
+        ? `<div class="feedback-variants">${variants.map(v=>escHtml(v)).join(' <span style="color:var(--text3)">·</span> ')}</div>`
+        : '';
+      fb.innerHTML = `✗ Richtig: ${highlighted}${allVariants}`;
       fb.className='feedback-box wrong';
       if (!this._pruefung) {
         const alreadyWrong = this._wrongInRound.some(w => w.main===q.main && w.answer===q.answer);

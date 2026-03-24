@@ -716,3 +716,8 @@ mark.diff-missing {
   text-decoration: underline;
 }
 .feedback-box.wrong { font-size: 16px; }
+
+/* ── Feedback variants ── */
+.feedback-variants {
+  font-size: 12px; color: var(--text3); margin-top: 4px;
+}
