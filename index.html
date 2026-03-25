@@ -563,7 +563,7 @@
     </div>
     <div class="impressum-section">
       <div class="impressum-label">E-Mail</div>
-      <div class="impressum-value"><a href="/cdn-cgi/l/email-protection#f095de8a999e9b95b0978297c7de9184"><span class="__cf_email__" data-cfemail="75105b0f1c1b1e1035120712425b1401">[email&#160;protected]</span></a></div>
+      <div class="impressum-value">e.zinke@grg7.at</div>
     </div>
     <div class="impressum-section">
       <div class="impressum-label">Zweck der Website</div>
@@ -943,8 +943,16 @@ App.init();
       <input type="text" id="gott-ed-gre" class="modal-input" placeholder="z.B. Zeus" autocorrect="off" autocapitalize="off" spellcheck="false"/>
     </div>
     <div class="field-group">
-      <label>Emoji / Symbol</label>
+      <label>Emoji / Symbol <span style="color:var(--text3);font-size:12px;">(wird verwendet wenn kein Foto vorhanden)</span></label>
       <input type="text" id="gott-ed-symbol" class="modal-input" placeholder="z.B. ⚡ oder 🌊" style="max-width:120px;font-size:24px;"/>
+    </div>
+    <div class="field-group">
+      <label>Foto-URL <span style="color:var(--text3);font-size:12px;">(Link zu einem Bild aus dem Internet)</span></label>
+      <input type="url" id="gott-ed-foto" class="modal-input" placeholder="https://..." autocorrect="off" autocapitalize="off" spellcheck="false"
+        oninput="const p=document.getElementById('gott-ed-foto-preview');p.src=this.value;p.style.display=this.value?'block':'none'"/>
+      <img id="gott-ed-foto-preview" src="" alt="Vorschau"
+        style="display:none;margin-top:8px;max-height:140px;border-radius:10px;object-fit:cover;border:1px solid var(--border);"
+        onerror="this.style.display='none'"/>
     </div>
     <div class="field-group">
       <label>Bereiche <span style="color:var(--text3);font-size:12px;">(mit Komma trennen)</span></label>

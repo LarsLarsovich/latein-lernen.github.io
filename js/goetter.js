@@ -20,10 +20,13 @@ const Goetter = {
     const card = document.createElement('div');
     card.className = 'gott-card' + (state.adminLoggedIn ? ' admin-mode-click' : '');
     card.innerHTML = `
-      <div class="gott-card-symbol">${g.symbol||'⚡'}</div>
+      ${g.fotoUrl
+        ? `<div class="gott-card-foto"><img src="${escHtml(g.fotoUrl)}" alt="${escHtml(g.nameGre||g.nameRom||'')}" loading="lazy"/></div>`
+        : `<div class="gott-card-symbol">${g.symbol||'⚡'}</div>`
+      }
       <div class="gott-card-names">
+        <div class="gott-card-gre">${escHtml(g.nameGre||'')}</div>
         <div class="gott-card-rom">${escHtml(g.nameRom||'')}</div>
-        <div class="gott-card-gre">🇬🇷 ${escHtml(g.nameGre||'')}</div>
       </div>
       <div class="gott-card-bereich">${escHtml((g.bereiche||[]).join(' · '))}</div>
     `;
@@ -40,14 +43,15 @@ const Goetter = {
     const g = state.goetter.find(x => x.id === id);
     if (!g) return;
 
-    let html = `
-      <div class="gott-detail-hero">
-        <div class="gott-detail-symbol">${g.symbol||'⚡'}</div>
-        <div class="gott-detail-header">
-          <h1 class="gott-detail-rom">${escHtml(g.nameRom||'')}</h1>
-          <div class="gott-detail-gre">Griechisch: <strong>${escHtml(g.nameGre||'')}</strong></div>
-        </div>
-      </div>`;
+    let html = '';
+
+    // Hero: Symbol + Namen (immer oben)
+    html += '<div class="gott-detail-hero">';
+    html += '<div class="gott-detail-symbol">' + escHtml(g.symbol||'⚡') + '</div>';
+    html += '<div class="gott-detail-header">';
+    html += '<h1 class="gott-detail-gre">' + escHtml(g.nameGre||'') + '</h1>';
+    html += '<div class="gott-detail-rom">Lateinisch: <strong>' + escHtml(g.nameRom||'') + '</strong></div>';
+    html += '</div></div>';
 
     if ((g.bereiche||[]).length) {
       html += `<div class="gott-section-label">Bereiche</div>
@@ -77,6 +81,12 @@ const Goetter = {
       html += `</div>`;
     }
 
+    // Foto ganz unten
+    if (g.fotoUrl) {
+      html += '<div class="gott-section-label">Abbildung</div>';
+      html += '<div class="gott-detail-foto-large"><img src="' + escHtml(g.fotoUrl) + '" alt="' + escHtml(g.nameGre||g.nameRom||'') + '" onerror="this.parentElement.style.display=\"none\""/></div>';
+    }
+
     document.getElementById('gott-detail-content').innerHTML = html;
     // Admin edit btn
     const editBtn = document.getElementById('gott-detail-edit-btn');
@@ -98,6 +108,9 @@ const Goetter = {
     document.getElementById('gott-ed-rom').value       = g?.nameRom     || '';
     document.getElementById('gott-ed-gre').value       = g?.nameGre     || '';
     document.getElementById('gott-ed-symbol').value    = g?.symbol      || '';
+    document.getElementById('gott-ed-foto').value      = g?.fotoUrl     || '';
+    document.getElementById('gott-ed-foto-preview').src = g?.fotoUrl || '';
+    document.getElementById('gott-ed-foto-preview').style.display = g?.fotoUrl ? 'block' : 'none';
     document.getElementById('gott-ed-bereiche').value  = (g?.bereiche||[]).join(', ');
     document.getElementById('gott-ed-symbole').value   = (g?.symbole||[]).join(', ');
     document.getElementById('gott-ed-beschr').value    = g?.beschreibung|| '';
@@ -122,6 +135,7 @@ const Goetter = {
       nameRom:      nameRom,
       nameGre:      nameGre,
       symbol:       document.getElementById('gott-ed-symbol').value.trim() || '⚡',
+      fotoUrl:      document.getElementById('gott-ed-foto').value.trim() || '',
       bereiche:     split(document.getElementById('gott-ed-bereiche').value),
       symbole:      split(document.getElementById('gott-ed-symbole').value),
       beschreibung: document.getElementById('gott-ed-beschr').value.trim(),
