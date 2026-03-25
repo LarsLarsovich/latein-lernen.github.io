@@ -951,8 +951,12 @@ App.init();
       <input type="url" id="gott-ed-foto" class="modal-input" placeholder="https://..." autocorrect="off" autocapitalize="off" spellcheck="false"
         oninput="const p=document.getElementById('gott-ed-foto-preview');p.src=this.value;p.style.display=this.value?'block':'none'"/>
       <img id="gott-ed-foto-preview" src="" alt="Vorschau"
-        style="display:none;margin-top:8px;max-height:140px;border-radius:10px;object-fit:cover;border:1px solid var(--border);"
+        style="display:none;margin-top:8px;max-height:160px;width:100%;border-radius:10px;object-fit:contain;border:1px solid var(--border);background:var(--bg2);"
         onerror="this.style.display='none'"/>
+    </div>
+    <div class="field-group">
+      <label>Bildquelle <span style="color:var(--text3);font-size:12px;">(wird unter dem Bild angezeigt)</span></label>
+      <input type="text" id="gott-ed-quelle" class="modal-input" placeholder="z.B. Wikipedia, Museo Nacional, ..." autocorrect="off" spellcheck="false"/>
     </div>
     <div class="field-group">
       <label>Bereiche <span style="color:var(--text3);font-size:12px;">(mit Komma trennen)</span></label>

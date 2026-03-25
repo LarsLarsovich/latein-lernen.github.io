@@ -85,6 +85,12 @@ const Goetter = {
     if (g.fotoUrl) {
       html += '<div class="gott-section-label">Abbildung</div>';
       html += '<div class="gott-detail-foto-large"><img src="' + escHtml(g.fotoUrl) + '" alt="' + escHtml(g.nameGre||g.nameRom||'') + '" onerror="this.parentElement.style.display=\"none\""/></div>';
+      // Quelle: show fotoQuelle if set, else show URL as link
+      if (g.fotoQuelle) {
+        html += '<div class="gott-foto-quelle">Quelle: ' + escHtml(g.fotoQuelle) + '</div>';
+      } else {
+        html += '<div class="gott-foto-quelle"><a href="' + escHtml(g.fotoUrl) + '" target="_blank" rel="noopener">' + escHtml(g.fotoUrl.length > 60 ? g.fotoUrl.slice(0,60)+'…' : g.fotoUrl) + '</a></div>';
+      }
     }
 
     document.getElementById('gott-detail-content').innerHTML = html;
@@ -109,6 +115,7 @@ const Goetter = {
     document.getElementById('gott-ed-gre').value       = g?.nameGre     || '';
     document.getElementById('gott-ed-symbol').value    = g?.symbol      || '';
     document.getElementById('gott-ed-foto').value      = g?.fotoUrl     || '';
+    document.getElementById('gott-ed-quelle').value    = g?.fotoQuelle  || '';
     document.getElementById('gott-ed-foto-preview').src = g?.fotoUrl || '';
     document.getElementById('gott-ed-foto-preview').style.display = g?.fotoUrl ? 'block' : 'none';
     document.getElementById('gott-ed-bereiche').value  = (g?.bereiche||[]).join(', ');
@@ -136,6 +143,7 @@ const Goetter = {
       nameGre:      nameGre,
       symbol:       document.getElementById('gott-ed-symbol').value.trim() || '⚡',
       fotoUrl:      document.getElementById('gott-ed-foto').value.trim() || '',
+      fotoQuelle:   document.getElementById('gott-ed-quelle').value.trim() || '',
       bereiche:     split(document.getElementById('gott-ed-bereiche').value),
       symbole:      split(document.getElementById('gott-ed-symbole').value),
       beschreibung: document.getElementById('gott-ed-beschr').value.trim(),

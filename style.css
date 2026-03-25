@@ -976,3 +976,10 @@ input[type="range"].flex-1 { flex: 1; }
   width: 100%; height: auto; display: block;
   object-fit: contain;
 }
+
+/* ── Foto Quelle ── */
+.gott-foto-quelle {
+  font-size: 11px; color: var(--text3); margin-top: 6px;
+  text-align: center;
+}
+.gott-foto-quelle a { color: var(--text3); text-decoration: underline; }

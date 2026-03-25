@@ -674,12 +674,12 @@ const App = {
   showGottActions(id) {
     const g = state.goetter.find(x=>x.id===id);
     if (!g) return;
-    state.actionId = id;
-    document.getElementById('card-action-title').textContent = g.nameRom||g.nameGre||'?';
+    state.actionId   = id;
+    state.actionType = 'gott';
+    document.getElementById('card-action-title').textContent = g.nameGre||g.nameRom||'?';
     document.getElementById('card-action-desc').textContent  = (g.bereiche||[]).join(' · ');
-    document.getElementById('card-action-publish-btn').style.display = 'none';
-    // Repurpose edit button for goetter
-    document.getElementById('card-action-overlay')._gottMode = true;
+    const pubBtn = document.getElementById('card-action-publish-btn');
+    if (pubBtn) pubBtn.style.display = 'none';
     document.getElementById('card-action-overlay').classList.remove('hidden');
   },
 
@@ -804,12 +804,30 @@ const App = {
     state.actionId = id;
     document.getElementById('card-action-title').textContent = q.name;
     document.getElementById('card-action-desc').textContent  = q.desc||'';
+    state.actionType = 'quiz';
     document.getElementById('card-action-overlay').classList.remove('hidden');
   },
-  closeCardAction(e) { if(e&&e.target!==document.getElementById('card-action-overlay'))return; document.getElementById('card-action-overlay').classList.add('hidden'); },
-  editFromModal()    { const id=state.actionId; document.getElementById('card-action-overlay').classList.add('hidden'); this.openEditor(id,'published'); },
+  closeCardAction(e) {
+    if (e && e.target !== document.getElementById('card-action-overlay')) return;
+    document.getElementById('card-action-overlay').classList.add('hidden');
+    state.actionType = null;
+  },
+  editFromModal() {
+    const id   = state.actionId;
+    const type = state.actionType;
+    state.actionType = null;
+    document.getElementById('card-action-overlay').classList.add('hidden');
+    if (type === 'gott')  { Goetter.openEditor(id); return; }
+    if (type === 'draft') { this.openEditor(id, 'draft'); return; }
+    this.openEditor(id, 'published');
+  },
   async deleteFromModal() {
-    const id=state.actionId; document.getElementById('card-action-overlay').classList.add('hidden');
+    const id   = state.actionId;
+    const type = state.actionType;
+    state.actionType = null;
+    document.getElementById('card-action-overlay').classList.add('hidden');
+    if (type === 'gott')  { await Goetter.deleteGott(id); return; }
+    if (type === 'draft') { try { await COL.drafts.doc(id).delete(); } catch(e){ alert('Fehler: '+e.message); } return; }
     try { await COL.published.doc(id).delete(); } catch(e){ alert('Fehler: '+e.message); }
   },
 
@@ -829,7 +847,8 @@ const App = {
 
   showDraftActions(id) {
     const q = state.drafts.find(x=>x.id===id); if(!q)return;
-    state.actionId=id;
+    state.actionId   = id;
+    state.actionType = 'draft';
     document.getElementById('card-action-title').textContent=q.name;
     document.getElementById('card-action-desc').textContent=q.desc||'';
     document.getElementById('card-action-overlay').classList.remove('hidden');
