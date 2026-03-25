@@ -44,6 +44,7 @@
   <!-- TABELLEN (direkt, kein Tab mehr) -->
   <div id="tab-content-tables">
 
+
     <!-- ── Pronomina ── -->
     <div class="tables-category-block">
       <div class="tables-category-heading">
@@ -61,6 +62,16 @@
       </div>
       <div class="quiz-grid" id="pronomen-grid"></div>
       <div class="empty-hint hidden" id="pronomen-empty">Keine Pronomen-Tabellen vorhanden.</div>
+    </div>
+
+    <!-- ── Götter Link ── -->
+    <div class="goetter-home-link" onclick="App.showPage('goetter','Götter')">
+      <span class="goetter-home-icon">🏛️</span>
+      <div>
+        <div class="goetter-home-title">Götter</div>
+        <div class="goetter-home-sub">Griechische &amp; Römische Götter, Stammbaum</div>
+      </div>
+      <span class="goetter-home-arrow">›</span>
     </div>
 
     <!-- ── Vokabeln ── -->
@@ -434,6 +445,11 @@
     <button class="modal-close" onclick="App.closeAddMenu()">✕</button>
     <div class="modal-title">Was möchtest du erstellen?</div>
     <div class="add-menu-options">
+      <button class="add-menu-btn" onclick="App.closeAddMenu();Goetter.openEditor(null)">
+        <div class="add-menu-icon">🏛️</div>
+        <div class="add-menu-label">Gott hinzufügen</div>
+        <div class="add-menu-sub">Für die Götter-Seite</div>
+      </button>
       <button class="add-menu-btn" onclick="App.closeAddMenu();Tables.openPronomenEditor(null)">
         <div class="add-menu-icon">🗂️</div>
         <div class="add-menu-label">Pronomen-Tabelle</div>
@@ -843,6 +859,7 @@
 <script src="js/quiz-engine.js"></script>
 <script src="js/report.js"></script>
 <script src="js/vok-detail.js"></script>
+<script src="js/goetter.js"></script>
 <script src="js/tables.js"></script>
 <script src="js/app.js"></script>
 <script>
@@ -866,9 +883,105 @@ window.VokDetail  = VokDetail;
 window.VokSearch  = VokSearch;
 window.VokabelQuiz = VokabelQuiz;
 window.Report     = Report;
+window.Goetter    = Goetter;
 
 App.init();
 </script>
+
+<!-- ══════════════════════════════════════════
+     GÖTTER
+══════════════════════════════════════════ -->
+<main id="page-goetter" class="page">
+  <div class="back-row">
+    <button class="back-btn" onclick="App.goBack()">← Zurück</button>
+    <div class="editor-page-title">Götter</div>
+  </div>
+
+  <!-- Götter Liste -->
+  <div class="quiz-grid" id="goetter-full-grid" style="margin-bottom:1.5rem;"></div>
+  <div class="empty-hint" id="goetter-full-empty" style="display:none;">Noch keine Götter eingetragen.</div>
+
+  <!-- Stammbaum -->
+  <div class="tables-category-heading" style="margin:1.5rem 0 0.8rem;">
+    <div class="tables-category-heading-title">Stammbaum</div>
+    <div class="tables-category-heading-line"></div>
+  </div>
+  <iframe
+    src="https://miro.com/app/live-embed/uXjVGtIatxo=/?embedMode=view_only_without_ui&moveToViewport=-2021,-241,2861,1623&embedId=292432411735"
+    width="100%" height="500" frameborder="0" scrolling="no"
+    allow="fullscreen; clipboard-read; clipboard-write" allowfullscreen
+    style="display:block; border-radius:12px; border:1px solid var(--border); background:#fff;"></iframe>
+</main>
+
+<!-- ══════════════════════════════════════════
+     GOTT DETAIL
+══════════════════════════════════════════ -->
+<main id="page-gott-detail" class="page">
+  <div class="back-row">
+    <button class="back-btn" onclick="App.goBack()">← Zurück</button>
+    <button class="report-float-btn" id="gott-detail-report-btn">⚑ Melden</button>
+    <button class="draft-btn hidden" id="gott-detail-edit-btn">Bearbeiten</button>
+  </div>
+  <div id="gott-detail-content"></div>
+</main>
+
+<!-- ══════════════════════════════════════════
+     GOTT EDITOR (Admin)
+══════════════════════════════════════════ -->
+<main id="page-gott-editor" class="page">
+  <div class="back-row">
+    <button class="back-btn" onclick="App.goBack()">← Abbrechen</button>
+    <div class="editor-page-title" id="gott-editor-title">Neuer Gott</div>
+  </div>
+  <div class="editor-wrap">
+    <div class="field-group">
+      <label>Römischer Name</label>
+      <input type="text" id="gott-ed-rom" class="modal-input" placeholder="z.B. Jupiter" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+    </div>
+    <div class="field-group">
+      <label>Griechischer Name</label>
+      <input type="text" id="gott-ed-gre" class="modal-input" placeholder="z.B. Zeus" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+    </div>
+    <div class="field-group">
+      <label>Emoji / Symbol</label>
+      <input type="text" id="gott-ed-symbol" class="modal-input" placeholder="z.B. ⚡ oder 🌊" style="max-width:120px;font-size:24px;"/>
+    </div>
+    <div class="field-group">
+      <label>Bereiche <span style="color:var(--text3);font-size:12px;">(mit Komma trennen)</span></label>
+      <input type="text" id="gott-ed-bereiche" class="modal-input" placeholder="z.B. Himmel, Donner, Götterherrscher" autocorrect="off"/>
+    </div>
+    <div class="field-group">
+      <label>Symbole &amp; Gegenstände <span style="color:var(--text3);font-size:12px;">(mit Komma trennen)</span></label>
+      <input type="text" id="gott-ed-symbole" class="modal-input" placeholder="z.B. Blitz, Adler, Zepter" autocorrect="off"/>
+    </div>
+    <div class="field-group">
+      <label>Beschreibung</label>
+      <textarea id="gott-ed-beschr" class="vok-textarea" placeholder="Kurze Beschreibung des Gottes…" autocorrect="off" spellcheck="false"></textarea>
+    </div>
+    <div class="field-group">
+      <label>Wichtige Fakten <span style="color:var(--text3);font-size:12px;">(eine Zeile pro Fakt)</span></label>
+      <textarea id="gott-ed-fakten" class="vok-textarea" style="min-height:80px;" placeholder="z.B. Herrscht über den Olymp&#10;Sohn von Kronos und Rhea" autocorrect="off" spellcheck="false"></textarea>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div class="field-group">
+        <label>Eltern</label>
+        <input type="text" id="gott-ed-eltern" class="modal-input" placeholder="z.B. Kronos, Rhea" autocorrect="off"/>
+      </div>
+      <div class="field-group">
+        <label>Kinder</label>
+        <input type="text" id="gott-ed-kinder" class="modal-input" placeholder="z.B. Athena, Apollo" autocorrect="off"/>
+      </div>
+    </div>
+    <div class="create-error hidden" id="gott-ed-error"></div>
+    <div class="editor-actions">
+      <button class="start-btn" id="gott-save-btn" onclick="Goetter.saveGott()">Speichern</button>
+      <button class="outline-btn" onclick="App.goBack()">Abbrechen</button>
+    </div>
+  </div>
+</main>
+
+
+
 <footer class="site-footer">
   <button class="footer-link" onclick="App.showPage('impressum')">Impressum</button>
   <span class="footer-sep">·</span>

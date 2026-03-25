@@ -15,5 +15,8 @@ const state = {
   actionId: null, actionType: null,
   tableViewId: null, tableViewType: null,
   pickerMode: null,
+  goetter: [],
+  editingGottId: null,
+  stammbaumUrl: 'https://miro.com/app/live-embed/uXjVGtIatxo=/?embedMode=view_only_without_ui&moveToViewport=-2021,-241,2861,1623&embedId=292432411735',
   unsubs: {}
 };

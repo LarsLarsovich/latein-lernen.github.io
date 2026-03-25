@@ -849,3 +849,87 @@ mark.diff-missing {
 
 /* Range-Input flex (bleibt als einziger Inline-Style für flex:1) */
 input[type="range"].flex-1 { flex: 1; }
+
+/* ═══════════════════════════════════════════
+   GÖTTER
+═══════════════════════════════════════════ */
+
+/* Home nav buttons */
+.home-nav {
+  display: flex; gap: 10px; margin: 1rem 0 1.5rem;
+}
+.home-nav-btn {
+  font-family: var(--font-body); font-size: 14px; font-weight: 500;
+  padding: 8px 18px; background: var(--bg2); border: 1px solid var(--border2);
+  border-radius: 20px; color: var(--text2); cursor: pointer; transition: all 0.15s;
+}
+.home-nav-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* Gott card (in grid) */
+.gott-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 1.2rem; cursor: pointer;
+  transition: border-color 0.2s, transform 0.15s;
+  display: flex; flex-direction: column; align-items: center;
+  text-align: center; gap: 8px; position: relative;
+}
+.gott-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+.gott-card-symbol { font-size: 42px; line-height: 1; margin-bottom: 2px; }
+.gott-card-names { display: flex; flex-direction: column; gap: 2px; }
+.gott-card-rom { font-family: var(--font-title); font-size: 17px; font-weight: 700; color: var(--text); }
+.gott-card-gre { font-size: 12px; color: var(--text3); }
+.gott-card-bereich { font-size: 11px; color: var(--accent); font-weight: 500; margin-top: 2px; }
+
+/* Gott detail */
+.gott-detail-hero {
+  display: flex; align-items: center; gap: 1.5rem;
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 1.5rem 1.8rem;
+  margin-bottom: 1.5rem;
+}
+.gott-detail-symbol { font-size: 64px; line-height: 1; flex-shrink: 0; }
+.gott-detail-rom {
+  font-family: var(--font-title); font-size: 32px; font-weight: 700;
+  color: var(--text); margin: 0 0 4px;
+}
+.gott-detail-gre { font-size: 15px; color: var(--text2); }
+.gott-section-label {
+  font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--accent); font-weight: 600; margin: 1.2rem 0 0.5rem;
+}
+.gott-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+.gott-tag {
+  font-size: 13px; padding: 4px 12px; background: var(--bg2);
+  border: 1px solid var(--border2); border-radius: 20px; color: var(--text2);
+}
+.gott-tag--sym { color: var(--accent); border-color: var(--accent-dim); background: rgba(224,123,42,0.08); }
+.gott-beschreibung {
+  font-size: 15px; color: var(--text2); line-height: 1.7;
+  background: var(--bg2); border-radius: var(--radius); padding: 1rem 1.2rem;
+}
+.gott-fakten {
+  padding-left: 1.2rem; margin: 0;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.gott-fakten li { font-size: 14px; color: var(--text2); line-height: 1.5; }
+.gott-familie { background: var(--bg2); border-radius: var(--radius); padding: 1rem 1.2rem; }
+.gott-fam-row { font-size: 14px; color: var(--text2); margin-bottom: 4px; }
+.gott-fam-label { color: var(--text3); font-size: 12px; }
+.adj-steigerung { font-size: 13px; color: var(--text3); margin-top: 0.8rem; font-style: italic; }
+
+/* Stammbaum */
+/* stammbaum now inline in goetter page */
+
+/* ── Götter Home Link ── */
+.goetter-home-link {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 16px; background: var(--bg2);
+  border: 1px solid var(--border); border-radius: var(--radius-lg);
+  cursor: pointer; transition: border-color 0.2s;
+  margin-bottom: 1.2rem;
+}
+.goetter-home-link:hover { border-color: var(--accent); }
+.goetter-home-icon { font-size: 28px; }
+.goetter-home-title { font-size: 15px; font-weight: 600; color: var(--text); }
+.goetter-home-sub   { font-size: 12px; color: var(--text3); margin-top: 2px; }
+.goetter-home-arrow { margin-left: auto; font-size: 22px; color: var(--text3); }

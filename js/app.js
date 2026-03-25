@@ -15,13 +15,14 @@ const App = {
     const fromSnap = snap => snap.docs.map(d => ({id: d.id, ...d.data()}));
 
     try {
-      const [pubS, draftS, pronS, vokS, pronDrS, vokDrS] = await Promise.all([
+      const [pubS, draftS, pronS, vokS, pronDrS, vokDrS, gottS] = await Promise.all([
         COL.published.get().catch(()=>({docs:[]})),
         COL.drafts.get().catch(()=>({docs:[]})),
         COL.pronomen.get().catch(()=>({docs:[]})),
         COL.vokabel.get().catch(()=>({docs:[]})),
         COL.pronomenDrafts.get().catch(()=>({docs:[]})),
-        COL.vokabelDrafts.get().catch(()=>({docs:[]}))
+        COL.vokabelDrafts.get().catch(()=>({docs:[]})),
+        COL.goetter.get().catch(()=>({docs:[]}))
       ]);
       state.published      = fromSnap(pubS);
       state.drafts         = fromSnap(draftS);
@@ -29,6 +30,7 @@ const App = {
       state.vokabel        = fromSnap(vokS);
       state.pronomenDrafts = fromSnap(pronDrS);
       state.vokabelDrafts  = fromSnap(vokDrS);
+      state.goetter        = fromSnap(gottS);
     } catch(e) { console.warn('init load:', e.message); }
 
     clearTimeout(timeout);
@@ -60,6 +62,13 @@ const App = {
     listen(COL.vokabel,        'vokabel',        true);
     listen(COL.pronomenDrafts, 'pronomenDrafts', true);
     listen(COL.vokabelDrafts,  'vokabelDrafts',  true);
+    // Goetter: always re-render (goetter page updates live)
+    if (state.unsubs['goetter']) state.unsubs['goetter']();
+    state.unsubs['goetter'] = COL.goetter.onSnapshot(snap => {
+      state.goetter = snap.docs.map(d => ({id: d.id, ...d.data()}));
+      state.goetter.sort((a,b) => (a.order||0)-(b.order||0));
+      Goetter.renderHome();
+    }, err => console.warn('goetter', err.message));
   },
 
   _onHome() { return document.getElementById('page-home').classList.contains('active'); },
@@ -662,6 +671,18 @@ const App = {
   },
 
   // ── Admin Login ───────────────────────────────────────────
+  showGottActions(id) {
+    const g = state.goetter.find(x=>x.id===id);
+    if (!g) return;
+    state.actionId = id;
+    document.getElementById('card-action-title').textContent = g.nameRom||g.nameGre||'?';
+    document.getElementById('card-action-desc').textContent  = (g.bereiche||[]).join(' · ');
+    document.getElementById('card-action-publish-btn').style.display = 'none';
+    // Repurpose edit button for goetter
+    document.getElementById('card-action-overlay')._gottMode = true;
+    document.getElementById('card-action-overlay').classList.remove('hidden');
+  },
+
   closeNewsBanner() {
     document.getElementById('news-overlay')?.classList.add('hidden');
     try { localStorage.setItem('news_v3', '1'); } catch(err) {}
