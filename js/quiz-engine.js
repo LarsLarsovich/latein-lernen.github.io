@@ -143,18 +143,21 @@ const Quiz = {
   },
 
   _initQuiz(questions, isVokabel, pruefung) {
-    this.questions      = questions;
     this._allQuestions  = [...questions];
-    this.idx            = 0;
+    this._queue         = [...questions]; // active queue
+    this._pending       = [];            // wrong answers waiting to be re-inserted
+    this.idx            = 0;            // position in _queue
+    this._done          = 0;            // how many correctly answered (for progress)
     this.score          = 0;
     this.answered       = false;
     this._isVokabel     = isVokabel;
     this._pruefung      = pruefung;
-    this._round         = 0;
-    this._wrongInRound  = [];
-    this._roundSizes    = [questions.length];
-    this._firstCorrect  = {};
-    this._totalAnswered = 0;
+    this._firstCorrect  = {};           // qKey → attempt number (0=first try)
+    this._attempt       = {};           // qKey → how many times answered wrong so far
+    // For result chart: track attempt counts
+    this._attemptCounts = {};           // attempt number → count of questions correct on that attempt
+    // expose questions array for render() compatibility
+    this.questions      = this._queue;
   },
 
   build(q, phases, shuffle) {
@@ -216,14 +219,13 @@ const Quiz = {
   },
 
   render() {
-    const q     = this.questions[this.idx];
-    const total = this.questions.length;
+    const q      = this._queue[this.idx];
+    const total  = this._allQuestions.length;
     const labels = { 1:'Phase 1 – Singular', 2:'Phase 2 – Plural', 3:'Phase 3 – Gemischt',
                      4:'Phase 4 – Deutsch → Latein', 5:'Phase 5 – Latein → Deutsch' };
-    const badge      = this._isVokabel ? (q.meta||'') : (labels[q.phase]||'');
-    const roundLabel = this._round > 0 ? ` · Runde ${this._round+1}` : '';
-    document.getElementById('quiz-phase-badge').textContent    = badge + roundLabel;
-    document.getElementById('quiz-progress-text').textContent  = `${this.idx+1} / ${total}`;
+    const badge  = this._isVokabel ? (q.meta||'') : (labels[q.phase]||'');
+    document.getElementById('quiz-phase-badge').textContent   = badge;
+    document.getElementById('quiz-progress-text').textContent = `${this._done} / ${total}`;
     this._renderProgressBar();
     document.getElementById('q-meta').textContent = this._isVokabel ? (q.hint||'') : q.meta;
     document.getElementById('q-main').textContent = q.main;
@@ -237,26 +239,11 @@ const Quiz = {
   _renderProgressBar() {
     const wrap = document.getElementById('progress-bar-wrap');
     if (!wrap) return;
-    const sizes   = this._roundSizes;
-    const totalQ  = sizes.reduce((a,b) => a+b, 0);
-
-    if (sizes.length <= 1) {
-      wrap.innerHTML = '<div class="progress-bar-fill" id="progress-bar"></div>';
-      document.getElementById('progress-bar').style.width = (this.idx / sizes[0] * 100) + '%';
-      return;
-    }
-
-    let html = '';
-    sizes.forEach((size, i) => {
-      const pct      = (size / totalQ * 100).toFixed(2);
-      const done     = i < this._round ? size : (i === this._round ? this.idx : 0);
-      const fillPct  = (done / size * 100).toFixed(2);
-      const isActive = i === this._round;
-      html += `<div class="pb-segment${i > 0 ? ' pb-segment-gap' : ''}" style="width:${pct}%">
-        <div class="pb-segment-fill${isActive ? ' pb-active' : i < this._round ? ' pb-done' : ''}" style="width:${fillPct}%"></div>
-      </div>`;
-    });
-    wrap.innerHTML = html;
+    const total = this._allQuestions.length;
+    if (!total) return;
+    const pct = (this._done / total * 100).toFixed(1);
+    wrap.innerHTML = '<div class="progress-bar-fill" id="progress-bar"></div>';
+    document.getElementById('progress-bar').style.width = pct + '%';
   },
 
   check() {
@@ -287,10 +274,14 @@ const Quiz = {
 
     if (correct) {
       this.score++;
+      this._done++;
       fb.textContent = '✓ Richtig!';
       fb.className   = 'feedback-box correct';
+      // Track which attempt this was correct on (0 = first try)
+      const attempts = this._attempt[qKey] || 0;
       if (this._firstCorrect[qKey] === undefined) {
-        this._firstCorrect[qKey] = this._round;
+        this._firstCorrect[qKey] = attempts;
+        this._attemptCounts[attempts] = (this._attemptCounts[attempts]||0) + 1;
       }
     } else {
       const variants  = parseAnswers(displayAnswer);
@@ -308,9 +299,13 @@ const Quiz = {
         : '';
       fb.innerHTML = `✗ Richtig: ${highlighted}${allVariants}`;
       fb.className = 'feedback-box wrong';
+
+      // Spaced repetition: re-insert after 5 others
       if (!this._pruefung) {
-        const alreadyWrong = this._wrongInRound.some(w => w.main===q.main && w.answer===q.answer);
-        if (!alreadyWrong) this._wrongInRound.push(q);
+        this._attempt[qKey] = (this._attempt[qKey]||0) + 1;
+        // Insert a copy of the question 5 positions ahead in the queue
+        const insertAt = Math.min(this.idx + 6, this._queue.length); // +1 for current, +5 after
+        this._queue.splice(insertAt, 0, {...q, _retry: true});
       }
     }
     this._renderProgressBar();
@@ -319,18 +314,8 @@ const Quiz = {
 
   next() {
     this.idx++;
-    if (this.idx >= this.questions.length) {
-      if (!this._pruefung && this._wrongInRound.length > 0) {
-        this._round++;
-        this._roundSizes.push(this._wrongInRound.length);
-        this.questions     = this._wrongInRound.sort(() => Math.random() - 0.5);
-        this._wrongInRound = [];
-        this.idx           = 0;
-        this.score         = 0;
-        this.render();
-      } else {
-        this.showResult();
-      }
+    if (this.idx >= this._queue.length) {
+      this.showResult();
     } else {
       this.render();
     }
@@ -405,7 +390,7 @@ const Quiz = {
     const maxRound   = Math.max(...Object.keys(roundCounts).map(Number), 0);
     for (let i = 0; i <= maxRound; i++) {
       if (roundCounts[i]) {
-        const label = i === 0 ? '1. Versuch' : i === 1 ? '2. Versuch' : `${i+1}. Versuch`;
+        const label = i === 0 ? 'Beim 1. Versuch' : i === 1 ? 'Beim 2. Versuch' : `Beim ${i+1}. Versuch`;
         segments.push({ count: roundCounts[i], color: colors[Math.min(i, colors.length-1)], label });
       }
     }
