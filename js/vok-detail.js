@@ -13,9 +13,9 @@ const VokDetail = {
     document.getElementById('vok-detail-forms-btn')?.classList.toggle('hidden', !state.adminLoggedIn);
     const override = (t.overrides && t.overrides[rowIndex]) || {};
     const type = Latin.detectType(r);
-    const de   = (r.de||'–').split('%').join(' / ');
+    const de   = (r.de||'–').split('%').map(s=>s.trim()).join(', ');
 
-    let html = `<div class="vok-detail-card"><div class="vok-detail-lat">${r.lat||'–'}</div><div class="vok-detail-de">${de}</div><div class="vok-detail-meta">`;
+    let html = `<div class="vok-detail-card"><div class="vok-detail-lat">${(r.lat||'–').split('%').map(s=>s.trim()).join(', ')}</div><div class="vok-detail-de">${de}</div><div class="vok-detail-meta">`;
     if (r.fall2&&r.fall2!=='–') html += `<span class="vok-meta-chip">${r.fall2}</span>`;
     if (r.genus&&r.genus!=='–') html += `<span class="vok-meta-chip">${r.genus}</span>`;
     if (r.dekl &&r.dekl !=='–') html += `<span class="vok-meta-chip">${r.dekl}</span>`;

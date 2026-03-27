@@ -11,6 +11,14 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
+<!-- Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-LY0LGYY3GZ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-LY0LGYY3GZ');
+</script>
 </head>
 <body>
 
@@ -45,6 +53,24 @@
   <div id="tab-content-tables">
 
 
+    <!-- ── Grammatik-Tafeln ── -->
+    <div class="tables-category-block">
+      <div class="tables-category-heading">
+        <div class="tables-category-heading-title">Grammatik</div>
+        <div class="tables-category-heading-line"></div>
+      </div>
+      <div class="quiz-grid">
+        <div class="quiz-card" onclick="App.showPage('gt-deklinationen','Deklinationen')" style="cursor:pointer;">
+          <div class="quiz-card-name">Deklinationen</div>
+          <div class="quiz-card-desc">Alle 5 Deklinationen mit Endungen</div>
+        </div>
+        <div class="quiz-card" onclick="App.showPage('gt-konjugationen','Konjugationen')" style="cursor:pointer;">
+          <div class="quiz-card-name">Konjugationen</div>
+          <div class="quiz-card-desc">1.–4. Konjugation + esse</div>
+        </div>
+      </div>
+    </div>
+
     <!-- ── Pronomina ── -->
     <div class="tables-category-block">
       <div class="tables-category-heading">
@@ -66,7 +92,6 @@
 
     <!-- ── Götter Link ── -->
     <div class="goetter-home-link" onclick="App.showPage('goetter','Götter')">
-      <span class="goetter-home-icon">🏛️</span>
       <div>
         <div class="goetter-home-title">Götter</div>
         <div class="goetter-home-sub">Griechische &amp; Römische Götter, Stammbaum</div>
@@ -860,6 +885,7 @@
 <script src="js/report.js"></script>
 <script src="js/vok-detail.js"></script>
 <script src="js/goetter.js"></script>
+<script src="js/grammar-tables.js"></script>
 <script src="js/tables.js"></script>
 <script src="js/app.js"></script>
 <script>
@@ -883,7 +909,8 @@ window.VokDetail  = VokDetail;
 window.VokSearch  = VokSearch;
 window.VokabelQuiz = VokabelQuiz;
 window.Report     = Report;
-window.Goetter    = Goetter;
+window.Goetter       = Goetter;
+window.GrammarTables = GrammarTables;
 
 App.init();
 </script>
@@ -993,6 +1020,29 @@ App.init();
 </main>
 
 
+
+
+<!-- ══════════════════════════════════════════
+     DEKLINATIONEN
+══════════════════════════════════════════ -->
+<main id="page-gt-deklinationen" class="page">
+  <div class="back-row">
+    <button class="back-btn" onclick="App.goBack()">← Zurück</button>
+    <div class="editor-page-title">Deklinationen</div>
+  </div>
+  <div id="gt-dekl-content" class="gt-content"></div>
+</main>
+
+<!-- ══════════════════════════════════════════
+     KONJUGATIONEN
+══════════════════════════════════════════ -->
+<main id="page-gt-konjugationen" class="page">
+  <div class="back-row">
+    <button class="back-btn" onclick="App.goBack()">← Zurück</button>
+    <div class="editor-page-title">Konjugationen</div>
+  </div>
+  <div id="gt-konj-content" class="gt-content"></div>
+</main>
 
 <footer class="site-footer">
   <button class="footer-link" onclick="App.showPage('impressum')">Impressum</button>

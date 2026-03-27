@@ -309,6 +309,31 @@ Now extract all vocabulary from the provided content.`;
     document.getElementById('vok-textarea').value = '';
   },
 
+  async saveVokabelDraft() {
+    const name = document.getElementById('vt-name').value.trim();
+    const desc = document.getElementById('vt-desc').value.trim();
+    const err  = document.getElementById('vt-error');
+    if (!name) { err.textContent='Bitte gib einen Namen ein.'; err.classList.remove('hidden'); return; }
+    const rows = this._vokEditorMode==='text'
+      ? this._parseTextRows(document.getElementById('vok-textarea').value)
+      : this._readFormRows();
+    err.classList.add('hidden');
+    const btn = document.getElementById('vt-draft-btn');
+    if (btn) { btn.textContent='…'; btn.disabled=true; }
+    // Use existing draft ID if editing a draft, else new ID
+    const docId = (state.editingSource==='vokabel-draft' && state.editingId)
+      ? state.editingId : 'vd_'+Date.now();
+    try {
+      await COL.vokabelDrafts.doc(docId).set({id:docId, order:Date.now(), name, desc, rows});
+      state.editingId = null; state.editingSource = null;
+      App.goHome(); setTimeout(()=>App.switchTab('tables'),100);
+    } catch(e) {
+      console.error('saveVokabelDraft error:', e);
+      err.textContent='Fehler: '+e.message; err.classList.remove('hidden');
+    }
+    finally { if (btn) { btn.textContent='Als Entwurf speichern'; btn.disabled=false; } }
+  },
+
   async saveVokabel() {
     const name = document.getElementById('vt-name').value.trim();
     const desc = document.getElementById('vt-desc').value.trim();

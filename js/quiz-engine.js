@@ -86,13 +86,13 @@ const VokabelQuiz = {
     rows.forEach(r => {
       if (modes.includes('lat-de')) {
         const deRaw  = r.de || '';
-        const deFmt  = deRaw.split('%').join(' / ');
+        const deFmt  = deRaw.split('%').map(s=>s.trim()).join(', ');
         const deHint = parseAnswers(deRaw).join(' / ');
         questions.push({
           mode: 'lat-de',
           meta: '',
           hint: r.dekl && r.dekl !== '–' ? r.dekl : (r.fall2 && r.fall2 !== '–' ? r.fall2 : ''),
-          main: r.lat || '?',
+          main: (r.lat||'?').split('%').map(s=>s.trim()).join(', '),
           placeholder: 'Deutsch eingeben…',
           answer: deRaw,
           answerDisplay: deFmt,

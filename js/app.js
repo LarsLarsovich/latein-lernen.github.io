@@ -84,6 +84,8 @@ const App = {
     document.getElementById('page-'+id)?.classList.add('active');
     window.scrollTo(0, 0);
     document.getElementById('topbar-center').textContent = name || '';
+    if (id === 'gt-deklinationen') setTimeout(() => GrammarTables.renderDeklinationen(), 0);
+    if (id === 'gt-konjugationen') setTimeout(() => GrammarTables.renderKonjugationen(), 0);
   },
 
   goBack() {
