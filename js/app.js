@@ -556,27 +556,23 @@ const App = {
   },
 
   startCustomQuiz() {
-    const selectedIds   = [...document.querySelectorAll('input[name="cqlist"]:checked')].map(c=>c.value);
+    const selectedIds = [...document.querySelectorAll('input[name="cqlist"]:checked')].map(c=>c.value);
     if (!selectedIds.length) { alert('Bitte mindestens eine Liste auswählen.'); return; }
-    const modes         = [...document.querySelectorAll('input[name="cqphase"]:checked')].map(c=>c.value);
-    if (!modes.length)  { alert('Bitte mindestens eine Abfrageart wählen.'); return; }
-    const shuffle       = document.getElementById('cq-shuffle')?.checked ?? true;
-    VokabelQuiz._requireFall2  = document.getElementById('cq-require-fall2')?.checked || false;
-    VokabelQuiz._requireGenus  = document.getElementById('cq-require-genus')?.checked || false;
-    const pruefungCustom       = document.getElementById('cq-pruefung')?.checked || false;
 
     const allRows = [];
     selectedIds.forEach(id => {
       const t = state.vokabel.find(x => x.id === id);
       if (t) (t.rows||[]).forEach(r => allRows.push(r));
     });
-    const questions = VokabelQuiz.build(allRows, modes, shuffle, false);
+
+    // Richtung/Mischen/Prüfung folgt auf dem nächsten Screen
+    const questions = VokabelQuiz.build(allRows, ['lat-de'], true, false);
     if (!questions.length) { alert('Keine Vokabeln in den gewählten Listen.'); return; }
 
     document.getElementById('custom-quiz-overlay').classList.add('hidden');
     const names = selectedIds.map(id => state.vokabel.find(x=>x.id===id)?.name||'').filter(Boolean);
     const name  = names.join(' + ');
-    state._pendingQuizConfig = { rows: allRows, questions, name, origin: 'custom', pruefung: pruefungCustom, customIds: selectedIds };
+    state._pendingQuizConfig = { rows: allRows, questions, name, origin: 'custom', pruefung: false, customIds: selectedIds };
     document.getElementById('quiz-mode-title').textContent = name;
     this.showPage('quiz-mode', name);
   },

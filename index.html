@@ -10,7 +10,7 @@
   <link rel="apple-touch-icon" href="apple-touch-icon.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=1.0.0" />
+  <link rel="stylesheet" href="style.css?v=1.0.1" />
 <!-- Google Analytics -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-LY0LGYY3GZ"></script>
 <script>
@@ -771,24 +771,7 @@
     <div class="modal-title">Eigenes Quiz</div>
     <div class="phase-label">Listen auswählen:</div>
     <div id="custom-quiz-list" class="custom-quiz-list"></div>
-    <div class="phase-label phase-label--sm">Was abfragen?</div>
-    <div class="phase-options">
-      <label class="phase-opt"><input type="checkbox" name="cqphase" value="lat-de" checked /><span class="phase-box"><span class="phase-icon">🏛️</span><span class="phase-name">Latein → Deutsch</span></span></label>
-      <label class="phase-opt"><input type="checkbox" name="cqphase" value="de-lat" id="cq-de-lat" onchange="App.toggleCqDeLatOpts()" /><span class="phase-box"><span class="phase-icon">🇩🇪</span><span class="phase-name">Deutsch → Latein</span></span></label>
-    </div>
-    <div id="cq-de-lat-opts" class="hidden de-lat-options-box de-lat-options-box--sm">
-      <div class="de-lat-options-hint">Zusätzlich verlangen:</div>
-      <label class="shuffle-opt shuffle-opt--mb"><input type="checkbox" id="cq-require-fall2" /><span class="shuffle-box">2. Fall angeben</span></label>
-      <label class="shuffle-opt"><input type="checkbox" id="cq-require-genus" /><span class="shuffle-box">Geschlecht angeben</span></label>
-    </div>
-    <div class="shuffle-option shuffle-option--gap">
-      <label class="shuffle-opt"><input type="checkbox" id="cq-shuffle" checked /><span class="shuffle-box">Karten mischen</span></label>
-    </div>
-    <div class="shuffle-option shuffle-option--sm">
-      <label class="shuffle-opt"><input type="checkbox" id="pruefung-custom" /><span class="shuffle-box">Prüfungsmodus <span class="pruefung-hint">(keine Wiederholung)</span></span></label>
-    </div>
-
-    <button class="start-btn btn--fullwidth btn--mt-lg" onclick="App.startCustomQuiz()">Quiz starten →</button>
+    <button class="start-btn btn--fullwidth btn--mt-lg" onclick="App.startCustomQuiz()">Weiter →</button>
   </div>
 </div>
 
@@ -984,21 +967,21 @@
 <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <!-- ── Split JS files (load order matters) ─────────────────── -->
-<script src="js/firebase.js?v=1.0.0"></script>
-<script src="js/constants.js?v=1.0.0"></script>
-<script src="js/state.js?v=1.0.0"></script>
-<script src="js/utils.js?v=1.0.0"></script>
-<script src="js/grammar.js?v=1.0.0"></script>
-<script src="js/quiz-engine.js?v=1.0.0"></script>
-<script src="js/report.js?v=1.0.0"></script>
-<script src="js/vok-detail.js?v=1.0.0"></script>
-<script src="js/goetter.js?v=1.0.0"></script>
-<script src="js/grammar-tables.js?v=1.0.0"></script>
-<script src="js/tables.js?v=1.0.0"></script>
-<script src="js/flashcards.js?v=1.0.0"></script>
-<script src="js/matching.js?v=1.0.0"></script>
-<script src="js/print.js?v=1.0.0"></script>
-<script src="js/app.js?v=1.0.0"></script>
+<script src="js/firebase.js?v=1.0.1"></script>
+<script src="js/constants.js?v=1.0.1"></script>
+<script src="js/state.js?v=1.0.1"></script>
+<script src="js/utils.js?v=1.0.1"></script>
+<script src="js/grammar.js?v=1.0.1"></script>
+<script src="js/quiz-engine.js?v=1.0.1"></script>
+<script src="js/report.js?v=1.0.1"></script>
+<script src="js/vok-detail.js?v=1.0.1"></script>
+<script src="js/goetter.js?v=1.0.1"></script>
+<script src="js/grammar-tables.js?v=1.0.1"></script>
+<script src="js/tables.js?v=1.0.1"></script>
+<script src="js/flashcards.js?v=1.0.1"></script>
+<script src="js/matching.js?v=1.0.1"></script>
+<script src="js/print.js?v=1.0.1"></script>
+<script src="js/app.js?v=1.0.1"></script>
 <script>
 // ── Keyboard-Shortcuts ────────────────────────────────────────
 document.addEventListener('keydown', e => {
