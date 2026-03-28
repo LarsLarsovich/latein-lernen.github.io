@@ -136,6 +136,126 @@
 </main>
 
 <!-- ══════════════════════════════════════════
+     MODUS-AUSWAHL
+══════════════════════════════════════════ -->
+<main id="page-quiz-mode" class="page">
+  <div class="back-row">
+    <button class="back-btn" onclick="App.goBack()">← Zurück</button>
+    <div class="editor-page-title" id="quiz-mode-title"></div>
+  </div>
+  <div class="qm-grid">
+    <button class="qm-card" onclick="App.selectQuizMode('flashcards')">
+      <div class="qm-name">Karteikarten</div>
+      <div class="qm-desc">Karte umdrehen und Übersetzung entdecken</div>
+    </button>
+    <button class="qm-card" onclick="App.selectQuizMode('matching')">
+      <div class="qm-name">Zuordnen</div>
+      <div class="qm-desc">Latein mit der deutschen Übersetzung verbinden</div>
+    </button>
+    <button class="qm-card" onclick="App.selectQuizMode('quiz')">
+      <div class="qm-name">Eingeben</div>
+      <div class="qm-desc">Antworten selbst eintippen mit Spaced Repetition</div>
+    </button>
+  </div>
+</main>
+
+<!-- ══════════════════════════════════════════
+     KARTEIKARTEN
+══════════════════════════════════════════ -->
+<main id="page-flashcards" class="page">
+  <div class="back-row">
+    <button class="back-btn" onclick="App.goBack()">← Zurück</button>
+    <div class="editor-page-title" id="fc-title"></div>
+    <div class="fc-progress" id="fc-progress"></div>
+  </div>
+
+  <!-- Setup-Bereich -->
+  <div id="fc-setup-wrap">
+    <div class="setup-card">
+      <div class="setup-title">Einstellungen</div>
+      <div class="fc-setup-section">
+        <div class="phase-label">Richtung</div>
+        <div class="fc-dir-options">
+          <label class="fc-dir-opt">
+            <input type="radio" name="fc-direction" value="lat-de" checked />
+            <span>Latein → Deutsch</span>
+          </label>
+          <label class="fc-dir-opt">
+            <input type="radio" name="fc-direction" value="de-lat" />
+            <span>Deutsch → Latein</span>
+          </label>
+        </div>
+      </div>
+      <div class="shuffle-option" style="margin-top:1rem;">
+        <label class="shuffle-opt">
+          <input type="checkbox" id="fc-shuffle" checked />
+          <span class="shuffle-box">Karten mischen</span>
+        </label>
+      </div>
+      <div class="setup-actions" style="margin-top:1.5rem;">
+        <button class="start-btn" onclick="Flashcards.startWithConfig()">Starten →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Karten-Bereich (initial versteckt) -->
+  <div id="fc-cards-wrap" class="hidden">
+    <div class="fc-scene">
+      <div class="fc-card" id="fc-card" onclick="Flashcards.flip()">
+        <div class="fc-face fc-front">
+          <div class="fc-hint" id="fc-front-hint">Latein</div>
+          <div id="fc-front-content"></div>
+        </div>
+        <div class="fc-face fc-back">
+          <div class="fc-hint" id="fc-back-hint">Deutsch</div>
+          <div id="fc-back-content"></div>
+        </div>
+      </div>
+    </div>
+    <div class="fc-tap-hint">Karte tippen oder Enter zum Umdrehen</div>
+    <div class="fc-buttons">
+      <button class="back-btn fc-nav-btn" id="fc-prev-btn" onclick="Flashcards.prev()">← Zurück</button>
+      <button class="start-btn fc-nav-btn" id="fc-next-btn" onclick="Flashcards.next()">Weiter →</button>
+    </div>
+    <div class="fc-done-overlay hidden" id="fc-done-overlay">
+      <div class="fc-done-card">
+        <div class="fc-done-icon">🏆</div>
+        <div class="fc-done-title">Alle Karten durch!</div>
+        <button class="start-btn" onclick="Flashcards.restart()">Nochmal →</button>
+        <button class="back-btn" onclick="App.goBack()">Zurück</button>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- ══════════════════════════════════════════
+     ZUORDNUNGSÜBUNG
+══════════════════════════════════════════ -->
+<main id="page-matching" class="page">
+  <div class="back-row">
+    <button class="back-btn" onclick="App.goBack()">← Zurück</button>
+    <div class="editor-page-title" id="match-title"></div>
+    <div class="match-progress" id="match-progress"></div>
+  </div>
+  <div class="match-grid">
+    <div class="match-col match-col-lat" id="match-col-lat"></div>
+    <div class="match-col match-col-de"  id="match-col-de"></div>
+  </div>
+  <div class="match-result hidden" id="match-result">
+    <div class="match-result-card">
+      <div class="match-result-icon">✅</div>
+      <div class="match-result-title">Alle Paare gefunden!</div>
+      <div class="match-result-stats">
+        <span>Zeit: <strong id="match-result-time"></strong></span>
+        <span>Fehler: <strong id="match-result-errors"></strong></span>
+      </div>
+      <button class="start-btn" onclick="Matching.restart()">Nochmal →</button>
+      <button class="back-btn" onclick="App.goBack()">Zurück</button>
+    </div>
+  </div>
+</main>
+
+<!-- ══════════════════════════════════════════
      SETUP (Quiz starten)
 ══════════════════════════════════════════ -->
 <main id="page-setup" class="page">
@@ -265,7 +385,6 @@
     <div class="table-view-admin-btns hidden" id="table-view-admin-btns">
       <button class="draft-btn" onclick="App.editTableFromView()">Bearbeiten</button>
     </div>
-    <button class="print-btn" onclick="Print.tableView()" title="Als PDF exportieren / Drucken">⎙ Drucken</button>
     <div class="table-view-quiz-btn" id="table-view-quiz-btn">
       <button class="start-btn" onclick="App.startVokabelQuiz()" id="vok-quiz-start-btn" class="start-btn btn--hidden">Quiz starten →</button>
     </div>
@@ -292,6 +411,9 @@
     </div>
   </div>
   <div id="table-view-content"></div>
+  <div class="print-btn-row">
+    <button class="print-btn" onclick="Print.tableView()" title="Als PDF exportieren / Drucken">⎙ Drucken</button>
+  </div>
 </main>
 
 <!-- ══════════════════════════════════════════
@@ -537,7 +659,6 @@
     <button class="back-btn" onclick="App.goBack()">← Zurück</button>
     <div class="editor-page-title">Alle Vokabeln</div>
     <div class="vok-count-badge" id="alle-count-badge"></div>
-    <button class="print-btn" onclick="Print.alleVokabeln()" title="Als PDF exportieren / Drucken">⎙ Drucken</button>
     <button class="start-btn btn--sm-pad" onclick="App.openAlleVokabelQuiz()">Quiz starten →</button>
   </div>
   <div class="vok-search-bar">
@@ -564,6 +685,9 @@
     </div>
   </div>
   <div id="alle-vok-results"></div>
+  <div class="print-btn-row">
+    <button class="print-btn" onclick="Print.alleVokabeln()" title="Als PDF exportieren / Drucken">⎙ Drucken</button>
+  </div>
 </main>
 
 <!-- VOKABEL DETAIL -->
@@ -636,25 +760,7 @@
       </div>
       <div class="alle-quiz-max-hint" id="alle-quiz-max-hint"></div>
     </div>
-    <div id="alle-quiz-mode-section">
-      <div class="phase-label phase-label--gap">Was soll abgefragt werden?</div>
-      <div class="phase-options">
-        <label class="phase-opt"><input type="checkbox" name="aqphase" value="lat-de" checked /><span class="phase-box"><span class="phase-icon">🏛️</span><span class="phase-name">Latein → Deutsch</span></span></label>
-        <label class="phase-opt"><input type="checkbox" name="aqphase" value="de-lat" id="aq-de-lat" onchange="App.toggleAqDeLatOpts()" /><span class="phase-box"><span class="phase-icon">🇩🇪</span><span class="phase-name">Deutsch → Latein</span></span></label>
-      </div>
-      <div id="aq-de-lat-opts" class="hidden de-lat-options-box de-lat-options-box--sm">
-        <div class="de-lat-options-hint">Zusätzlich verlangen:</div>
-        <label class="shuffle-opt shuffle-opt--mb"><input type="checkbox" id="aq-require-fall2" /><span class="shuffle-box">2. Fall angeben</span></label>
-        <label class="shuffle-opt"><input type="checkbox" id="aq-require-genus" /><span class="shuffle-box">Geschlecht angeben</span></label>
-      </div>
-      <div class="shuffle-option shuffle-option--gap">
-        <label class="shuffle-opt"><input type="checkbox" id="aq-shuffle" checked /><span class="shuffle-box">Karten mischen</span></label>
-      </div>
-      <div class="shuffle-option shuffle-option--sm">
-        <label class="shuffle-opt"><input type="checkbox" id="aq-pruefung" /><span class="shuffle-box">Prüfungsmodus <span class="pruefung-hint">(keine Wiederholung)</span></span></label>
-      </div>
-    </div>
-    <button class="start-btn btn--fullwidth btn--mt-lg" onclick="App.startAlleVokabelQuiz()">Quiz starten →</button>
+    <button class="start-btn btn--fullwidth btn--mt-lg" onclick="App.startAlleVokabelQuiz()">Weiter →</button>
   </div>
 </div>
 
@@ -889,6 +995,8 @@
 <script src="js/goetter.js"></script>
 <script src="js/grammar-tables.js"></script>
 <script src="js/tables.js"></script>
+<script src="js/flashcards.js"></script>
+<script src="js/matching.js"></script>
 <script src="js/print.js"></script>
 <script src="js/app.js"></script>
 <script>
@@ -915,6 +1023,8 @@ window.Report     = Report;
 window.Goetter       = Goetter;
 window.GrammarTables = GrammarTables;
 window.Print         = Print;
+window.Flashcards    = Flashcards;
+window.Matching      = Matching;
 
 App.init();
 </script>
