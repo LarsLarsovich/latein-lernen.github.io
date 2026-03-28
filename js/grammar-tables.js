@@ -66,58 +66,58 @@ const GrammarTables = {
 
     // 1. Deklination
     var sg1=['a','ae','ae','am','a','a'], pl1=['ae','arum','is','as','ae','is'];
-    html += this._section('1. Deklination (a-Deklination)', 'porta',
-      cases.map(function(c,i){return self._row(c,self._hl('port',sg1[i]),self._hl('port',pl1[i]));}).join(''),
+    html += this._section('1. Deklination (a-Deklination)', 'via',
+      cases.map(function(c,i){return self._row(c,self._hl('vi',sg1[i]),self._hl('vi',pl1[i]));}).join(''),
       '0efuowRWDYA','Latein Rap: A-Deklination');
 
     // 2. Deklination m. -us
     var sg2m=['us','i','o','um','e','o'], pl2m=['i','orum','is','os','i','is'];
-    html += this._section('2. Deklination m. -us (o-Deklination)', 'servus',
-      cases.map(function(c,i){return self._row(c,self._hl('serv',sg2m[i]),self._hl('serv',pl2m[i]));}).join(''),
+    html += this._section('2. Deklination m. -us (o-Deklination)', 'stilus',
+      cases.map(function(c,i){return self._row(c,self._hl('stil',sg2m[i]),self._hl('stil',pl2m[i]));}).join(''),
       'NYnGOthO8z8','Latein Rap: O-Deklination maskulin (-us)');
 
     // 2. Deklination m. -r
     var sg2r=[
-      '<span class="gt-stem">puer</span>',self._hl('puer','i'),self._hl('puer','o'),
-      self._hl('puer','um'),'<span class="gt-stem">puer</span>',self._hl('puer','o')
+      '<span class="gt-stem">vir</span>',self._hl('vir','i'),self._hl('vir','o'),
+      self._hl('vir','um'),'<span class="gt-stem">vir</span>',self._hl('vir','o')
     ];
     var pl2r=[
-      self._hl('puer','i'),self._hl('puer','orum'),self._hl('puer','is'),
-      self._hl('puer','os'),self._hl('puer','i'),self._hl('puer','is')
+      self._hl('vir','i'),self._hl('vir','orum'),self._hl('vir','is'),
+      self._hl('vir','os'),self._hl('vir','i'),self._hl('vir','is')
     ];
-    html += this._section('2. Deklination m. -r (o-Deklination)', 'puer',
+    html += this._section('2. Deklination m. -r (o-Deklination)', 'vir',
       cases.map(function(c,i){return self._row(c,sg2r[i],pl2r[i]);}).join(''),
       '90pSLJIcmNA','Latein Rap: O-Deklination maskulin (-r)');
 
     // 2. Deklination n.
     var sg2n=['um','i','o','um','um','o'], pl2n=['a','orum','is','a','a','is'];
-    html += this._section('2. Deklination n. (o-Deklination)', 'bellum',
-      cases.map(function(c,i){return self._row(c,self._hl('bell',sg2n[i]),self._hl('bell',pl2n[i]));}).join(''),
+    html += this._section('2. Deklination n. (o-Deklination)', 'templum',
+      cases.map(function(c,i){return self._row(c,self._hl('templ',sg2n[i]),self._hl('templ',pl2n[i]));}).join(''),
       'Vlf-_vgQ8yI','Latein Rap: O-Deklination neutrum (-um)');
 
     // 3. Deklination m./f.
     var sg3mf=[
-      '<span class="gt-stem">rex</span>',self._hl('reg','is'),self._hl('reg','i'),
-      self._hl('reg','em'),'<span class="gt-stem">rex</span>',self._hl('reg','e')
+      '<span class="gt-stem">homo</span>',self._hl('homin','is'),self._hl('homin','i'),
+      self._hl('homin','em'),'<span class="gt-stem">homo</span>',self._hl('homin','e')
     ];
     var pl3mf=[
-      self._hl('reg','es'),self._hl('reg','um'),self._hl('reg','ibus'),
-      self._hl('reg','es'),self._hl('reg','es'),self._hl('reg','ibus')
+      self._hl('homin','es'),self._hl('homin','um'),self._hl('homin','ibus'),
+      self._hl('homin','es'),self._hl('homin','es'),self._hl('homin','ibus')
     ];
-    html += this._section('3. Deklination m./f. (Konsonantenstämme)', 'rex (reg-)',
+    html += this._section('3. Deklination m./f. (Konsonantenstämme)', 'homo (homin-)',
       cases.map(function(c,i){return self._row(c,sg3mf[i],pl3mf[i]);}).join(''),
       'jyohDpYLtlE','Latin Rap: Consonantal Declension Masculine & Feminine');
 
     // 3. Deklination n.
     var sg3n=[
-      '<span class="gt-stem">corpus</span>',self._hl('corpor','is'),self._hl('corpor','i'),
-      '<span class="gt-stem">corpus</span>','<span class="gt-stem">corpus</span>',self._hl('corpor','e')
+      '<span class="gt-stem">flumen</span>',self._hl('flumin','is'),self._hl('flumin','i'),
+      '<span class="gt-stem">flumen</span>','<span class="gt-stem">flumen</span>',self._hl('flumin','e')
     ];
     var pl3n=[
-      self._hl('corpor','a'),self._hl('corpor','um'),self._hl('corpor','ibus'),
-      self._hl('corpor','a'),self._hl('corpor','a'),self._hl('corpor','ibus')
+      self._hl('flumin','a'),self._hl('flumin','um'),self._hl('flumin','ibus'),
+      self._hl('flumin','a'),self._hl('flumin','a'),self._hl('flumin','ibus')
     ];
-    html += this._section('3. Deklination n. (Konsonantenstämme)', 'corpus (corpor-)',
+    html += this._section('3. Deklination n. (Konsonantenstämme)', 'flumen (flumin-)',
       cases.map(function(c,i){return self._row(c,sg3n[i],pl3n[i]);}).join(''),
       'hqir0zXtF0I','Latein Rap: Konsonantische Deklination neutrum');
 
@@ -133,7 +133,7 @@ const GrammarTables = {
 
     // 5. Deklination
     var sg5=['es','ei','ei','em','es','e'], pl5=['es','erum','ebus','es','es','ebus'];
-    html += this._section('5. Deklination', 'res',
+    html += this._section('5. Deklination', 'res, rei',
       cases.map(function(c,i){return self._row(c,self._hl('r',sg5[i]),self._hl('r',pl5[i]));}).join(''),
       'V3q6acvJ6Os','Latin Rap: E-Declension');
 

@@ -45,7 +45,7 @@
 <main id="page-home" class="page">
   <div class="hero">
     <div class="hero-label">Latein lernen</div>
-    <h1 class="hero-title">Lern<span class="accent">plattform</span></h1>
+    <h1 class="hero-title">Latein<span class="accent">plattform</span></h1>
     <p class="hero-sub">Tabellen, Quize und Vokabeln – alles an einem Ort.</p>
   </div>
 
@@ -90,15 +90,6 @@
       <div class="empty-hint hidden" id="pronomen-empty">Keine Pronomen-Tabellen vorhanden.</div>
     </div>
 
-    <!-- ── Götter Link ── -->
-    <div class="goetter-home-link" onclick="App.showPage('goetter','Götter')">
-      <div>
-        <div class="goetter-home-title">Götter</div>
-        <div class="goetter-home-sub">Griechische &amp; Römische Götter, Stammbaum</div>
-      </div>
-      <span class="goetter-home-arrow">›</span>
-    </div>
-
     <!-- ── Vokabeln ── -->
     <div class="tables-category-block">
       <div class="tables-category-heading">
@@ -131,6 +122,15 @@
       </div>
       <div class="quiz-grid quiz-grid--mt" id="vokabel-grid"></div>
       <div class="empty-hint hidden" id="vokabel-empty">Keine Vokabel-Tabellen vorhanden.</div>
+    </div>
+
+    <!-- ── Götter Link ── -->
+    <div class="goetter-home-link" onclick="App.showPage('goetter','Götter')">
+      <div>
+        <div class="goetter-home-title">Götter</div>
+        <div class="goetter-home-sub">Griechische &amp; Römische Götter, Stammbaum</div>
+      </div>
+      <span class="goetter-home-arrow">›</span>
     </div>
   </div>
 </main>
@@ -262,11 +262,12 @@
     <button class="back-btn" onclick="App.goBack()">← Zurück</button>
     <div class="editor-page-title" id="table-view-title"></div>
     <button class="report-float-btn" onclick="Report.open('Tabelle: ' + document.getElementById('table-view-title').textContent)" title="Fehler melden">⚑ Melden</button>
-    <div class="table-view-quiz-btn" id="table-view-quiz-btn">
-      <button class="start-btn" onclick="App.startVokabelQuiz()" id="vok-quiz-start-btn" class="start-btn btn--hidden">Quiz starten →</button>
-    </div>
     <div class="table-view-admin-btns hidden" id="table-view-admin-btns">
       <button class="draft-btn" onclick="App.editTableFromView()">Bearbeiten</button>
+    </div>
+    <button class="print-btn" onclick="Print.tableView()" title="Als PDF exportieren / Drucken">⎙ Drucken</button>
+    <div class="table-view-quiz-btn" id="table-view-quiz-btn">
+      <button class="start-btn" onclick="App.startVokabelQuiz()" id="vok-quiz-start-btn" class="start-btn btn--hidden">Quiz starten →</button>
     </div>
   </div>
   <div id="table-view-search" class="hidden">
@@ -536,7 +537,8 @@
     <button class="back-btn" onclick="App.goBack()">← Zurück</button>
     <div class="editor-page-title">Alle Vokabeln</div>
     <div class="vok-count-badge" id="alle-count-badge"></div>
-    <button class="start-btn btn--ml-auto btn--sm-pad" onclick="App.openAlleVokabelQuiz()">Quiz starten →</button>
+    <button class="print-btn" onclick="Print.alleVokabeln()" title="Als PDF exportieren / Drucken">⎙ Drucken</button>
+    <button class="start-btn btn--sm-pad" onclick="App.openAlleVokabelQuiz()">Quiz starten →</button>
   </div>
   <div class="vok-search-bar">
     <input type="text" id="alle-search-input" class="vok-search-input" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Suchen… (Latein, Deutsch, oder deklinierte Form)" oninput="VokSearch.search()"  autocorrect="off" autocapitalize="off" spellcheck="false"/>
@@ -887,6 +889,7 @@
 <script src="js/goetter.js"></script>
 <script src="js/grammar-tables.js"></script>
 <script src="js/tables.js"></script>
+<script src="js/print.js"></script>
 <script src="js/app.js"></script>
 <script>
 // ── Keyboard-Shortcuts ────────────────────────────────────────
@@ -911,6 +914,7 @@ window.VokabelQuiz = VokabelQuiz;
 window.Report     = Report;
 window.Goetter       = Goetter;
 window.GrammarTables = GrammarTables;
+window.Print         = Print;
 
 App.init();
 </script>
@@ -1029,6 +1033,7 @@ App.init();
   <div class="back-row">
     <button class="back-btn" onclick="App.goBack()">← Zurück</button>
     <div class="editor-page-title">Deklinationen</div>
+    <button class="print-btn btn--ml-auto" onclick="Print.deklinationen()" title="Als PDF exportieren / Drucken">⎙ Drucken</button>
   </div>
   <div id="gt-dekl-content" class="gt-content"></div>
 </main>
@@ -1040,9 +1045,12 @@ App.init();
   <div class="back-row">
     <button class="back-btn" onclick="App.goBack()">← Zurück</button>
     <div class="editor-page-title">Konjugationen</div>
+    <button class="print-btn btn--ml-auto" onclick="Print.konjugationen()" title="Als PDF exportieren / Drucken">⎙ Drucken</button>
   </div>
   <div id="gt-konj-content" class="gt-content"></div>
 </main>
+
+<div id="print-area"></div>
 
 <footer class="site-footer">
   <button class="footer-link" onclick="App.showPage('impressum')">Impressum</button>

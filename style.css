@@ -46,6 +46,7 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
 .admin-btn:hover { border-color: var(--accent); color: var(--accent); }
 .admin-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(224,123,42,0.07); }
 
+
 /* ── Pages ── */
 .page { display: none; padding: 80px 4vw 4rem; max-width: 1400px; width: 100%; margin: 0 auto; animation: fadeUp 0.28s ease both; }
 .page.active { display: block; flex: 1; }
@@ -1092,4 +1093,173 @@ input[type="range"].flex-1 { flex: 1; }
   .gt-video-side { flex: 0 0 auto; width: 100% !important; height: 230px !important;
     padding-bottom: 0%; position: relative; }
   .gt-video-side iframe { position: absolute; top:0; left: 0; }
+}
+
+/* ── Print / PDF Export ─────────────────────────────────────── */
+#print-area { display: none; }
+
+.print-btn {
+  font-family: var(--font-body); font-size: 13px; font-weight: 500;
+  background: transparent; color: var(--text2);
+  border: 1px solid var(--border2); border-radius: var(--radius);
+  padding: 6px 14px; cursor: pointer; transition: all 0.2s; white-space: nowrap;
+}
+.print-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* unused legacy block kept for reference only */
+@media print-disabled {
+  @page {
+    size: A4;
+    margin: 12mm 16mm 14mm 16mm;
+    @bottom-right {
+      content: "Seite " counter(page) " / " counter(pages);
+      font-family: 'Outfit', sans-serif;
+      font-size: 8pt;
+      color: #999;
+    }
+  }
+
+  /* Alles ausblenden außer Druckbereich */
+  body > *:not(#print-area) { display: none !important; }
+  #print-area {
+    display: block !important;
+    font-family: 'Outfit', sans-serif;
+    font-size: 10pt;
+    color: #111;
+    background: #fff;
+  }
+
+  /* ── Kopfzeile (wiederholt sich auf jeder Seite) ── */
+  .print-header {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 14mm;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1.5pt solid #e07b2a;
+    padding-bottom: 2.5mm;
+    background: #fff;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .print-logo {
+    font-family: 'Cinzel', serif;
+    font-size: 14pt;
+    font-weight: 700;
+    color: #e07b2a;
+    letter-spacing: 0.15em;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .print-title {
+    font-family: 'Cinzel', serif;
+    font-size: 10pt;
+    font-weight: 600;
+    color: #333;
+    letter-spacing: 0.07em;
+    text-align: center;
+  }
+  .print-logo-spacer { flex: 0 0 105pt; } /* Symmetrie zum Logo */
+
+  /* ── Fußzeile (wiederholt sich auf jeder Seite) ── */
+  .print-footer {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    height: 10mm;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    border-top: 0.5pt solid #ccc;
+    padding-top: 2mm;
+    background: #fff;
+  }
+  .print-footer-url,
+  .print-footer-date {
+    font-family: 'Outfit', sans-serif;
+    font-size: 7.5pt;
+    color: #888;
+  }
+
+  /* ── Inhaltsbereich mit Abstand zu Kopf-/Fußzeile ── */
+  .print-body { padding-top: 17mm; padding-bottom: 13mm; }
+
+  /* ── Abschnittstitel (Alle Vokabeln) ── */
+  .print-section { margin-bottom: 8mm; }
+  .print-section-title {
+    font-family: 'Cinzel', serif;
+    font-size: 12pt;
+    font-weight: 600;
+    color: #e07b2a;
+    padding-bottom: 2mm;
+    margin-bottom: 3mm;
+    border-bottom: 1pt solid #e07b2a;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .print-section-desc { font-size: 8.5pt; color: #666; margin-bottom: 3mm; }
+
+  /* ── Tabellen ── */
+  .dekl-table-wrap {
+    overflow: visible !important;
+    border: 0.5pt solid #ccc !important;
+    border-radius: 0 !important;
+  }
+  .dekl-table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    font-size: 9.5pt !important;
+  }
+  .dekl-table thead tr {
+    background: #f2f2f2 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .dekl-table th {
+    padding: 5px 10px !important;
+    color: #444 !important;
+    font-size: 7.5pt !important;
+    border-bottom: 0.5pt solid #ccc !important;
+    background: #f2f2f2 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .dekl-table td {
+    padding: 5px 10px !important;
+    border-bottom: 0.5pt solid #e5e5e5 !important;
+    color: #111 !important;
+  }
+  .dekl-table tbody tr:last-child td { border-bottom: none !important; }
+  .case-cell { color: #555 !important; font-weight: 500 !important; }
+  .vok-row-arrow { display: none !important; }
+  .vok-table-hint { display: none !important; }
+
+  /* ── Pronomen-Sektion Labels (Singular / Plural) ── */
+  .forms-section-title {
+    font-family: 'Cinzel', serif !important;
+    font-size: 9pt !important;
+    color: #555 !important;
+    margin: 4mm 0 2mm !important;
+  }
+  .table-desc { font-size: 8.5pt !important; color: #666 !important; margin-bottom: 3mm !important; }
+
+  /* ── Grammatik-Tafeln ── */
+  .gt-section { margin-bottom: 8mm; }
+  .gt-section-title {
+    font-family: 'Cinzel', serif !important;
+    font-size: 11pt !important;
+    color: #222 !important;
+    margin: 5mm 0 3mm !important;
+  }
+  .gt-example { font-size: 8.5pt !important; color: #666 !important; }
+  .gt-stem { color: #111 !important; }
+  .gt-ending {
+    color: #e07b2a !important;
+    font-weight: 600 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .gt-video-side { display: none !important; }
+  .gt-row { display: block !important; }
+  .gt-table-side { width: auto !important; flex: none !important; }
 }
