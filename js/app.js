@@ -612,26 +612,25 @@ const App = {
     } else if (mode === 'matching') {
       Matching.start(cfg.rows, cfg.name);
     } else {
-      // Eingeben: bestehender Quiz-Flow
+      // Eingeben: immer über Setup-Seite (Richtung, Mischen, Prüfung wählen)
+      state.quizType = 'vokabel';
+      state._quizOrigin = cfg.origin;
+      if (cfg.origin === 'custom') state._customQuizIds = cfg.customIds;
       if (cfg.origin === 'table') {
         const t = state.vokabel.find(x => x.id === cfg.tableId);
         if (!t) return;
-        state.quizType = 'vokabel'; state.currentVokabelTable = t;
-        state.lastQuizId = cfg.tableId; state.lastQuizSource = 'vokabel'; state._quizOrigin = 'table';
-        document.getElementById('setup-title').textContent = t.name;
-        document.getElementById('setup-desc').textContent  = (t.rows||[]).length + ' Vokabeln';
-        document.getElementById('setup-pronomen').classList.add('hidden');
-        document.getElementById('setup-vokabel').classList.remove('hidden');
-        document.querySelectorAll('input[name="vphase"]').forEach(cb => { cb.checked = cb.value === 'lat-de'; });
-        document.getElementById('vok-shuffle').checked = false;
-        this.showPage('setup', t.name);
+        state.currentVokabelTable = t;
+        state.lastQuizId = cfg.tableId; state.lastQuizSource = 'vokabel';
       } else {
-        Quiz._pendingPruefung = cfg.pruefung || false;
-        state.quizType = 'vokabel'; state._quizOrigin = cfg.origin;
-        if (cfg.origin === 'custom') state._customQuizIds = cfg.customIds;
         state.currentVokabelTable = { name: cfg.name, rows: cfg.rows };
-        Quiz.startVokabel(cfg.questions, cfg.name);
       }
+      document.getElementById('setup-title').textContent = cfg.name;
+      document.getElementById('setup-desc').textContent  = cfg.rows.length + ' Vokabeln';
+      document.getElementById('setup-pronomen').classList.add('hidden');
+      document.getElementById('setup-vokabel').classList.remove('hidden');
+      document.querySelectorAll('input[name="vphase"]').forEach(cb => { cb.checked = cb.value === 'lat-de'; });
+      document.getElementById('vok-shuffle').checked = false;
+      this.showPage('setup', cfg.name);
     }
   },
 
