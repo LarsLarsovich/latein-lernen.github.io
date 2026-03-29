@@ -197,14 +197,32 @@ const App = {
     const card      = document.createElement('div');
     const typeLabel = type === 'pronomen' ? 'Pronomen' : 'Vokabeln';
     card.className  = 'quiz-card' + (state.adminLoggedIn ? ' admin-mode' : '');
-    card.innerHTML  = `
+
+    // Mini-Chart aus localStorage laden (nur Vokabel-Tabellen)
+    let savedResult = null;
+    if (type === 'vokabel') {
+      try {
+        const raw = localStorage.getItem('quiz_result_' + t.id);
+        if (raw) savedResult = JSON.parse(raw);
+      } catch(e) {}
+    }
+
+    card.innerHTML = `
       <div class="table-type-pill">${typeLabel}</div>
       <div class="quiz-card-name">${t.name}</div>
       <div class="quiz-card-desc">${t.desc||''}</div>
+      ${savedResult ? '<canvas class="card-mini-chart" width="54" height="54"></canvas>' : ''}
       ${state.adminLoggedIn ? `<div class="card-admin-overlay">
         <button class="card-overlay-btn card-overlay-edit">Bearbeiten</button>
         <button class="card-overlay-btn card-overlay-del">Löschen</button>
       </div>` : ''}`;
+
+    if (savedResult) {
+      card.style.paddingRight = '74px';
+      const canvas = card.querySelector('.card-mini-chart');
+      if (canvas) this._drawMiniChart(canvas, savedResult.roundCounts, savedResult.neverCorrect, savedResult.total);
+    }
+
     if (state.adminLoggedIn) {
       card.querySelector('.card-overlay-edit').onclick = e => { e.stopPropagation();
         type === 'pronomen' ? Tables.openPronomenEditor(t.id) : Tables.openVokabelEditor(t.id);
@@ -213,6 +231,51 @@ const App = {
     }
     card.onclick = () => Tables.viewTable(t.id, type);
     return card;
+  },
+
+  _drawMiniChart(canvas, roundCounts, neverCorrect, total) {
+    const SIZE = 54;
+    const dpr  = window.devicePixelRatio || 1;
+
+    // Scharf auf Retina/HiDPI: physische Pixelgröße hochskalieren, CSS-Größe fix lassen
+    canvas.width  = SIZE * dpr;
+    canvas.height = SIZE * dpr;
+    canvas.style.width  = SIZE + 'px';
+    canvas.style.height = SIZE + 'px';
+
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+
+    const cx = SIZE / 2, cy = SIZE / 2, r = 23, innerR = 13;
+    const colors = ['#4CAF93','#e07b2a','#e05a5a','#c04040','#a03030','#777'];
+
+    const segments = [];
+    const maxRound = Math.max(...Object.keys(roundCounts).map(Number), 0);
+    for (let i = 0; i <= maxRound; i++) {
+      if (roundCounts[i]) segments.push({ count: roundCounts[i], color: colors[Math.min(i, colors.length-1)] });
+    }
+    if (neverCorrect > 0) segments.push({ count: neverCorrect, color: '#444' });
+
+    ctx.clearRect(0, 0, SIZE, SIZE);
+    let startAngle = -Math.PI / 2;
+    segments.forEach(seg => {
+      const slice = (seg.count / total) * Math.PI * 2;
+      ctx.beginPath(); ctx.moveTo(cx, cy);
+      ctx.arc(cx, cy, r, startAngle, startAngle + slice);
+      ctx.closePath(); ctx.fillStyle = seg.color; ctx.fill();
+      startAngle += slice;
+    });
+
+    // Loch in der Mitte
+    ctx.beginPath(); ctx.arc(cx, cy, innerR, 0, Math.PI * 2);
+    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--bg2').trim() || '#1a1a1a';
+    ctx.fill();
+
+    // Prozent-Text
+    const pct = Math.round((roundCounts[0]||0) / total * 100);
+    ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = 'bold 9px sans-serif';
+    ctx.fillText(pct + '%', cx, cy);
   },
 
   _makeTableDraftCard(t, type) {

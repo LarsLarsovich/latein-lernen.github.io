@@ -355,6 +355,14 @@ const Quiz = {
     const firstTry = roundCounts[0] || 0;
     const pct      = Math.round(firstTry / total * 100);
 
+    // Ergebnis im Browser speichern für Mini-Chart auf der Startseite
+    if (state.quizType === 'vokabel' && state._quizOrigin === 'table' && state.lastQuizId) {
+      try {
+        localStorage.setItem('quiz_result_' + state.lastQuizId,
+          JSON.stringify({ roundCounts, neverCorrect, total, ts: Date.now() }));
+      } catch(e) {}
+    }
+
     if (this._pruefung) {
       document.getElementById('result-score').textContent  = `${firstTry}/${total}`;
       document.getElementById('result-label').textContent  = 'richtig beantwortet';
