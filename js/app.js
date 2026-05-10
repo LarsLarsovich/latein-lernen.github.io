@@ -775,7 +775,7 @@ const App = {
       document.getElementById('admin-topbtn').classList.remove('active');
       document.getElementById('admin-topbtn').textContent = 'Admin';
       document.getElementById('add-btn').classList.add('hidden');
-      ['bell-btn','admin-settings-btn','own-settings-btn'].forEach(id => {
+      ['bell-btn','admin-settings-btn','own-settings-btn','ai-check-btn'].forEach(id => {
         document.getElementById(id)?.classList.add('hidden');
       });
       ['reports-panel','reports-backdrop'].forEach(id => {
@@ -867,6 +867,7 @@ const App = {
     document.getElementById('admin-settings-btn')?.classList.toggle('hidden', !adminData.isSuperAdmin);
     document.getElementById('own-settings-btn')?.classList.remove('hidden');
     document.getElementById('bell-btn')?.classList.remove('hidden');
+    if (adminData.isSuperAdmin) document.getElementById('ai-check-btn')?.classList.remove('hidden');
     this.updateBellBadge();
     this.renderHome();
   },

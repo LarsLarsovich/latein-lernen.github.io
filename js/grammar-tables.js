@@ -31,13 +31,27 @@ const GrammarTables = {
     '</div>';
   },
 
-  _konjSection(title, example, rows) {
+  _konjSection(title, example, rows, perfStem) {
+    var perfTable = '';
+    if (perfStem) {
+      var persons = ['1. Sg. (ich)','2. Sg. (du)','3. Sg. (er/sie/es)','1. Pl. (wir)','2. Pl. (ihr)','3. Pl. (sie)'];
+      var perfEndings = ['i','isti','it','imus','istis','erunt'];
+      var self = this;
+      perfTable = '<div class="gt-section-subtitle">Perfekt Aktiv</div>' +
+        '<div class="dekl-table-wrap"><table class="dekl-table gt-table">' +
+        '<thead><tr><th>Person</th><th>Form</th></tr></thead><tbody>' +
+        persons.map(function(p,i){
+          return '<tr><td class="case-cell">' + escHtml(p) + '</td><td>' + self._hl(perfStem, perfEndings[i]) + '</td></tr>';
+        }).join('') +
+        '</tbody></table></div>';
+    }
     return '<div class="gt-section">' +
       '<div class="gt-section-title">' + escHtml(title) +
         '<span class="gt-example">Beispiel: <em>' + escHtml(example) + '</em></span></div>' +
       '<div class="dekl-table-wrap"><table class="dekl-table gt-table">' +
-        '<thead><tr><th>Person</th><th>Singular</th><th>Plural</th></tr></thead>' +
-        '<tbody>' + rows + '</tbody></table></div></div>';
+        '<thead><tr><th>Person</th><th>Form</th></tr></thead>' +
+        '<tbody>' + rows + '</tbody></table></div>' +
+      perfTable + '</div>';
   },
 
   // Match each video height to its sibling table height
@@ -150,23 +164,23 @@ const GrammarTables = {
 
     var sg1k=['o','as','at','amus','atis','ant'];
     html += this._konjSection('1. Konjugation (a-Konjugation)', 'amare – amō',
-      persons.map(function(p,i){return self._row(p,self._hl('am',sg1k[i]),'');}).join(''));
+      persons.map(function(p,i){return '<tr><td class="case-cell">'+escHtml(p)+'</td><td>'+self._hl('am',sg1k[i])+'</td></tr>';}).join(''), 'amav');
 
     var sg2k=['eo','es','et','emus','etis','ent'];
     html += this._konjSection('2. Konjugation (e-Konjugation)', 'monēre – moneō',
-      persons.map(function(p,i){return self._row(p,self._hl('mon',sg2k[i]),'');}).join(''));
+      persons.map(function(p,i){return '<tr><td class="case-cell">'+escHtml(p)+'</td><td>'+self._hl('mon',sg2k[i])+'</td></tr>';}).join(''), 'monu');
 
     var sg3k=['o','is','it','imus','itis','unt'];
     html += this._konjSection('3. Konjugation (konsonantisch)', 'regere – regō',
-      persons.map(function(p,i){return self._row(p,self._hl('reg',sg3k[i]),'');}).join(''));
+      persons.map(function(p,i){return '<tr><td class="case-cell">'+escHtml(p)+'</td><td>'+self._hl('reg',sg3k[i])+'</td></tr>';}).join(''), 'rex');
 
     var sg4k=['io','is','it','imus','itis','iunt'];
     html += this._konjSection('4. Konjugation (i-Konjugation)', 'audire – audiō',
-      persons.map(function(p,i){return self._row(p,self._hl('aud',sg4k[i]),'');}).join(''));
+      persons.map(function(p,i){return '<tr><td class="case-cell">'+escHtml(p)+'</td><td>'+self._hl('aud',sg4k[i])+'</td></tr>';}).join(''), 'audiv');
 
     var esse=['sum','es','est','sumus','estis','sunt'];
     html += this._konjSection('esse – Präsens (unregelmäßig)', 'esse (sein)',
-      persons.map(function(p,i){return self._row(p,'<span class="gt-ending">'+esse[i]+'</span>','');}).join(''));
+      persons.map(function(p,i){return '<tr><td class="case-cell">'+escHtml(p)+'</td><td><span class="gt-ending">'+esse[i]+'</span></td></tr>';}).join(''));
 
     el.innerHTML = html;
   }

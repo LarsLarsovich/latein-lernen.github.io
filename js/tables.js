@@ -230,7 +230,8 @@ const Tables = {
       fall2: r.querySelector('.vok-fall2').value.trim(),
       genus: r.querySelector('.vok-genus').value,
       dekl:  r.querySelector('.vok-dekl').value,
-      de:    r.querySelector('.vok-de').value.trim()
+      de:    r.querySelector('.vok-de').value.trim(),
+      perf:  r.querySelector('.vok-perf')?.value.trim() || ''
     })).filter(r => r.lat || r.de);
   },
 
@@ -271,6 +272,8 @@ const Tables = {
           <select class="modal-input vok-dekl">${DEKL_OPTS.map(o=>`<option${(data.dekl||'–')===o?' selected':''}>${o}</option>`).join('')}</select></div>
         <div class="vok-cell"><label class="vok-label">Deutsch</label>
           <input type="text" class="modal-input vok-de" placeholder="Übersetzung" autocorrect="off" spellcheck="false" value="${escHtml(data.de||'')}"/></div>
+        <div class="vok-cell"><label class="vok-label">Perfekt 1. Sg.</label>
+          <input type="text" class="modal-input vok-perf" placeholder="z.B. amavi" autocorrect="off" autocapitalize="off" spellcheck="false" value="${escHtml(data.perf||'')}"/></div>
         <div class="vok-cell vok-cell-del"><label class="vok-label">&nbsp;</label>
           <button class="row-del-btn" onclick="this.closest('.vokabel-row').remove()" title="Löschen">✕</button></div>
       </div>`;

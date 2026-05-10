@@ -24,5 +24,6 @@ const COL = {
   vokabelDrafts:  db.collection('drafts_vokabel'),
   reports:        db.collection('reports'),
   admins:         db.collection('admins'),
-  goetter:        db.collection('goetter')
+  goetter:        db.collection('goetter'),
+  config:         db.collection('admins')  // _config doc stored here
 };

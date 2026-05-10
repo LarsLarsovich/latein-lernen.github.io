@@ -22,6 +22,7 @@ const VokDetail = {
     html += `<span class="vok-meta-chip vok-type-chip">${this._typeLabel(type)}</span></div></div>`;
 
     if (type === 'verb') {
+      const perfForm  = r.perf || '';
       const autoConj  = Latin.conjugateVerb(r.lat||'', r.fall2||'');
       const persons   = ['ich','du','er / sie / es','wir','ihr','sie'];
       const keys      = ['p1sg','p2sg','p3sg','p1pl','p2pl','p3pl'];
@@ -33,6 +34,17 @@ const VokDetail = {
       html += `<div class="dekl-table-wrap"><table class="dekl-table"><thead><tr><th>Person</th><th>Latein</th><th>Deutsch</th></tr></thead><tbody>`;
       keys.forEach((k,i) => { html += `<tr><td class="case-cell">${persons[i]}</td><td><strong>${override[k]||auto[i]||'–'}</strong></td><td class="cell-de">${deConj?deConj[i]:'–'}</td></tr>`; });
       html += `</tbody></table></div>`;
+      if (perfForm) {
+        // Build Perfekt stem from perfForm (remove final 'i' ending for stem)
+        const perfStem = perfForm.endsWith('i') ? perfForm.slice(0,-1) : perfForm;
+        const perfEndings = [['1. Sg. (ich)','i'],['2. Sg. (du)','isti'],['3. Sg. (er/sie/es)','it'],['1. Pl. (wir)','imus'],['2. Pl. (ihr)','istis'],['3. Pl. (sie)','erunt']];
+        html += `<div class="forms-section-title forms-section-title--spaced">Perfekt Aktiv</div>`;
+        html += `<div class="dekl-table-wrap"><table class="dekl-table"><thead><tr><th>Person</th><th>Latein</th></tr></thead><tbody>`;
+        perfEndings.forEach(([p, e]) => {
+          html += `<tr><td class="case-cell">${p}</td><td><strong>${escHtml(perfStem)}${escHtml(e)}</strong></td></tr>`;
+        });
+        html += `</tbody></table></div>`;
+      }
       if (autoConj?.imperativ) {
         const deImp = German.imperativVerb(deBase);
         html += `<div class="forms-section-title forms-section-title--spaced">Imperativ – Präsens</div>`;
@@ -92,6 +104,8 @@ const VokDetail = {
     document.getElementById('basic-edit-genus').value = r.genus||'–';
     document.getElementById('basic-edit-dekl').value  = r.dekl ||'–';
     document.getElementById('basic-edit-de').value    = r.de   ||'';
+    const perfEl = document.getElementById('basic-edit-perf');
+    if (perfEl) perfEl.value = r.perf||'';
     document.getElementById('basic-edit-error').classList.add('hidden');
     document.getElementById('basic-edit-overlay').classList.remove('hidden');
   },
@@ -103,7 +117,8 @@ const VokDetail = {
     const lat=document.getElementById('basic-edit-lat').value.trim();
     if(!lat){err.textContent='Lateinisches Wort darf nicht leer sein.';err.classList.remove('hidden');return;}
     const rows=[...(t.rows||[])];
-    rows[idx]={...rows[idx],lat,fall2:document.getElementById('basic-edit-fall2').value.trim(),genus:document.getElementById('basic-edit-genus').value,dekl:document.getElementById('basic-edit-dekl').value,de:document.getElementById('basic-edit-de').value.trim()};
+    const perfVal = document.getElementById('basic-edit-perf')?.value.trim()||'';
+    rows[idx]={...rows[idx],lat,fall2:document.getElementById('basic-edit-fall2').value.trim(),genus:document.getElementById('basic-edit-genus').value,dekl:document.getElementById('basic-edit-dekl').value,de:document.getElementById('basic-edit-de').value.trim(),perf:perfVal};
     t.rows=rows;
     try { await COL.vokabel.doc(t.id).update({rows}); document.getElementById('basic-edit-overlay').classList.add('hidden'); this.open(idx,this.currentTableId); }
     catch(e){err.textContent='Fehler: '+e.message;err.classList.remove('hidden');}

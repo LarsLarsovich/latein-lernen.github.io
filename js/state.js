@@ -17,6 +17,7 @@ const state = {
   pickerMode: null,
   goetter: [],
   editingGottId: null,
+  _anthropicKey: null,   // loaded from Firestore admins/_config
   stammbaumUrl: 'https://miro.com/app/live-embed/uXjVGtIatxo=/?embedMode=view_only_without_ui&moveToViewport=-2021,-241,2861,1623&embedId=292432411735',
   _pendingQuizConfig: null,
   unsubs: {}

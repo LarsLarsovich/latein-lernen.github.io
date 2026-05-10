@@ -27,6 +27,7 @@
   <div class="topbar-center" id="topbar-center"></div>
   <div class="topbar-right">
     <button class="add-btn hidden" id="add-btn" onclick="App.openAddMenu()" title="Neue Tabelle erstellen">+</button>
+    <button class="topbar-icon-btn hidden" id="ai-check-btn" onclick="AiCheck.open()" title="AI Vokabel-Prüfung" style="font-size:12px;font-weight:700;letter-spacing:0.05em;color:var(--accent);border:1px solid var(--accent);border-radius:6px;padding:2px 6px;">AI</button>
     <button class="topbar-reports-btn hidden" id="bell-btn" onclick="App.toggleReportsPanel()">Meldungen</button>
     <button class="topbar-icon-btn hidden" id="admin-settings-btn" onclick="App.openAdminSettings()" title="Admin-Verwaltung">⚙️</button>
     <button class="topbar-icon-btn hidden" id="own-settings-btn" onclick="App.openOwnSettings()" title="Mein Konto">👤</button>
@@ -815,6 +816,10 @@
       <label>Übersetzung</label>
       <input type="text" id="basic-edit-de" class="modal-input" autocorrect="off" spellcheck="false" placeholder="z.B. Wasser%Flüssigkeit" />
     </div>
+    <div class="field-group">
+      <label>Perfekt 1. Sg. <span style="color:var(--text3);font-size:12px;">(nur bei Verben)</span></label>
+      <input type="text" id="basic-edit-perf" class="modal-input" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="z.B. amavi, feci, vidi" />
+    </div>
     <div class="create-error hidden" id="basic-edit-error"></div>
     <div class="editor-actions editor-actions--sm">
       <button class="start-btn" onclick="VokDetail.saveBasicEdit()">Speichern</button>
@@ -976,6 +981,7 @@
 <script src="js/report.js?v=1.1.3"></script>
 <script src="js/vok-detail.js?v=1.1.3"></script>
 <script src="js/goetter.js?v=1.1.3"></script>
+<script src="js/ai-check.js"></script>
 <script src="js/grammar-tables.js?v=1.1.3"></script>
 <script src="js/tables.js?v=1.1.3"></script>
 <script src="js/flashcards.js?v=1.1.3"></script>
@@ -1004,6 +1010,7 @@ window.VokSearch  = VokSearch;
 window.VokabelQuiz = VokabelQuiz;
 window.Report     = Report;
 window.Goetter       = Goetter;
+window.AiCheck       = AiCheck;
 window.GrammarTables = GrammarTables;
 window.Print         = Print;
 window.Flashcards    = Flashcards;
@@ -1144,6 +1151,59 @@ App.init();
 </main>
 
 <div id="print-area"></div>
+
+
+<!-- ══════════════════════════════════════════
+     AI CHECK MODAL
+══════════════════════════════════════════ -->
+<div class="modal-overlay hidden" id="ai-check-overlay" onclick="AiCheck.close(event)">
+  <div class="modal ai-check-modal">
+    <button class="modal-close" onclick="AiCheck.close()">✕</button>
+    <div class="modal-title">🤖 AI Vokabel-Prüfung</div>
+
+    <!-- Key -->
+    <div class="field-group" style="margin-bottom:0.8rem;">
+      <label>API Key <span id="ai-key-status" style="font-size:12px;margin-left:6px;"></span></label>
+      <div style="display:flex;gap:8px;margin-top:4px;">
+        <input type="password" id="ai-key-input" class="modal-input" placeholder="sk-ant-..." autocorrect="off" spellcheck="false" style="flex:1;font-family:monospace;font-size:13px;"/>
+        <button class="outline-btn" onclick="AiCheck.updateKey()">Speichern</button>
+      </div>
+    </div>
+
+    <!-- Buttons -->
+    <div style="display:flex;gap:8px;margin-bottom:0.8rem;">
+      <button class="start-btn" id="ai-btn-new" onclick="AiCheck.startCheck('new')" style="flex:1;">
+        Neue/Geänderte prüfen
+      </button>
+      <button class="outline-btn" id="ai-btn-all" onclick="AiCheck.startCheck('all')" style="flex:1;">
+        Alle prüfen
+      </button>
+      <button class="outline-btn" id="ai-btn-abort" onclick="AiCheck.abort()" style="display:none;border-color:#e05a5a;color:#e05a5a;">
+        ⏹ Stop
+      </button>
+    </div>
+
+    <!-- Progress -->
+    <div class="progress-bar-wrap" style="margin-bottom:4px;">
+      <div class="progress-bar-fill" id="ai-check-progress" style="width:0%;transition:width 0.4s;"></div>
+    </div>
+    <div id="ai-check-status" style="font-size:12px;color:var(--text3);margin-bottom:0.8rem;min-height:16px;"></div>
+
+    <!-- Log (only errors/changes during run) -->
+    <div id="ai-check-log" style="max-height:160px;overflow-y:auto;margin-bottom:0.8rem;"></div>
+
+    <!-- Changes list with undo -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.4rem;">
+      <div style="font-size:13px;font-weight:600;color:var(--text2);">Vorgenommene Korrekturen</div>
+      <button class="outline-btn" onclick="AiCheck.undoAll()" style="font-size:12px;padding:4px 10px;border-color:#e05a5a;color:#e05a5a;">↩ Alle rückgängig</button>
+    </div>
+    <div id="ai-changes-list" style="max-height:200px;overflow-y:auto;"></div>
+  </div>
+</div>
+
+
+  </div>
+</div>
 
 <footer class="site-footer">
   <button class="footer-link" onclick="App.showPage('impressum')">Impressum</button>
