@@ -3,29 +3,32 @@
 // ── Vokabel Quiz Engine ───────────────────────────────────────
 const VokabelQuiz = {
 
-  // Parst Eingaben wie "amica,ae f." oder "flumen,inis"
+  // Parst Eingaben:
+  // Nomen: "schola, ae f." oder "schola, ae" oder "amica, ae f."
+  //        Genus steht IMMER am Ende nach dem 2. Fall (kein Komma davor)
+  // Verb ohne Perf: "sedere, sedeo"
+  // Verb mit Perf: "sedere, sedeo, sedi"
   _parseInput(input) {
     const s = input.trim();
-    const genusMatch = s.match(/\s+(m\.|f\.|n\.)\s*$|^(m\.|f\.|n\.)\s*$|(m\.|f\.|n\.)\s*$/i);
-    const genus = genusMatch ? (genusMatch[1]||genusMatch[2]||genusMatch[3]).toLowerCase() : null;
-    const withoutGenus = genus
-      ? s.slice(0, s.toLowerCase().lastIndexOf(genus)).trim().replace(/,\s*$/, '').trim()
-      : s.trim();
 
-    const commaIdx  = withoutGenus.indexOf(',');
-    const lat       = commaIdx >= 0 ? withoutGenus.slice(0, commaIdx).trim() : withoutGenus.trim();
-    const fall2Raw  = commaIdx >= 0 ? withoutGenus.slice(commaIdx + 1).trim() : null;
+    // 1. Strip genus from the end (after space at end, e.g. "schola, ae f.")
+    const genusRe = /\s+(m\.|f\.|n\.)\s*$/i;
+    const genusMatch = s.match(genusRe);
+    const genus = genusMatch ? genusMatch[1].toLowerCase() : null;
+    const withoutGenus = genus ? s.slice(0, s.lastIndexOf(genusMatch[0])).trim() : s;
+
+    // 2. Split remaining by comma: lat, fall2[, perf]
+    const parts = withoutGenus.split(',').map(p => p.trim()).filter(p => p.length > 0);
+
+    const lat   = parts[0] ? parts[0].toLowerCase() : '';
+    const fall2 = parts[1] ? parts[1].toLowerCase() : null;
+    const perf  = parts[2] ? parts[2].toLowerCase() : null;
 
     const abbrevEndingsList = ['ae','arum','is','i','o','um','us','ui','uum','ei','erum','em',
                                'inis','eris','oris','icis','ucis','ntis','itis','atis','onis','alis'];
-    const isAbbrev = fall2Raw && abbrevEndingsList.some(e => fall2Raw.toLowerCase() === e);
+    const isAbbrev = fall2 && abbrevEndingsList.some(e => fall2 === e);
 
-    return {
-      lat: lat.toLowerCase(),
-      fall2: fall2Raw ? fall2Raw.toLowerCase() : null,
-      fall2IsAbbrev: isAbbrev,
-      genus
-    };
+    return { lat, fall2, fall2IsAbbrev: isAbbrev, genus, perf };
   },
 
   _fall2Matches(parsedFall2, storedFall2) {
@@ -33,11 +36,16 @@ const VokabelQuiz = {
     const p = parsedFall2.toLowerCase().trim();
     const s = storedFall2.toLowerCase().trim();
     if (p === s) return true;
+    // Abbreviated ending: "ae" matches "scholae", "portae" etc.
     if (s.endsWith(p) && p.length >= 1) return true;
+    // Full genitive entered: "scholae" matches stored "scholae"
+    // Also handle comma-separated stored values (e.g. "sedeo, sedi")
+    const storedFirst = s.split(',')[0].trim();
+    if (p === storedFirst) return true;
     return false;
   },
 
-  _checkDeLatAnswer(input, r, requireFall2, requireGenus) {
+  _checkDeLatAnswer(input, r, requireFall2, requireGenus, requirePerf) {
     const parsed = this._parseInput(input.trim());
     if (!parsed.lat) return false;
     const latForms = (r.lat||'').toLowerCase().split('%').map(s=>s.trim());
@@ -45,6 +53,7 @@ const VokabelQuiz = {
 
     const hasFall2 = r.fall2 && r.fall2 !== '–' && r.fall2 !== '#';
     const hasGenus = r.genus && r.genus !== '–' && r.genus !== '#';
+    const hasPerf  = r.perf  && r.perf  !== '–' && r.perf  !== '#';
 
     if (requireFall2 && hasFall2) {
       if (!parsed.fall2) return false;
@@ -59,15 +68,26 @@ const VokabelQuiz = {
     } else if (parsed.genus && hasGenus) {
       if (parsed.genus !== (r.genus||'').toLowerCase()) return false;
     }
+
+    if (requirePerf && hasPerf) {
+      if (!parsed.perf) return false;
+      const perfInput   = parsed.perf.toLowerCase().trim();
+      // perf field may be "sedi" or "gavisus sum" – compare full string
+      const perfCorrect = (r.perf||'').toLowerCase().trim();
+      // Also accept without "sum" for deponent verbs (e.g. "gavisus" for "gavisus sum")
+      if (perfInput !== perfCorrect && perfInput !== perfCorrect.replace(/\s+sum$/,'')) return false;
+    }
     return true;
   },
 
-  _formatDeLatAnswer(r, requireFall2, requireGenus) {
+  _formatDeLatAnswer(r, requireFall2, requireGenus, requirePerf) {
     let parts = [r.lat||''];
     const hasFall2 = r.fall2 && r.fall2 !== '–' && r.fall2 !== '#';
     const hasGenus = r.genus && r.genus !== '–' && r.genus !== '#';
+    const hasPerf  = r.perf  && r.perf  !== '–' && r.perf  !== '#';
     if (requireFall2 && hasFall2) parts.push(r.fall2);
     if (requireGenus && hasGenus) parts.push(r.genus);
+    if (requirePerf  && hasPerf)  parts.push(r.perf);
     return parts.join(', ');
   },
 
@@ -102,16 +122,27 @@ const VokabelQuiz = {
       if (modes.includes('de-lat')) {
         const deRaw   = r.de || '';
         const deFirst = deRaw.split('%')[0].replace(/\(.*?\)/g,'').trim();
+        const hasPerf = r.perf && r.perf !== '–' && r.perf !== '#';
+        // Only add perf requirement if word actually has a perf form
+        const needPerf = this._requirePerf && hasPerf;
+        // Build placeholder hint
+        let placeholder = 'Latein eingeben…';
+        if (needPerf && this._requireFall2) placeholder = 'z.B. sedere, sedeo, sedi';
+        else if (needPerf) placeholder = 'z.B. sedere, sedeo, sedi';
+        else if (this._requireGenus && this._requireFall2) placeholder = 'z.B. amica, ae, f.';
+        else if (this._requireFall2) placeholder = 'z.B. amica, ae';
+        else if (this._requireGenus) placeholder = 'z.B. amica, f.';
         questions.push({
           mode: 'de-lat',
           meta: '',
           hint: '',
           main: deFirst || r.de || '?',
-          placeholder: 'Latein eingeben…',
+          placeholder,
           answer: '_de-lat_',
-          answerDisplay: this._formatDeLatAnswer(r, this._requireFall2, this._requireGenus),
+          answerDisplay: this._formatDeLatAnswer(r, this._requireFall2, this._requireGenus, needPerf),
           requireFall2: this._requireFall2 || false,
           requireGenus: this._requireGenus || false,
+          requirePerf:  needPerf,
           r
         });
       }
@@ -259,8 +290,8 @@ const Quiz = {
     let displayAnswer = q.answerDisplay || q.answer;
 
     if (q.answer === '_de-lat_') {
-      correct       = VokabelQuiz._checkDeLatAnswer(val, q.r, q.requireFall2, q.requireGenus);
-      displayAnswer = VokabelQuiz._formatDeLatAnswer(q.r, q.requireFall2, q.requireGenus);
+      correct       = VokabelQuiz._checkDeLatAnswer(val, q.r, q.requireFall2, q.requireGenus, q.requirePerf);
+      displayAnswer = VokabelQuiz._formatDeLatAnswer(q.r, q.requireFall2, q.requireGenus, q.requirePerf);
     } else if (q.mode === 'lat-de' && this._isVokabel) {
       correct       = VokabelQuiz._checkDeAnswer(val, q.r||{de: q.answer});
       displayAnswer = q.answerDisplay;

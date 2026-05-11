@@ -722,6 +722,8 @@ const App = {
       const shuffle = document.getElementById('vok-shuffle').checked;
       VokabelQuiz._requireFall2 = document.getElementById('vok-require-fall2')?.checked || false;
       VokabelQuiz._requireGenus = document.getElementById('vok-require-genus')?.checked || false;
+      VokabelQuiz._requirePerf  = document.getElementById('vok-require-perf')?.checked  || false;
+      VokabelQuiz._requirePerf  = document.getElementById('vok-require-perf')?.checked  || false;
       const rows    = state.currentVokabelTable.rows || [];
       const questions = VokabelQuiz.build(rows, modes, shuffle, false);
       if (!questions.length) { alert('Keine Vokabeln für diese Auswahl vorhanden.'); return; }
@@ -1101,5 +1103,32 @@ const App = {
     setTimeout(()=>this._fillFromPronomenTable(t),50);
   },
 
-  openAlleVokabeln() { VokSearch.openAlleVokabeln(); }
+  openAlleVokabeln() { VokSearch.openAlleVokabeln(); },
+  updateDeLatExample() {
+    const f2   = document.getElementById('vok-require-fall2')?.checked;
+    const gen  = document.getElementById('vok-require-genus')?.checked;
+    const perf = document.getElementById('vok-require-perf')?.checked;
+    const el   = document.getElementById('de-lat-example');
+    if (!el) return;
+    let ex = 'schola';
+
+    if (perf && f2 && gen) {
+      ex = 'sedere, sedeo, sedi | schola, ae f.'
+    } else if (f2 && gen) {
+      ex = 'schola, ae f.';
+    } else if (perf && f2) {
+      ex = 'sedere, sedeo, sedi | schola, ae'
+    } else if (perf && gen) {
+      ex = 'sedere, sedeo, sedi | schola f.'
+    } else if (f2) {
+      ex = 'schola, ae';
+    } else if (gen) {
+      ex = 'schola f.';
+    } else if (perf) {
+      ex = 'sedere, sedeo, sedi';
+    }
+
+    el.innerHTML = 'Eingabe z.B.: <code>' + ex + '</code>';
+  },
+
 };

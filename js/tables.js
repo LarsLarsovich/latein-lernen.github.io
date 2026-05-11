@@ -249,10 +249,19 @@ const Tables = {
       const parts = protected_.split('-'); if (parts.length < 1) return;
       const restore = s => { let r=s; Object.entries(bracketMap).forEach(([k,v])=>{r=r.split(k).join(v);}); return r; };
       const clean   = v => { if (!v) return ''; const s=restore(v).trim(); return (s&&s!=='#')?s:''; };
-      const deRaw   = parts.slice(4).map(restore).join('-').trim();
+      // Field 5 = German, Field 6 = Perfekt (optional)
+      // de field is everything between index 4 and the last field if last field looks like a perf form
+      const lastPart = parts[parts.length-1] ? restore(parts[parts.length-1]).trim() : '';
+      // perf field: last dash-separated part, either # or a Latin word (amavi, sedi, gavisus sum etc.)
+      const hasPerf = parts.length >= 6;
+      const perfRaw = hasPerf ? lastPart : '';
+      const perf    = (perfRaw && perfRaw !== '#') ? perfRaw : '';
+      const deRaw   = hasPerf
+        ? parts.slice(4, parts.length-1).map(restore).join('-').trim()
+        : parts.slice(4).map(restore).join('-').trim();
       const deNorm  = deRaw==='#' ? '' : deRaw.replace(/\s*\/\s*/g,'%').replace(/\s*,\s*/g,'%');
       const de      = deNorm ? expandBrackets(deNorm) : '';
-      rows.push({ lat:clean(parts[0]), fall2:clean(parts[1]), genus:clean(parts[2])||'–', dekl:clean(parts[3])||'–', de });
+      rows.push({ lat:clean(parts[0]), fall2:clean(parts[1]), genus:clean(parts[2])||'–', dekl:clean(parts[3])||'–', de, perf });
     });
     return rows.filter(r => r.lat);
   },
