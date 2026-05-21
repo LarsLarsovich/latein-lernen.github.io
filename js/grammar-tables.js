@@ -31,27 +31,28 @@ const GrammarTables = {
     '</div>';
   },
 
-  _konjSection(title, example, rows, perfStem) {
-    var perfTable = '';
-    if (perfStem) {
-      var persons = ['1. Sg. (ich)','2. Sg. (du)','3. Sg. (er/sie/es)','1. Pl. (wir)','2. Pl. (ihr)','3. Pl. (sie)'];
-      var perfEndings = ['i','isti','it','imus','istis','erunt'];
-      var self = this;
-      perfTable = '<div class="gt-section-subtitle">Perfekt Aktiv</div>' +
-        '<div class="dekl-table-wrap"><table class="dekl-table gt-table">' +
-        '<thead><tr><th>Person</th><th>Form</th></tr></thead><tbody>' +
-        persons.map(function(p,i){
-          return '<tr><td class="case-cell">' + escHtml(p) + '</td><td>' + self._hl(perfStem, perfEndings[i]) + '</td></tr>';
-        }).join('') +
-        '</tbody></table></div>';
-    }
+  // Einfache Konjugations-Sektion: nur Präsens
+  _konjSection(title, example, rows) {
     return '<div class="gt-section">' +
       '<div class="gt-section-title">' + escHtml(title) +
         '<span class="gt-example">Beispiel: <em>' + escHtml(example) + '</em></span></div>' +
       '<div class="dekl-table-wrap"><table class="dekl-table gt-table">' +
         '<thead><tr><th>Person</th><th>Form</th></tr></thead>' +
-        '<tbody>' + rows + '</tbody></table></div>' +
-      perfTable + '</div>';
+        '<tbody>' + rows + '</tbody>' +
+      '</table></div></div>';
+  },
+
+  // Hilfsmethode: eine Zeitmorphologie-Tabelle (Perfekt / PQP)
+  _zeitTable(label, deLabel, stem, endings, self) {
+    return '<div class="gt-tense-title">' + escHtml(label) +
+      '<span class="gt-tense-de">' + escHtml(deLabel) + '</span></div>' +
+      '<div class="dekl-table-wrap"><table class="dekl-table gt-table">' +
+        '<thead><tr><th>Person</th><th>Form</th></tr></thead><tbody>' +
+        ['1. Sg. (ich)','2. Sg. (du)','3. Sg. (er/sie/es)','1. Pl. (wir)','2. Pl. (ihr)','3. Pl. (sie)']
+          .map(function(p,i){
+            return '<tr><td class="case-cell">' + escHtml(p) + '</td><td>' + self._hl(stem, endings[i]) + '</td></tr>';
+          }).join('') +
+      '</tbody></table></div>';
   },
 
   // Match each video height to its sibling table height
@@ -162,25 +163,44 @@ const GrammarTables = {
     var self = this;
     var html = '';
 
+    // 1.–4. Konjugation: nur Präsens
     var sg1k=['o','as','at','amus','atis','ant'];
     html += this._konjSection('1. Konjugation (a-Konjugation)', 'amare – amō',
-      persons.map(function(p,i){return '<tr><td class="case-cell">'+escHtml(p)+'</td><td>'+self._hl('am',sg1k[i])+'</td></tr>';}).join(''), 'amav');
+      persons.map(function(p,i){return '<tr><td class="case-cell">'+escHtml(p)+'</td><td>'+self._hl('am',sg1k[i])+'</td></tr>';}).join(''));
 
     var sg2k=['eo','es','et','emus','etis','ent'];
     html += this._konjSection('2. Konjugation (e-Konjugation)', 'monēre – moneō',
-      persons.map(function(p,i){return '<tr><td class="case-cell">'+escHtml(p)+'</td><td>'+self._hl('mon',sg2k[i])+'</td></tr>';}).join(''), 'monu');
+      persons.map(function(p,i){return '<tr><td class="case-cell">'+escHtml(p)+'</td><td>'+self._hl('mon',sg2k[i])+'</td></tr>';}).join(''));
 
     var sg3k=['o','is','it','imus','itis','unt'];
     html += this._konjSection('3. Konjugation (konsonantisch)', 'regere – regō',
-      persons.map(function(p,i){return '<tr><td class="case-cell">'+escHtml(p)+'</td><td>'+self._hl('reg',sg3k[i])+'</td></tr>';}).join(''), 'rex');
+      persons.map(function(p,i){return '<tr><td class="case-cell">'+escHtml(p)+'</td><td>'+self._hl('reg',sg3k[i])+'</td></tr>';}).join(''));
 
     var sg4k=['io','is','it','imus','itis','iunt'];
     html += this._konjSection('4. Konjugation (i-Konjugation)', 'audire – audiō',
-      persons.map(function(p,i){return '<tr><td class="case-cell">'+escHtml(p)+'</td><td>'+self._hl('aud',sg4k[i])+'</td></tr>';}).join(''), 'audiv');
+      persons.map(function(p,i){return '<tr><td class="case-cell">'+escHtml(p)+'</td><td>'+self._hl('aud',sg4k[i])+'</td></tr>';}).join(''));
 
+    // ── Perfekt & Plusquamperfekt (einmal, für alle Konjugationen) ──
+    html += '<div class="gt-section">';
+    html += '<div class="gt-section-title">Perfekt & Plusquamperfekt<span class="gt-example">Beispiel: <em>amare</em></span></div>';
+    html += this._zeitTable('Perfekt', 'ich habe geliebt / ich liebte', 'amav', ['i','isti','it','imus','istis','erunt'], this);
+    html += this._zeitTable('Plusquamperfekt', 'ich hatte geliebt', 'amav', ['eram','eras','erat','eramus','eratis','erant'], this);
+    html += '</div>';
+
+    // ── esse – Präsens, Perfekt, Plusquamperfekt ──
     var esse=['sum','es','est','sumus','estis','sunt'];
-    html += this._konjSection('esse – Präsens (unregelmäßig)', 'esse (sein)',
-      persons.map(function(p,i){return '<tr><td class="case-cell">'+escHtml(p)+'</td><td><span class="gt-ending">'+esse[i]+'</span></td></tr>';}).join(''));
+    var esseRows = persons.map(function(p,i){
+      return '<tr><td class="case-cell">'+escHtml(p)+'</td><td><span class="gt-ending">'+esse[i]+'</span></td></tr>';
+    }).join('');
+    html += '<div class="gt-section">' +
+      '<div class="gt-section-title">esse – sein (unregelmäßig)' +
+        '<span class="gt-example">Beispiel: <em>esse (sein)</em></span></div>' +
+      '<div class="gt-tense-title">Präsens <span class="gt-tense-de">ich bin</span></div>' +
+      '<div class="dekl-table-wrap"><table class="dekl-table gt-table">' +
+        '<thead><tr><th>Person</th><th>Form</th></tr></thead><tbody>' + esseRows + '</tbody></table></div>' +
+      self._zeitTable('Perfekt', 'ich bin gewesen / ich war', 'fu', ['i','isti','it','imus','istis','erunt'], self) +
+      self._zeitTable('Plusquamperfekt', 'ich war gewesen', 'fu', ['eram','eras','erat','eramus','eratis','erant'], self) +
+    '</div>';
 
     el.innerHTML = html;
   }

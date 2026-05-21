@@ -1428,3 +1428,16 @@ input[type="range"].flex-1 { flex: 1; }
   padding-top: 4px;
 }
 .ai-undo-single:hover { background: #e05a5a; color: #fff; }
+
+/* ── Konjugation Zeitformen ── */
+.gt-tense-title {
+  font-size: 13px; font-weight: 700;
+  color: var(--text2); margin: 1rem 0 0.4rem;
+  text-transform: uppercase; letter-spacing: 0.06em;
+  display: flex; align-items: center; gap: 10px;
+}
+.gt-tense-de {
+  font-size: 12px; font-weight: 400;
+  text-transform: none; letter-spacing: 0;
+  color: var(--text3); font-style: italic;
+}
