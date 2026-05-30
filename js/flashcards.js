@@ -65,6 +65,7 @@ const Flashcards = {
     if (r.fall2 && r.fall2 !== '–' && r.fall2 !== '#') extras.push(escHtml(r.fall2));
     if (r.genus && r.genus !== '–' && r.genus !== '#') extras.push(escHtml(r.genus));
     if (r.dekl  && r.dekl  !== '–' && r.dekl  !== '#') extras.push(escHtml(r.dekl));
+    if (r.perf  && r.perf  !== '–' && r.perf  !== '#') extras.push(escHtml(r.perf));
     var latHtml = '<div class="fc-word">' + escHtml(r.lat || '–') + '</div>' +
       (extras.length ? '<div class="fc-meta">' + extras.join(' · ') + '</div>' : '');
 
