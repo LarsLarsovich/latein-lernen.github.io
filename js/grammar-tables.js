@@ -142,7 +142,7 @@ const GrammarTables = {
       cases.map(function(c,i){return self._row(c,self._hl('man',sg4m[i]),self._hl('man',pl4m[i]));}).join(''));
 
     // 4. Deklination n.
-    var sg4n=['u','us','u','u','u','u'], pl4n=['ua','uum','ibus','ua','ua','ibus'];
+    var sg4n=['u','us','ui','u','u','u'], pl4n=['ua','uum','ibus','ua','ua','ibus'];
     html += this._section('4. Deklination n.', 'cornu',
       cases.map(function(c,i){return self._row(c,self._hl('corn',sg4n[i]),self._hl('corn',pl4n[i]));}).join(''));
 
