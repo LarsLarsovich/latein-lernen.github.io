@@ -108,11 +108,18 @@ const VokabelQuiz = {
         const deRaw  = r.de || '';
         const deFmt  = deRaw.split('%').map(s=>s.trim()).join(', ');
         const deHint = parseAnswers(deRaw).join(' / ');
+        const hasFall2 = r.fall2 && r.fall2 !== '–' && r.fall2 !== '#';
+        const hasGenus = r.genus && r.genus !== '–' && r.genus !== '#';
+        const hasPerf  = r.perf  && r.perf  !== '–' && r.perf  !== '#';
+        let mainDisplay = (r.lat||'?').split('%').map(s=>s.trim()).join(', ');
+        if (hasFall2) mainDisplay += ', ' + r.fall2;
+        if (hasGenus) mainDisplay += ' ' + r.genus;
+        else if (hasPerf) mainDisplay += ', ' + r.perf;
         questions.push({
           mode: 'lat-de',
           meta: '',
-          hint: r.dekl && r.dekl !== '–' ? r.dekl : (r.fall2 && r.fall2 !== '–' ? r.fall2 : ''),
-          main: (r.lat||'?').split('%').map(s=>s.trim()).join(', '),
+          hint: r.dekl && r.dekl !== '–' ? r.dekl : '',
+          main: mainDisplay,
           placeholder: 'Deutsch eingeben…',
           answer: deRaw,
           answerDisplay: deFmt,
