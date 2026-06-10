@@ -35,7 +35,6 @@ const VokDetail = {
       keys.forEach((k,i) => { html += `<tr><td class="case-cell">${persons[i]}</td><td><strong>${override[k]||auto[i]||'–'}</strong></td><td class="cell-de">${deConj?deConj[i]:'–'}</td></tr>`; });
       html += `</tbody></table></div>`;
       if (perfForm) {
-        // Build Perfekt stem from perfForm (remove final 'i' ending for stem)
         const perfStem = perfForm.endsWith('i') ? perfForm.slice(0,-1) : perfForm;
         const perfEndings = [['1. Sg. (ich)','i'],['2. Sg. (du)','isti'],['3. Sg. (er/sie/es)','it'],['1. Pl. (wir)','imus'],['2. Pl. (ihr)','istis'],['3. Pl. (sie)','erunt']];
         html += `<div class="forms-section-title forms-section-title--spaced">Perfekt Aktiv</div>`;
@@ -49,6 +48,16 @@ const VokDetail = {
         html += `<div class="dekl-table-wrap"><table class="dekl-table"><thead><tr><th>Person</th><th>Latein</th></tr></thead><tbody>`;
         pqpEndings.forEach(([p, e]) => {
           html += `<tr><td class="case-cell">${p}</td><td><strong>${escHtml(perfStem)}${escHtml(e)}</strong></td></tr>`;
+        });
+        html += `</tbody></table></div>`;
+      }
+      const impForms = Latin.imperfectVerb(r.lat||'', r.fall2||'');
+      if (impForms) {
+        const impPersons = ['1. Sg. (ich)','2. Sg. (du)','3. Sg. (er/sie/es)','1. Pl. (wir)','2. Pl. (ihr)','3. Pl. (sie)'];
+        html += `<div class="forms-section-title forms-section-title--spaced">Imperfekt Aktiv</div>`;
+        html += `<div class="dekl-table-wrap"><table class="dekl-table"><thead><tr><th>Person</th><th>Latein</th></tr></thead><tbody>`;
+        impForms.forEach((f, i) => {
+          html += `<tr><td class="case-cell">${impPersons[i]}</td><td><strong>${escHtml(f)}</strong></td></tr>`;
         });
         html += `</tbody></table></div>`;
       }

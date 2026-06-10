@@ -378,6 +378,7 @@ const VokSearch = {
     const type = Latin.detectType(r);
     if (type==='verb') {
       const c=Latin.conjugateVerb(r.lat||'',r.fall2||''); if(c) c.forms.forEach(([,f])=>add(f));
+      const imp=Latin.imperfectVerb(r.lat||'',r.fall2||''); if(imp) imp.forEach(f=>add(f));
       if (r.perf) {
         const stem = r.perf.endsWith('i') ? r.perf.slice(0,-1) : r.perf;
         ['i','isti','it','imus','istis','erunt'].forEach(e=>add(stem+e));

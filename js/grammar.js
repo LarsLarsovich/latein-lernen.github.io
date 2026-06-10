@@ -171,6 +171,27 @@ const Latin = {
     };
   },
 
+  imperfectVerb(inf, form1sg) {
+    const endings = ['bam','bas','bat','bamus','batis','bant'];
+    let impStem = null;
+    if (inf.endsWith('are')) {
+      impStem = inf.slice(0,-3) + 'a';
+    } else if (inf.endsWith('ire')) {
+      impStem = inf.slice(0,-3) + 'ie';
+    } else if (inf.endsWith('ere')) {
+      const stem = inf.slice(0,-3);
+      if (form1sg && form1sg.endsWith('eo')) {
+        impStem = stem + 'e';
+      } else {
+        const sg1   = (form1sg && form1sg !== '#' && form1sg !== '–') ? form1sg : stem + 'o';
+        const stem3 = sg1.endsWith('o') ? sg1.slice(0,-1) : stem;
+        impStem = stem3 + 'e';
+      }
+    }
+    if (!impStem) return null;
+    return endings.map(e => impStem + e);
+  },
+
   declineNoun(nom, gen, genus) {
     let decl = 0;
     if      (gen.endsWith('ae'))  decl = 1;

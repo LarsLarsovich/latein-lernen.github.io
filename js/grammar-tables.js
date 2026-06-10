@@ -180,11 +180,12 @@ const GrammarTables = {
     html += this._konjSection('4. Konjugation (i-Konjugation)', 'audire – audiō',
       persons.map(function(p,i){return '<tr><td class="case-cell">'+escHtml(p)+'</td><td>'+self._hl('aud',sg4k[i])+'</td></tr>';}).join(''));
 
-    // ── Perfekt & Plusquamperfekt (einmal, für alle Konjugationen) ──
+    // ── Perfekt, Plusquamperfekt & Imperfekt (einmal, für alle Konjugationen) ──
     html += '<div class="gt-section">';
-    html += '<div class="gt-section-title">Perfekt & Plusquamperfekt<span class="gt-example">Beispiel: <em>amare</em></span></div>';
+    html += '<div class="gt-section-title">Perfekt, Plusquamperfekt & Imperfekt<span class="gt-example">Beispiel: <em>amare</em></span></div>';
     html += this._zeitTable('Perfekt', 'ich habe geliebt / ich liebte', 'amav', ['i','isti','it','imus','istis','erunt'], this);
     html += this._zeitTable('Plusquamperfekt', 'ich hatte geliebt', 'amav', ['eram','eras','erat','eramus','eratis','erant'], this);
+    html += this._zeitTable('Imperfekt', 'ich liebte (wiederholt / andauernd)', 'ama', ['bam','bas','bat','bamus','batis','bant'], this);
     html += '</div>';
 
     // ── esse – Präsens, Perfekt, Plusquamperfekt ──
@@ -200,6 +201,7 @@ const GrammarTables = {
         '<thead><tr><th>Person</th><th>Form</th></tr></thead><tbody>' + esseRows + '</tbody></table></div>' +
       self._zeitTable('Perfekt', 'ich bin gewesen / ich war', 'fu', ['i','isti','it','imus','istis','erunt'], self) +
       self._zeitTable('Plusquamperfekt', 'ich war gewesen', 'fu', ['eram','eras','erat','eramus','eratis','erant'], self) +
+      self._zeitTable('Imperfekt', 'ich war (andauernd)', 'er', ['am','as','at','amus','atis','ant'], self) +
     '</div>';
 
     el.innerHTML = html;
