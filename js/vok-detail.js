@@ -44,6 +44,13 @@ const VokDetail = {
           html += `<tr><td class="case-cell">${p}</td><td><strong>${escHtml(perfStem)}${escHtml(e)}</strong></td></tr>`;
         });
         html += `</tbody></table></div>`;
+        const pqpEndings = [['1. Sg. (ich)','eram'],['2. Sg. (du)','eras'],['3. Sg. (er/sie/es)','erat'],['1. Pl. (wir)','eramus'],['2. Pl. (ihr)','eratis'],['3. Pl. (sie)','erant']];
+        html += `<div class="forms-section-title forms-section-title--spaced">Plusquamperfekt Aktiv</div>`;
+        html += `<div class="dekl-table-wrap"><table class="dekl-table"><thead><tr><th>Person</th><th>Latein</th></tr></thead><tbody>`;
+        pqpEndings.forEach(([p, e]) => {
+          html += `<tr><td class="case-cell">${p}</td><td><strong>${escHtml(perfStem)}${escHtml(e)}</strong></td></tr>`;
+        });
+        html += `</tbody></table></div>`;
       }
       if (autoConj?.imperativ) {
         const deImp = German.imperativVerb(deBase);

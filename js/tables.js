@@ -376,7 +376,14 @@ const VokSearch = {
     add(r.lat); add(r.fall2); add(r.de);
     if (r.de) r.de.split('%').forEach(d => add(d.trim()));
     const type = Latin.detectType(r);
-    if (type==='verb') { const c=Latin.conjugateVerb(r.lat||'',r.fall2||''); if(c) c.forms.forEach(([,f])=>add(f)); }
+    if (type==='verb') {
+      const c=Latin.conjugateVerb(r.lat||'',r.fall2||''); if(c) c.forms.forEach(([,f])=>add(f));
+      if (r.perf) {
+        const stem = r.perf.endsWith('i') ? r.perf.slice(0,-1) : r.perf;
+        ['i','isti','it','imus','istis','erunt'].forEach(e=>add(stem+e));
+        ['eram','eras','erat','eramus','eratis','erant'].forEach(e=>add(stem+e));
+      }
+    }
     else if (type==='noun' && r.fall2 && r.fall2!=='#' && r.fall2!=='–') { const res=Latin.declineNoun(r.lat||'',r.fall2||'',r.genus||''); if(res){res.sg.forEach(f=>add(f));res.pl.forEach(f=>add(f));} }
     else if (type==='adj') { const res=Latin.declineAdj(r.lat||''); if(res)['m_sg','f_sg','n_sg','m_pl','f_pl','n_pl'].forEach(k=>res[k]?.forEach(f=>add(f))); }
     return forms;
