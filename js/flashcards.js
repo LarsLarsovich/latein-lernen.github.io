@@ -18,7 +18,7 @@ const Flashcards = {
     document.getElementById('fc-title').textContent = name;
 
     // Reset setup controls to defaults
-    var radios = document.querySelectorAll('input[name="fc-direction"]');
+    const radios = document.querySelectorAll('input[name="fc-direction"]');
     radios.forEach(function(r) { r.checked = (r.value === 'lat-de'); });
     document.getElementById('fc-shuffle').checked = true;
 
@@ -32,11 +32,11 @@ const Flashcards = {
 
   // Called by the Start button inside the setup screen
   startWithConfig() {
-    var dirEl = document.querySelector('input[name="fc-direction"]:checked');
+    const dirEl = document.querySelector('input[name="fc-direction"]:checked');
     this._direction = dirEl ? dirEl.value : 'lat-de';
-    var shuffle = document.getElementById('fc-shuffle').checked;
+    const shuffle = document.getElementById('fc-shuffle').checked;
 
-    var rows = shuffle
+    const rows = shuffle
       ? [...this._originalRows].sort(function() { return Math.random() - 0.5; })
       : [...this._originalRows];
     this._cards = rows;
@@ -61,16 +61,16 @@ const Flashcards = {
 
   // Builds {front, back} HTML for the current card based on direction
   _getContent(r) {
-    var extras = [];
+    const extras = [];
     if (r.fall2 && r.fall2 !== '–' && r.fall2 !== '#') extras.push(escHtml(r.fall2));
     if (r.genus && r.genus !== '–' && r.genus !== '#') extras.push(escHtml(r.genus));
     if (r.dekl  && r.dekl  !== '–' && r.dekl  !== '#') extras.push(escHtml(r.dekl));
     if (r.perf  && r.perf  !== '–' && r.perf  !== '#') extras.push(escHtml(r.perf));
-    var latHtml = '<div class="fc-word">' + escHtml(r.lat || '–') + '</div>' +
+    const latHtml = '<div class="fc-word">' + escHtml(r.lat || '–') + '</div>' +
       (extras.length ? '<div class="fc-meta">' + extras.join(' · ') + '</div>' : '');
 
-    var de = (r.de || '–').split('%').map(function(s) { return s.trim(); }).join(', ');
-    var deHtml = '<div class="fc-word">' + escHtml(de) + '</div>';
+    const de = (r.de || '–').split('%').map(function(s) { return s.trim(); }).join(', ');
+    const deHtml = '<div class="fc-word">' + escHtml(de) + '</div>';
 
     return this._direction === 'lat-de'
       ? { front: latHtml, back: deHtml }
@@ -79,8 +79,8 @@ const Flashcards = {
 
   // Renders front + back immediately and resets flip — use when NOT mid-animation
   _renderFull() {
-    var r       = this._cards[this._idx];
-    var content = this._getContent(r);
+    const r       = this._cards[this._idx];
+    const content = this._getContent(r);
 
     document.getElementById('fc-progress').textContent =
       (this._idx + 1) + ' / ' + this._cards.length;
@@ -124,11 +124,11 @@ const Flashcards = {
 
   // Shared navigation: handles animation delay when card is on back (flipped) side
   _navigate(delta) {
-    var card    = document.getElementById('fc-card');
-    var flipped = card.classList.contains('flipped');
+    const card    = document.getElementById('fc-card');
+    const flipped = card.classList.contains('flipped');
     this._idx  += delta;
-    var self    = this;
-    var content = this._getContent(this._cards[this._idx]);
+    const self    = this;
+    const content = this._getContent(this._cards[this._idx]);
 
     if (flipped) {
       this._setBusy(true);
@@ -154,13 +154,13 @@ const Flashcards = {
   },
 
   _initKeyboard() {
-    var self = this;
+    const self = this;
     window.addEventListener('keydown', function(e) {
-      var page      = document.getElementById('page-flashcards');
-      var cardsWrap = document.getElementById('fc-cards-wrap');
+      const page      = document.getElementById('page-flashcards');
+      const cardsWrap = document.getElementById('fc-cards-wrap');
       if (!page || page.classList.contains('hidden')) return;
       if (!cardsWrap || cardsWrap.classList.contains('hidden')) return;
-      var overlay = document.getElementById('fc-done-overlay');
+      const overlay = document.getElementById('fc-done-overlay');
       if (overlay && !overlay.classList.contains('hidden')) return;
 
       if (e.key === 'Enter') {

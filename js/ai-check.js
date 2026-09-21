@@ -1,7 +1,7 @@
 'use strict';
 
 // ── AI Vokabel-Checker ────────────────────────────────────────
-// Modell: claude-haiku-4-5 (günstigstes gutes Modell)
+// Modell: claude-sonnet-4-5
 // Automatisches Speichern in Firebase, Rückgängig pro Änderung
 const AiCheck = {
   _running: false,

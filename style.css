@@ -224,7 +224,25 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
 select.modal-input { cursor: pointer; }
 .create-error { font-size: 13px; color: #d47070; background: var(--danger-bg); border: 1px solid #4a1e1e; border-radius: var(--radius); padding: 8px 12px; margin-top: 1rem; }
 .create-error.hidden { display: none; }
+.vok-gram-warning { font-size: 12.5px; color: var(--accent2); background: var(--accent-dim); border-radius: var(--radius); padding: 6px 12px; margin: 6px 0 2px; }
 .editor-actions { display: flex; gap: 10px; margin-top: 1.5rem; flex-wrap: wrap; }
+
+/* ── Wörterbuch-Kontrolle Toggle (Vokabel-Editor) ── */
+.vok-dict-toggles { margin-top: 1.1rem; }
+.vok-dict-toggles-label { font-size: 12.5px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+.vok-dict-toggle-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.vok-dict-toggle-row .shuffle-opt--inline { flex: 0 0 auto; }
+.vok-dict-toggle-row .shuffle-opt--inline .shuffle-box { width: auto; }
+
+/* ── Wörterbuch-Kontrollbericht (nach dem Speichern) ── */
+.gram-report-modal { max-width: 560px; max-height: 80vh; overflow-y: auto; }
+.gram-report-section { margin-bottom: 1.2rem; }
+.gram-report-section:last-child { margin-bottom: 0; }
+.gram-report-section-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 8px; }
+.gram-report-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+.gram-report-item { font-size: 13px; line-height: 1.4; color: var(--text2); background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius); padding: 7px 12px; }
+.gram-report-item--warn { color: var(--accent2); background: var(--accent-dim); border-color: transparent; }
+.gram-report-hint { font-size: 12px; color: var(--text3); line-height: 1.4; }
 
 /* ── Buttons ── */
 .check-btn, .start-btn { background: var(--accent); color: #0f0f0f; font-family: var(--font-body); font-size: 14px; font-weight: 600; border: none; border-radius: var(--radius); padding: 10px 20px; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
@@ -274,6 +292,7 @@ select.modal-input { cursor: pointer; }
 .loading-spinner { width: 36px; height: 36px; border-radius: 50%; border: 2px solid var(--border2); border-top-color: var(--accent); animation: spin 0.8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .loading-text { font-size: 14px; color: var(--text3); letter-spacing: 0.06em; }
+.loading-screen--inline { position: static; inset: auto; background: transparent; padding: 2rem 2.5rem; }
 
 .hidden { display: none !important; }
 ::-webkit-scrollbar { width: 6px; }

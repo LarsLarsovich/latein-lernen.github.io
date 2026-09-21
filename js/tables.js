@@ -187,6 +187,8 @@ const Tables = {
     this._vokEditorMode = 'form';
     document.getElementById('vt-name').value = '';
     document.getElementById('vt-desc').value = '';
+    document.getElementById('vt-check-la').checked = true;
+    document.getElementById('vt-check-de').checked = true;
     document.getElementById('vok-mode-form-btn').classList.add('active');
     document.getElementById('vok-mode-text-btn').classList.remove('active');
     document.getElementById('vok-form-view').classList.remove('hidden');
@@ -199,6 +201,8 @@ const Tables = {
       if (t) {
         document.getElementById('vt-name').value = t.name||'';
         document.getElementById('vt-desc').value = t.desc||'';
+        document.getElementById('vt-check-la').checked = t.checkLa !== false;
+        document.getElementById('vt-check-de').checked = t.checkDe !== false;
         (t.rows||[]).forEach(r => this.addVokabelRow(r));
         if (!t.rows?.length) this.addVokabelRow();
       } else { this.addVokabelRow(); }
@@ -321,6 +325,82 @@ Now extract all vocabulary from the provided content.`;
     document.getElementById('vok-textarea').value = '';
   },
 
+  _GENDER_LABEL: { m: 'm.', f: 'f.', n: 'n.' },
+
+  // Schlägt für jede Zeile Latein-Wort + deutsche Übersetzung in den lokalen
+  // Wörterbuch-Daten nach und hängt die echte Formentabelle an (r.gram).
+  // checkLa/checkDe steuern, ob die jeweilige Sprache überhaupt kontrolliert wird
+  // (Toggle im Editor) – bei „aus" wird die Sprache übersprungen (status: skipped,
+  // Detailansicht fällt automatisch auf die alte Regel-Engine zurück).
+  // Zeigt danach im Bericht an: (1) nicht gefundene Wörter, (2) Wörter, bei denen
+  // das deutsche Geschlecht laut Wörterbuch vom eingetragenen Genus abweicht –
+  // dort wurden die deutschen Artikel (der/die/das) automatisch angepasst.
+  async _enrichRowsWithGram(rows, checkLa = true, checkDe = true) {
+    if (!rows.length) return rows;
+    if (!checkLa && !checkDe) {
+      rows.forEach(r => { r.gram = { la: { status: 'skipped' }, de: { status: 'skipped' } }; });
+      return rows;
+    }
+    GramLookup.setOverlay(true, `Formen werden nachgeschlagen … (0 / ${rows.length})`);
+    const notFound = [];
+    const changed  = [];
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i];
+      GramLookup.setOverlay(true, `Formen werden nachgeschlagen … (${i + 1} / ${rows.length}) – ${r.lat || r.de || ''}`);
+      try { r.gram = await GramLookup.buildForRow(r, { checkLa, checkDe }); }
+      catch (e) {
+        console.error('GramLookup error für', r.lat, e);
+        r.gram = { la: { status: checkLa ? 'not_found' : 'skipped' }, de: { status: checkDe ? 'not_found' : 'skipped' } };
+      }
+      if (checkLa && r.gram.la?.status === 'not_found') notFound.push(`„${escHtml(r.lat || '?')}“ (Latein)`);
+      if (checkDe && r.gram.de?.status === 'not_found') notFound.push(`„${escHtml((r.de||'').split('%')[0].trim() || '?')}“ (Deutsch)`);
+      if (checkDe && r.gram.de?.status === 'ok' && r.gram.de.pos === 'noun') {
+        const laGenus = (r.genus || '').trim();
+        const deGenus = this._GENDER_LABEL[r.gram.de.gender] || '';
+        if (deGenus && ['m.', 'f.', 'n.'].includes(laGenus) && deGenus !== laGenus) {
+          const deWord = (r.de || '').split('%')[0].trim() || '?';
+          changed.push(
+            `„${escHtml(deWord)}“ (zu „${escHtml(r.lat || '?')}“): Latein ${laGenus} → Deutsch ${deGenus} – Artikel wurden ans deutsche Geschlecht angepasst.`
+          );
+        }
+      }
+    }
+    GramLookup.setOverlay(false);
+    await this._showGramReport(notFound, changed);
+    return rows;
+  },
+
+  // Zeigt den Bericht an und wartet, bis der Nutzer ihn schließt (Button oder Klick
+  // außerhalb) – der Aufrufer (saveVokabel/-Draft) wartet darauf, bevor gespeichert
+  // und zur Startseite navigiert wird (App.goHome() blendet sonst alle Overlays sofort
+  // wieder aus, wodurch der Bericht direkt wieder verschwinden würde).
+  _showGramReport(notFound, changed) {
+    if (!notFound.length && !changed.length) return Promise.resolve();
+    let html = '';
+    if (notFound.length) {
+      html += `<div class="gram-report-section">
+        <div class="gram-report-section-title">⚠️ Nicht im Wörterbuch gefunden (${notFound.length})</div>
+        <div class="gram-report-list">${notFound.map(t => `<div class="gram-report-item gram-report-item--warn">${t}</div>`).join('')}</div>
+        <div class="gram-report-hint">Für diese Wörter wird die alte, geschätzte Formentabelle angezeigt (Warnhinweis in der Detailansicht). Die Liste wurde trotzdem gespeichert – bitte danach prüfen bzw. Formen manuell überschreiben.</div>
+      </div>`;
+    }
+    if (changed.length) {
+      html += `<div class="gram-report-section">
+        <div class="gram-report-section-title">✏️ Deutsches Geschlecht weicht ab (${changed.length})</div>
+        <div class="gram-report-list">${changed.map(t => `<div class="gram-report-item">${t}</div>`).join('')}</div>
+        <div class="gram-report-hint">Das deutsche Wörterbuch hat ein anderes Geschlecht als das eingetragene Genus ermittelt – die deutschen Artikel (der/die/das) wurden entsprechend korrigiert. Bitte kurz prüfen, ob das Wort stimmt.</div>
+      </div>`;
+    }
+    document.getElementById('gram-report-body').innerHTML = html;
+    document.getElementById('gram-report-overlay').classList.remove('hidden');
+    return new Promise(resolve => { this._gramReportResolve = resolve; });
+  },
+  closeGramReport(e) {
+    if (e && e.target !== document.getElementById('gram-report-overlay')) return;
+    document.getElementById('gram-report-overlay').classList.add('hidden');
+    if (this._gramReportResolve) { this._gramReportResolve(); this._gramReportResolve = null; }
+  },
+
   async saveVokabelDraft() {
     const name = document.getElementById('vt-name').value.trim();
     const desc = document.getElementById('vt-desc').value.trim();
@@ -329,14 +409,17 @@ Now extract all vocabulary from the provided content.`;
     const rows = this._vokEditorMode==='text'
       ? this._parseTextRows(document.getElementById('vok-textarea').value)
       : this._readFormRows();
+    const checkLa = document.getElementById('vt-check-la').checked;
+    const checkDe = document.getElementById('vt-check-de').checked;
     err.classList.add('hidden');
     const btn = document.getElementById('vt-draft-btn');
     if (btn) { btn.textContent='…'; btn.disabled=true; }
+    await this._enrichRowsWithGram(rows, checkLa, checkDe);
     // Use existing draft ID if editing a draft, else new ID
     const docId = (state.editingSource==='vokabel-draft' && state.editingId)
       ? state.editingId : 'vd_'+Date.now();
     try {
-      await COL.vokabelDrafts.doc(docId).set({id:docId, order:Date.now(), name, desc, rows});
+      await COL.vokabelDrafts.doc(docId).set({id:docId, order:Date.now(), name, desc, rows, checkLa, checkDe});
       state.editingId = null; state.editingSource = null;
       App.goHome(); setTimeout(()=>App.switchTab('tables'),100);
     } catch(e) {
@@ -355,11 +438,14 @@ Now extract all vocabulary from the provided content.`;
       ? this._parseTextRows(document.getElementById('vok-textarea').value)
       : this._readFormRows();
     if (!rows.length) { err.textContent='Bitte füge mindestens eine Vokabel hinzu.'; err.classList.remove('hidden'); return; }
+    const checkLa = document.getElementById('vt-check-la').checked;
+    const checkDe = document.getElementById('vt-check-de').checked;
     err.classList.add('hidden');
     const btn   = document.getElementById('vt-save-btn'); btn.textContent='…'; btn.disabled=true;
+    await this._enrichRowsWithGram(rows, checkLa, checkDe);
     const docId = state.editingId || 'vt_'+Date.now();
     try {
-      await COL.vokabel.doc(docId).set({id:docId, order:Date.now(), name, desc, rows});
+      await COL.vokabel.doc(docId).set({id:docId, order:Date.now(), name, desc, rows, checkLa, checkDe});
       App.goHome(); setTimeout(()=>App.switchTab('tables'),100);
     } catch(e) { err.textContent='Fehler: '+e.message; err.classList.remove('hidden'); }
     finally { btn.textContent='Speichern'; btn.disabled=false; }
@@ -387,6 +473,14 @@ const VokSearch = {
     }
     else if (type==='noun' && r.fall2 && r.fall2!=='#' && r.fall2!=='–') { const res=Latin.declineNoun(r.lat||'',r.fall2||'',r.genus||''); if(res){res.sg.forEach(f=>add(f));res.pl.forEach(f=>add(f));} }
     else if (type==='adj') { const res=Latin.declineAdj(r.lat||''); if(res)['m_sg','f_sg','n_sg','m_pl','f_pl','n_pl'].forEach(k=>res[k]?.forEach(f=>add(f))); }
+    if (r.gram) {
+      const laOk = r.gram.la && r.gram.la.status==='ok', deOk = r.gram.de && r.gram.de.status==='ok';
+      if (laOk && r.gram.la.pos==='verb') Object.values(r.gram.la.forms).forEach(add);
+      if (laOk && r.gram.la.pos==='noun') { Object.values(r.gram.la.forms.sg||{}).forEach(f=>f.split('/').forEach(add)); Object.values(r.gram.la.forms.pl||{}).forEach(f=>f.split('/').forEach(add)); }
+      if (laOk && r.gram.la.pos==='adj') ['m','f','n'].forEach(g=>{Object.values(r.gram.la.forms[g].sg).forEach(f=>f.split('/').forEach(add));Object.values(r.gram.la.forms[g].pl).forEach(f=>f.split('/').forEach(add));});
+      if (deOk && r.gram.de.pos==='verb') Object.values(r.gram.de.forms).forEach(add);
+      if (deOk && r.gram.de.pos==='noun') { Object.values(r.gram.de.forms.sg||{}).forEach(f=>f.split('/').forEach(add)); Object.values(r.gram.de.forms.pl||{}).forEach(f=>f.split('/').forEach(add)); }
+    }
     return forms;
   },
 

@@ -26,7 +26,8 @@ js/
   constants.js      # CASES, GENDERS, GENUS_OPTS, DEKL_OPTS
   state.js          # Globaler App-State
   utils.js          # escHtml, hashPassword, parseAnswers, isCorrect, diffHighlight
-  grammar.js        # German + Latin Grammatik-Engines (declineNoun, conjugateVerb etc.)
+  grammar.js        # German + Latin Grammatik-Engines (Fallback, wenn Wörterbuch-Lookup nichts findet)
+  lookup.js         # Lookup + GramLookup: echte Formentabellen aus data/lookup/ (Wiktionary-Export)
   quiz-engine.js    # Quiz + VokabelQuiz (Spaced Repetition)
   report.js         # Fehler-Meldesystem
   vok-detail.js     # Vokabel-Detailansicht + Override-Editor
@@ -34,6 +35,11 @@ js/
   app.js            # Navigation, Login, Admin, Quiz-Flow, Götter-Actions
   goetter.js        # Götter-Seite, Detail, Editor
   grammar-tables.js # Statische Deklinationen + Konjugationen mit YouTube-Videos
+data/lookup/
+  la/<2-Buchstaben-Shard>.json  # Latein: Wort -> [{pos, klass, forms}], aus Wiktionary exportiert
+  de/<2-Buchstaben-Shard>.json  # Deutsch: Wort -> [{pos, gender, forms}], aus Wiktionary exportiert
+scripts/
+  export_lookup.py  # Erzeugt data/lookup/ aus den lokalen SQLite-Wörterbüchern (la-lookup.db/de-lookup.db)
 CLAUDE.md           # Diese Datei
 ```
 
@@ -94,6 +100,12 @@ CLAUDE.md           # Diese Datei
 - Admin kann Formen manuell überschreiben (Override)
 - **Alle Vokabeln Quiz:** Slider für Anzahl, zufällig ausgewählt
 - **Eigenes Quiz:** Mehrere Listen auswählen
+
+### Formentabellen (r.gram)
+- Beim Speichern einer Vokabelliste (`Tables.saveVokabel(Draft)`, `VokDetail.saveBasicEdit`) wird pro Zeile `GramLookup.buildForRow(r)` aufgerufen (Ladeoverlay `#vok-lookup-overlay`) und das Ergebnis unter `r.gram = {la, de}` mitgespeichert
+- `la`/`de` haben je `status: 'ok' | 'not_found' | 'skipped'`; bei `'ok'` echte Formen aus `data/lookup/` (Wiktionary), bei `'not_found'` zeigt `vok-detail.js` eine Warnung + Fallback auf die alten Regel-Engines aus `grammar.js`
+- Deutsch hat nur 4 echte Fälle: 5. Fall (`f5`) = 1. Fall Sg. ohne Artikel + „!“, 6. Fall (`f6`) = „mit “ + 3. Fall Sg. – werden in der Tabelle an den Vokativ-/Ablativ-Zeilen angezeigt
+- Alte Vokabelzeilen ohne `r.gram` (vor Einführung dieses Features) fallen automatisch auf die alten Regel-Engines zurück – kein Datenverlust/Crash
 
 ---
 

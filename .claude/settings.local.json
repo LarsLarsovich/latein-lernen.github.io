@@ -4,7 +4,8 @@
       "Bash(for f:*)",
       "Bash(do)",
       "Bash(node -e \":*)",
-      "Bash(done)"
+      "Bash(done)",
+      "WebSearch"
     ]
   }
 }

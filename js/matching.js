@@ -19,10 +19,10 @@ const Matching = {
     this._name = name;
 
     // Paare bauen: nur Zeilen mit lat UND de
-    var pairs = [];
+    const pairs = [];
     rows.forEach(function(r) {
-      var lat = (r.lat || '').trim();
-      var de  = (r.de  || '').split('%')[0].replace(/\(.*?\)/g, '').trim();
+      const lat = (r.lat || '').trim();
+      const de  = (r.de  || '').split('%')[0].replace(/\(.*?\)/g, '').trim();
       if (lat && lat !== '–' && de && de !== '–') pairs.push({ lat: lat, de: de });
     });
     if (!pairs.length) { alert('Keine passenden Vokabeln für die Zuordnungsübung.'); return; }
@@ -42,7 +42,7 @@ const Matching = {
   },
 
   _renderBatch() {
-    var batch = this._allPairs.slice(this._offset, this._offset + this.BATCH);
+    const batch = this._allPairs.slice(this._offset, this._offset + this.BATCH);
     this._currentPairs = batch;
     this._selectedLat  = null;
     this._selectedDe   = null;
@@ -52,11 +52,11 @@ const Matching = {
       Math.min(this._offset, this._allPairs.length) + ' / ' + this._allPairs.length;
 
     // Gemischte Reihenfolge für rechte Spalte
-    var deOrder = batch.map(function(_, i) { return i; })
-                       .sort(function() { return Math.random() - 0.5; });
+    const deOrder = batch.map(function(_, i) { return i; })
+                         .sort(function() { return Math.random() - 0.5; });
 
-    var latCol = document.getElementById('match-col-lat');
-    var deCol  = document.getElementById('match-col-de');
+    const latCol = document.getElementById('match-col-lat');
+    const deCol  = document.getElementById('match-col-de');
 
     latCol.innerHTML = batch.map(function(p, i) {
       return '<button class="match-btn match-btn-lat" onclick="Matching.selectLat(' + i + ',this)">' +
@@ -64,7 +64,7 @@ const Matching = {
     }).join('');
 
     deCol.innerHTML = deOrder.map(function(origIdx) {
-      var p = batch[origIdx];
+      const p = batch[origIdx];
       return '<button class="match-btn match-btn-de" onclick="Matching.selectDe(' + origIdx + ',this)">' +
              escHtml(p.de) + '</button>';
     }).join('');
@@ -86,10 +86,10 @@ const Matching = {
 
   _tryMatch() {
     if (!this._selectedLat || !this._selectedDe) return;
-    var latIdx = this._selectedLat.idx;
-    var deIdx  = this._selectedDe.idx;
-    var latBtn = this._selectedLat.btn;
-    var deBtn  = this._selectedDe.btn;
+    const latIdx = this._selectedLat.idx;
+    const deIdx  = this._selectedDe.idx;
+    const latBtn = this._selectedLat.btn;
+    const deBtn  = this._selectedDe.btn;
 
     if (latIdx === deIdx) {
       // Richtig
@@ -102,10 +102,10 @@ const Matching = {
       this._selectedDe  = null;
 
       // Batch fertig?
-      var solved = document.querySelectorAll('.match-btn:disabled').length / 2;
+      const solved = document.querySelectorAll('.match-btn:disabled').length / 2;
       if (solved >= this._currentPairs.length) {
         this._offset += this.BATCH;
-        var self = this;
+        const self = this;
         if (this._offset >= this._allPairs.length) {
           setTimeout(function() { self._showResult(); }, 500);
         } else {
@@ -117,7 +117,7 @@ const Matching = {
       this._errors++;
       latBtn.classList.add('match-wrong');
       deBtn.classList.add('match-wrong');
-      var self = this;
+      const self = this;
       setTimeout(function() {
         latBtn.classList.remove('match-wrong', 'selected');
         deBtn.classList.remove('match-wrong', 'selected');
@@ -128,10 +128,10 @@ const Matching = {
   },
 
   _showResult() {
-    var elapsed = Math.round((Date.now() - this._startTime) / 1000);
-    var mins    = Math.floor(elapsed / 60);
-    var secs    = elapsed % 60;
-    var timeStr = mins > 0
+    const elapsed = Math.round((Date.now() - this._startTime) / 1000);
+    const mins    = Math.floor(elapsed / 60);
+    const secs    = elapsed % 60;
+    const timeStr = mins > 0
       ? mins + ':' + (secs < 10 ? '0' : '') + secs + ' min'
       : secs + ' Sek.';
     document.getElementById('match-result-time').textContent   = timeStr;
