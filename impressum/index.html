@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Impressum – Latein</title>
+  <link rel="icon" type="image/x-icon" href="../favicon.ico" />
+  <link rel="icon" type="image/png" sizes="32x32" href="../favicon-32x32.png" />
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+  <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../gemeinsam/style.css?v=2.3.1" />
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-LY0LGYY3GZ"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-LY0LGYY3GZ');
+  </script>
+</head>
+<body>
+<!-- Kopfzeile, Fußzeile, Login und „Melden" fügt gemeinsam/shell.js ein. -->
+
+<main id="page-home" class="page active">
+  <div class="back-row">
+    <a class="back-btn" href="../index.html">← Startseite</a>
+  </div>
+  <div class="impressum-wrap">
+    <h1 class="impressum-title">Impressum</h1>
+    <div class="impressum-section">
+      <div class="impressum-label">Betreiber</div>
+      <div class="impressum-value">Emil Zinke</div>
+    </div>
+    <div class="impressum-section">
+      <div class="impressum-label">E-Mail</div>
+      <div class="impressum-value">e.zinke@grg7.at</div>
+    </div>
+    <div class="impressum-section">
+      <div class="impressum-label">Zweck der Website</div>
+      <div class="impressum-value">Private, nicht-kommerzielle Lernplattform für Latein. Die Website dient ausschließlich dem persönlichen Lernen und enthält keine Werbung, keinen kommerziellen Zweck und kein öffentliches Angebot an Dritte.</div>
+    </div>
+    <div class="impressum-section">
+      <div class="impressum-label">Haftungsausschluss</div>
+      <div class="impressum-value">Alle Inhalte wurden nach bestem Wissen zusammengestellt. Für die Richtigkeit, Vollständigkeit und Aktualität der Inhalte wird keine Gewähr übernommen.</div>
+    </div>
+  </div>
+</main>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+
+<!-- Gemeinsame Skripte, danach die Skripte dieses Themas -->
+<script src="../gemeinsam/firebase.js?v=2.3.1"></script>
+<script src="../gemeinsam/constants.js?v=2.3.1"></script>
+<script src="../gemeinsam/state.js?v=2.3.1"></script>
+<script src="../gemeinsam/utils.js?v=2.3.1"></script>
+<script src="../gemeinsam/shell.js?v=2.3.1"></script>
+<script src="../gemeinsam/report.js?v=2.3.1"></script>
+<script>
+App.init({ title: 'Impressum' });
+</script>
+</body>
+</html>

@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kulturkunde – Latein</title>
+  <link rel="icon" type="image/x-icon" href="../favicon.ico" />
+  <link rel="icon" type="image/png" sizes="32x32" href="../favicon-32x32.png" />
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+  <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../gemeinsam/style.css?v=2.3.1" />
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-LY0LGYY3GZ"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-LY0LGYY3GZ');
+  </script>
+</head>
+<body>
+<!-- Kopfzeile, Fußzeile, Login und „Melden" fügt gemeinsam/shell.js ein. -->
+
+<!-- ══ ÜBERSICHT ══ -->
+<main id="page-home" class="page active">
+  <div class="back-row">
+    <a class="back-btn" href="../index.html">← Startseite</a>
+  </div>
+  <div class="topic-head">
+    <h1 class="topic-title">Götter</h1>
+  </div>
+
+  <!-- Götter Liste -->
+  <div class="quiz-grid" id="goetter-full-grid" style="margin-bottom:1.5rem;"></div>
+  <div class="empty-hint" id="goetter-full-empty" style="display:none;">Noch keine Götter eingetragen.</div>
+
+  <!-- Stammbaum -->
+  <div class="tables-category-heading" style="margin:1.5rem 0 0.8rem;">
+    <div class="tables-category-heading-title">Stammbaum</div>
+    <div class="tables-category-heading-line"></div>
+  </div>
+  <iframe
+    src="https://miro.com/app/live-embed/uXjVGtIatxo=/?embedMode=view_only_without_ui&moveToViewport=-2021,-241,2861,1623&embedId=292432411735"
+    width="100%" height="500" frameborder="0" scrolling="no"
+    allow="fullscreen; clipboard-read; clipboard-write" allowfullscreen
+    style="display:block; border-radius:12px; border:1px solid var(--border); background:#fff;"></iframe>
+</main>
+
+<!-- ══ EIN GOTT ══ -->
+<main id="page-gott-detail" class="page">
+  <div class="back-row">
+    <button class="back-btn" onclick="App.goBack()">← Zurück</button>
+    <button class="report-float-btn" id="gott-detail-report-btn">⚑ Melden</button>
+    <button class="draft-btn hidden" id="gott-detail-edit-btn" data-admin>Bearbeiten</button>
+  </div>
+  <div id="gott-detail-content"></div>
+</main>
+
+<!-- ══ GOTT BEARBEITEN (Admin) ══ -->
+<main id="page-gott-editor" class="page">
+  <div class="back-row">
+    <button class="back-btn" onclick="App.goBack()">← Abbrechen</button>
+    <div class="editor-page-title" id="gott-editor-title">Neuer Gott</div>
+  </div>
+  <div class="editor-wrap">
+    <div class="field-group">
+      <label>Römischer Name</label>
+      <input type="text" id="gott-ed-rom" class="modal-input" placeholder="z.B. Jupiter" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+    </div>
+    <div class="field-group">
+      <label>Griechischer Name</label>
+      <input type="text" id="gott-ed-gre" class="modal-input" placeholder="z.B. Zeus" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+    </div>
+    <div class="field-group">
+      <label>Emoji / Symbol <span style="color:var(--text3);font-size:12px;">(wird verwendet wenn kein Foto vorhanden)</span></label>
+      <input type="text" id="gott-ed-symbol" class="modal-input" placeholder="z.B. ⚡ oder 🌊" style="max-width:120px;font-size:24px;"/>
+    </div>
+    <div class="field-group">
+      <label>Foto-URL <span style="color:var(--text3);font-size:12px;">(Link zu einem Bild aus dem Internet)</span></label>
+      <input type="url" id="gott-ed-foto" class="modal-input" placeholder="https://..." autocorrect="off" autocapitalize="off" spellcheck="false"
+        oninput="const p=document.getElementById('gott-ed-foto-preview');p.src=this.value;p.style.display=this.value?'block':'none'"/>
+      <img id="gott-ed-foto-preview" src="" alt="Vorschau"
+        style="display:none;margin-top:8px;max-height:160px;width:100%;border-radius:10px;object-fit:contain;border:1px solid var(--border);background:var(--bg2);"
+        onerror="this.style.display='none'"/>
+    </div>
+    <div class="field-group">
+      <label>Bildquelle <span style="color:var(--text3);font-size:12px;">(wird unter dem Bild angezeigt)</span></label>
+      <input type="text" id="gott-ed-quelle" class="modal-input" placeholder="z.B. Wikipedia, Museo Nacional, ..." autocorrect="off" spellcheck="false"/>
+    </div>
+    <div class="field-group">
+      <label>Bereiche <span style="color:var(--text3);font-size:12px;">(mit Komma trennen)</span></label>
+      <input type="text" id="gott-ed-bereiche" class="modal-input" placeholder="z.B. Himmel, Donner, Götterherrscher" autocorrect="off"/>
+    </div>
+    <div class="field-group">
+      <label>Symbole &amp; Gegenstände <span style="color:var(--text3);font-size:12px;">(mit Komma trennen)</span></label>
+      <input type="text" id="gott-ed-symbole" class="modal-input" placeholder="z.B. Blitz, Adler, Zepter" autocorrect="off"/>
+    </div>
+    <div class="field-group">
+      <label>Beschreibung</label>
+      <textarea id="gott-ed-beschr" class="vok-textarea" placeholder="Kurze Beschreibung des Gottes…" autocorrect="off" spellcheck="false"></textarea>
+    </div>
+    <div class="field-group">
+      <label>Wichtige Fakten <span style="color:var(--text3);font-size:12px;">(eine Zeile pro Fakt)</span></label>
+      <textarea id="gott-ed-fakten" class="vok-textarea" style="min-height:80px;" placeholder="z.B. Herrscht über den Olymp&#10;Sohn von Kronos und Rhea" autocorrect="off" spellcheck="false"></textarea>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div class="field-group">
+        <label>Eltern</label>
+        <input type="text" id="gott-ed-eltern" class="modal-input" placeholder="z.B. Kronos, Rhea" autocorrect="off"/>
+      </div>
+      <div class="field-group">
+        <label>Kinder</label>
+        <input type="text" id="gott-ed-kinder" class="modal-input" placeholder="z.B. Athena, Apollo" autocorrect="off"/>
+      </div>
+    </div>
+    <div class="create-error hidden" id="gott-ed-error"></div>
+    <div class="editor-actions">
+      <button class="start-btn" id="gott-save-btn" onclick="Goetter.saveGott()">Speichern</button>
+      <button class="outline-btn" onclick="App.goBack()">Abbrechen</button>
+    </div>
+  </div>
+</main>
+
+<!-- ══ FENSTER: Admin klickt auf eine Karte ══ -->
+<div class="modal-overlay hidden" id="card-action-overlay" onclick="Goetter.closeActions(event)">
+  <div class="modal card-action-modal">
+    <button class="modal-close" onclick="Goetter.closeActions()">✕</button>
+    <div class="modal-title" id="card-action-title"></div>
+    <div class="card-action-desc" id="card-action-desc"></div>
+    <div class="card-action-btns">
+      <button class="start-btn" onclick="Goetter.viewFromActions()">Ansehen</button>
+      <button class="draft-btn" onclick="Goetter.editFromActions()">Bearbeiten</button>
+      <button class="danger-btn" onclick="Goetter.deleteFromActions()">Löschen</button>
+      <button class="outline-btn" onclick="Goetter.closeActions()">Abbrechen</button>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+
+<!-- Gemeinsame Skripte, danach die Skripte dieses Themas -->
+<script src="../gemeinsam/firebase.js?v=2.3.1"></script>
+<script src="../gemeinsam/constants.js?v=2.3.1"></script>
+<script src="../gemeinsam/state.js?v=2.3.1"></script>
+<script src="../gemeinsam/utils.js?v=2.3.1"></script>
+<script src="../gemeinsam/shell.js?v=2.3.1"></script>
+<script src="../gemeinsam/report.js?v=2.3.1"></script>
+<script src="goetter.js?v=2.3.1"></script>
+<script>
+App.init({
+  title: 'Kulturkunde',
+  collections: ['goetter'],
+  onData() { Goetter.renderHome(); },
+  onAdd()  { Goetter.openEditor(null); }             // Plus-Knopf: neuer Gott
+});
+</script>
+</body>
+</html>

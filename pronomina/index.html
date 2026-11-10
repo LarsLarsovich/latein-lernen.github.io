@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pronomina – Latein</title>
+  <link rel="icon" type="image/x-icon" href="../favicon.ico" />
+  <link rel="icon" type="image/png" sizes="32x32" href="../favicon-32x32.png" />
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+  <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../gemeinsam/style.css?v=2.3.1" />
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-LY0LGYY3GZ"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-LY0LGYY3GZ');
+  </script>
+</head>
+<body>
+<!-- Kopfzeile, Fußzeile, Login und „Melden" fügt gemeinsam/shell.js ein. -->
+
+<!-- ══ ÜBERSICHT ══ -->
+<main id="page-home" class="page active">
+  <div class="back-row">
+    <a class="back-btn" href="../index.html">← Startseite</a>
+  </div>
+  <div class="topic-head">
+    <h1 class="topic-title">Pronomina</h1>
+    <p class="topic-info" id="topic-info"></p>
+  </div>
+  <div id="pronomen-draft-section" class="hidden">
+    <div class="section-header">
+      <div class="section-label">Entwürfe</div>
+      <div class="section-hint">Nur für Admins sichtbar</div>
+    </div>
+    <div class="quiz-grid list-grid" id="pronomen-draft-grid"></div>
+    <div class="empty-hint hidden" id="pronomen-draft-empty">Keine Entwürfe.</div>
+    <div class="section-divider"></div>
+  </div>
+  <div class="quiz-grid list-grid" id="pronomen-grid"></div>
+  <div class="empty-hint hidden" id="pronomen-empty">Noch keine Pronomen-Tabellen vorhanden.</div>
+</main>
+
+
+<!-- ══ EINE TABELLE ══ -->
+<main id="page-table-view" class="page">
+  <div class="back-row">
+    <button class="back-btn" onclick="App.goBack()">← Zurück</button>
+    <div class="editor-page-title" id="table-view-title"></div>
+    <button class="report-float-btn" onclick="Report.open('Tabelle: ' + document.getElementById('table-view-title').textContent)" title="Fehler melden">⚑ Melden</button>
+    <div class="table-view-admin-btns hidden" id="table-view-admin-btns" data-admin>
+      <button class="draft-btn" onclick="Tables.editTableFromView()">Bearbeiten</button>
+    </div>
+    <div class="table-view-quiz-btn" id="table-view-quiz-btn">
+      <button class="start-btn" onclick="App.startTableQuiz()" id="vok-quiz-start-btn">Quiz starten →</button>
+    </div>
+  </div>
+  <div id="table-view-search" class="hidden">
+    <div class="vok-search-bar">
+      <input type="text" id="table-search-input" class="vok-search-input" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Suchen…" oninput="VokSearch.searchTable()" />
+      <div class="vok-filters">
+        <select class="vok-filter-select" id="table-filter-type" onchange="VokSearch.searchTable()">
+          <option value="">Alle Wortarten</option>
+          <option value="noun">Nomen</option>
+          <option value="verb">Verben</option>
+          <option value="adj">Adjektive</option>
+          <option value="indecl">Alles andere</option>
+        </select>
+        <select class="vok-filter-select" id="table-filter-genus" onchange="VokSearch.searchTable()">
+          <option value="">Alle Genera</option>
+          <option value="m.">m.</option>
+          <option value="f.">f.</option>
+          <option value="n.">n.</option>
+        </select>
+        <select class="vok-filter-select" id="table-filter-klasse" onchange="VokSearch.searchTable()">
+          <option value="">Alle Dekl. / Konj.</option>
+          <optgroup label="Deklination (Nomen)">
+            <option value="d:1. Dekl.">1. Deklination</option>
+            <option value="d:2. Dekl.">2. Deklination</option>
+            <option value="d:3. Dekl.">3. Deklination</option>
+            <option value="d:4. Dekl.">4. Deklination</option>
+            <option value="d:5. Dekl.">5. Deklination</option>
+          </optgroup>
+          <optgroup label="Konjugation (Verben)">
+            <option value="k:a">a-Konjugation (1.)</option>
+            <option value="k:e">e-Konjugation (2.)</option>
+            <option value="k:kons">konsonantische Konj. (3.)</option>
+            <option value="k:misch">Mischkonjugation (capio)</option>
+            <option value="k:i">i-Konjugation (4.)</option>
+            <option value="k:irr">unregelmäßige Verben</option>
+          </optgroup>
+        </select>
+      </div>
+    </div>
+  </div>
+  <div id="table-view-content"></div>
+  <div class="print-btn-row">
+    <button class="print-btn" onclick="Print.tableView()" title="Als PDF exportieren / Drucken">⎙ Drucken</button>
+  </div>
+</main>
+
+<!-- ══ TABELLE BEARBEITEN (Admin) ══ -->
+<main id="page-pronomen-editor" class="page">
+  <div class="back-row">
+    <button class="back-btn" onclick="App.goHome()">← Abbrechen</button>
+    <div class="editor-page-title" id="pronomen-editor-title">Neue Pronomen-Tabelle</div>
+  </div>
+  <div class="editor-wrap">
+    <div class="editor-meta">
+      <div class="field-group">
+        <label>Tabellenname</label>
+        <input type="text" id="pt-name" class="modal-input" placeholder="z.B. hic / haec / hoc" autocorrect="off" autocapitalize="off" spellcheck="false" />
+      </div>
+      <div class="field-group">
+        <label>Beschreibung (optional)</label>
+        <input type="text" id="pt-desc" class="modal-input" placeholder="z.B. Demonstrativpronomen" />
+      </div>
+    </div>
+    <div class="forms-section-title">Lateinische Formen – Singular</div>
+    <div class="genus-columns" id="pt-sg-columns"></div>
+    <div class="forms-section-title">Lateinische Formen – Plural</div>
+    <div class="genus-columns" id="pt-pl-columns"></div>
+    <div class="forms-section-title">Deutsche Entsprechungen – Singular</div>
+    <div class="genus-columns" id="pt-de-sg-columns"></div>
+    <div class="forms-section-title">Deutsche Entsprechungen – Plural</div>
+    <div class="genus-columns" id="pt-de-pl-columns"></div>
+    <div class="create-error hidden" id="pt-error"></div>
+    <div class="editor-actions">
+      <button class="draft-btn" id="pt-draft-btn" onclick="Tables.savePronomenDraft()">Als Entwurf speichern</button>
+      <button class="start-btn" id="pt-save-btn" onclick="Tables.savePronomen()">Veröffentlichen</button>
+      <button class="outline-btn" onclick="App.goHome()">Abbrechen</button>
+    </div>
+  </div>
+</main>
+
+<!-- Die Ansichten Quiz-Einstellungen, Quiz und Ergebnis fügt gemeinsam/quiz-views.js ein. -->
+
+<!-- ══ FENSTER ══ -->
+<div class="modal-overlay hidden" id="table-action-overlay" onclick="Tables.closeAction(event)">
+  <div class="modal card-action-modal">
+    <button class="modal-close" onclick="Tables.closeAction()">✕</button>
+    <div class="modal-title" id="table-action-title"></div>
+    <div class="card-action-desc" id="table-action-desc"></div>
+    <div class="card-action-btns">
+      <button class="start-btn" onclick="Tables.editFromAction()">Bearbeiten</button>
+      <button class="danger-btn" onclick="Tables.deleteFromAction()">Löschen</button>
+      <button class="outline-btn" onclick="Tables.closeAction()">Abbrechen</button>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+
+<!-- Gemeinsame Skripte, danach die Skripte dieses Themas -->
+<script src="../gemeinsam/firebase.js?v=2.3.1"></script>
+<script src="../gemeinsam/constants.js?v=2.3.1"></script>
+<script src="../gemeinsam/state.js?v=2.3.1"></script>
+<script src="../gemeinsam/utils.js?v=2.3.1"></script>
+<script src="../gemeinsam/shell.js?v=2.3.1"></script>
+<script src="../gemeinsam/report.js?v=2.3.1"></script>
+<script src="../gemeinsam/grammar.js?v=2.3.1"></script>
+<script src="../gemeinsam/quiz-engine.js?v=2.3.1"></script>
+<script src="../gemeinsam/quiz-views.js?v=2.3.1"></script>
+<script src="../gemeinsam/tabellen.js?v=2.3.1"></script>
+<script src="../gemeinsam/print.js?v=2.3.1"></script>
+<script src="pronomina.js?v=2.3.1"></script>
+<script>
+QuizViews.mount();
+Tables.buildEditorGrids();
+App.init({
+  title: 'Pronomina',
+  collections: ['pronomen'],
+  drafts: ['pronomenDrafts'],
+  onData() {
+    if (!App._onHome()) return;
+    Tables.renderOverview('pronomen');
+    App.setTopicInfo(state.pronomen.length ? state.pronomen.length + ' Tabellen mit allen Formen. Zu jeder gibt es ein Quiz.' : '');
+  },
+  onAdd()  { Tables.openPronomenEditor(null); }      // Plus-Knopf: neue Pronomen-Tabelle
+});
+</script>
+</body>
+</html>

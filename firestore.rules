@@ -1,0 +1,61 @@
+rules_version = '2';
+
+// ── Firestore-Regeln der Latein-Lernplattform ────────────────────
+// Einfügen in: Firebase-Konsole → Firestore Database → Regeln → Veröffentlichen
+//
+// Grundsatz:
+//   • Lerninhalte darf jeder lesen, aber nur ein Admin ändern.
+//   • Entwürfe sehen und ändern nur Admins.
+//   • Fehler melden darf jeder; lesen und löschen nur Admins.
+//   • Admin ist, wer über Firebase Authentication angemeldet ist UND
+//     ein Dokument admins/<seine UID> hat.
+//   • Alles, was hier nicht steht, ist gesperrt.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+    function isAdmin() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+    function isSuperAdmin() {
+      return isAdmin()
+        && get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.role == 'super';
+    }
+
+    // ── Lerninhalte: lesen alle, schreiben Admins ──
+    match /tables_vokabel/{id}  { allow read: if true; allow write: if isAdmin(); }
+    match /tables_pronomen/{id} { allow read: if true; allow write: if isAdmin(); }
+    match /goetter/{id}         { allow read: if true; allow write: if isAdmin(); }
+    match /unregelmaessige/{id} { allow read: if true; allow write: if isAdmin(); }
+
+    // ── Entwürfe: nur Admins ──
+    match /drafts_vokabel/{id}  { allow read, write: if isAdmin(); }
+    match /drafts_pronomen/{id} { allow read, write: if isAdmin(); }
+
+    // ── Fehlermeldungen: anlegen alle, alles andere Admins ──
+    match /reports/{id} {
+      allow create: if request.resource.data.message is string
+                    && request.resource.data.message.size() > 0
+                    && request.resource.data.message.size() <= 2000
+                    && request.resource.data.read == false;
+      allow read, update, delete: if isAdmin();
+    }
+
+    // ── Admin-Konten (Dokument-ID = UID aus Firebase Authentication) ──
+    //   Felder: name, username, role ('super' oder 'admin'), createdAt
+    match /admins/{uid} {
+      // Jeder Angemeldete darf nachsehen, ob er selbst Admin ist; die Liste sehen nur Admins.
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+      // Admins anlegen und entfernen darf nur der Haupt-Admin.
+      allow create, delete: if isSuperAdmin();
+      // Den eigenen Namen darf jeder Admin ändern, seine Rolle nicht.
+      allow update: if isSuperAdmin()
+                    || (request.auth.uid == uid
+                        && request.resource.data.role == resource.data.role);
+    }
+  }
+}

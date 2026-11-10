@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vokabeln – Latein</title>
+  <link rel="icon" type="image/x-icon" href="../favicon.ico" />
+  <link rel="icon" type="image/png" sizes="32x32" href="../favicon-32x32.png" />
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+  <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../gemeinsam/style.css?v=2.3.1" />
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-LY0LGYY3GZ"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-LY0LGYY3GZ');
+  </script>
+</head>
+<body>
+<!-- Kopfzeile, Fußzeile, Login und „Melden" fügt gemeinsam/shell.js ein. -->
+
+<!-- ══ ÜBERSICHT ══ -->
+<main id="page-home" class="page active">
+  <div class="back-row">
+    <a class="back-btn" href="../index.html">← Startseite</a>
+  </div>
+  <div class="topic-head">
+    <h1 class="topic-title">Vokabeln</h1>
+    <p class="topic-info" id="topic-info"></p>
+  </div>
+  <div class="feature-row">
+    <div class="quiz-card feature-card" onclick="VokSearch.openAlleVokabeln()">
+      <div class="feature-icon">∑</div>
+      <div>
+        <div class="quiz-card-name">Alle Vokabeln</div>
+        <div class="quiz-card-desc">Im ganzen Wortschatz suchen, nach Wortart filtern oder quer durch alle Listen abfragen lassen.</div>
+      </div>
+    </div>
+    <div class="quiz-card feature-card feature-card--quiet" onclick="App.openCustomQuiz()">
+      <div class="feature-icon">✎</div>
+      <div>
+        <div class="quiz-card-name">Eigenes Quiz</div>
+        <div class="quiz-card-desc">Such dir genau die Listen aus, die du für die nächste Schularbeit brauchst.</div>
+      </div>
+    </div>
+  </div>
+  <h2 class="list-heading">Listen</h2>
+  <div id="vokabel-draft-section" class="hidden">
+    <div class="section-header">
+      <div class="section-label">Entwürfe</div>
+      <div class="section-hint">Nur für Admins sichtbar</div>
+    </div>
+    <div class="quiz-grid list-grid" id="vokabel-draft-grid"></div>
+    <div class="empty-hint hidden" id="vokabel-draft-empty">Keine Entwürfe.</div>
+    <div class="section-divider"></div>
+  </div>
+  <div class="quiz-grid list-grid" id="vokabel-grid"></div>
+  <div class="empty-hint hidden" id="vokabel-empty">Noch keine Vokabellisten vorhanden.</div>
+</main>
+
+
+<!-- ══ EINE LISTE ══ -->
+<main id="page-table-view" class="page">
+  <div class="back-row">
+    <button class="back-btn" onclick="App.goBack()">← Zurück</button>
+    <div class="editor-page-title" id="table-view-title"></div>
+    <button class="report-float-btn" onclick="Report.open('Tabelle: ' + document.getElementById('table-view-title').textContent)" title="Fehler melden">⚑ Melden</button>
+    <div class="table-view-admin-btns hidden" id="table-view-admin-btns" data-admin>
+      <button class="draft-btn" onclick="Tables.editTableFromView()">Bearbeiten</button>
+    </div>
+    <div class="table-view-quiz-btn" id="table-view-quiz-btn">
+      <button class="start-btn" onclick="App.startTableQuiz()" id="vok-quiz-start-btn">Quiz starten →</button>
+    </div>
+  </div>
+  <div id="table-view-search" class="hidden">
+    <div class="vok-search-bar">
+      <input type="text" id="table-search-input" class="vok-search-input" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Suchen…" oninput="VokSearch.searchTable()" />
+      <div class="vok-filters">
+        <select class="vok-filter-select" id="table-filter-type" onchange="VokSearch.searchTable()">
+          <option value="">Alle Wortarten</option>
+          <option value="noun">Nomen</option>
+          <option value="verb">Verben</option>
+          <option value="adj">Adjektive</option>
+          <option value="indecl">Alles andere</option>
+        </select>
+        <select class="vok-filter-select" id="table-filter-genus" onchange="VokSearch.searchTable()">
+          <option value="">Alle Genera</option>
+          <option value="m.">m.</option>
+          <option value="f.">f.</option>
+          <option value="n.">n.</option>
+        </select>
+        <select class="vok-filter-select" id="table-filter-klasse" onchange="VokSearch.searchTable()">
+          <option value="">Alle Dekl. / Konj.</option>
+          <optgroup label="Deklination (Nomen)">
+            <option value="d:1. Dekl.">1. Deklination</option>
+            <option value="d:2. Dekl.">2. Deklination</option>
+            <option value="d:3. Dekl.">3. Deklination</option>
+            <option value="d:4. Dekl.">4. Deklination</option>
+            <option value="d:5. Dekl.">5. Deklination</option>
+          </optgroup>
+          <optgroup label="Konjugation (Verben)">
+            <option value="k:a">a-Konjugation (1.)</option>
+            <option value="k:e">e-Konjugation (2.)</option>
+            <option value="k:kons">konsonantische Konj. (3.)</option>
+            <option value="k:misch">Mischkonjugation (capio)</option>
+            <option value="k:i">i-Konjugation (4.)</option>
+            <option value="k:irr">unregelmäßige Verben</option>
+          </optgroup>
+        </select>
+      </div>
+    </div>
+  </div>
+  <div id="table-view-content"></div>
+  <div class="print-btn-row">
+    <button class="print-btn" onclick="Print.tableView()" title="Als PDF exportieren / Drucken">⎙ Drucken</button>
+  </div>
+</main>
+
+<!-- ══ ALLE VOKABELN ══ -->
+<main id="page-alle-vokabeln" class="page">
+  <div class="back-row">
+    <button class="back-btn" onclick="App.goBack()">← Zurück</button>
+    <div class="editor-page-title">Alle Vokabeln</div>
+    <div class="vok-count-badge" id="alle-count-badge"></div>
+    <button class="start-btn btn--sm-pad" onclick="App.openAlleVokabelQuiz()">Quiz starten →</button>
+  </div>
+  <div class="vok-search-bar">
+    <input type="text" id="alle-search-input" class="vok-search-input" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Suchen… (Latein, Deutsch, oder deklinierte Form)" oninput="VokSearch.search()"  autocorrect="off" autocapitalize="off" spellcheck="false"/>
+    <div class="vok-filters">
+      <select class="vok-filter-select" id="filter-type" onchange="VokSearch.search()">
+          <option value="">Alle Wortarten</option>
+          <option value="noun">Nomen</option>
+          <option value="verb">Verben</option>
+          <option value="adj">Adjektive</option>
+          <option value="indecl">Alles andere</option>
+        </select>
+        <select class="vok-filter-select" id="filter-genus" onchange="VokSearch.search()">
+          <option value="">Alle Genera</option>
+          <option value="m.">Maskulinum (m.)</option>
+          <option value="f.">Femininum (f.)</option>
+          <option value="n.">Neutrum (n.)</option>
+        </select>
+        <select class="vok-filter-select" id="filter-klasse" onchange="VokSearch.search()">
+          <option value="">Alle Dekl. / Konj.</option>
+          <optgroup label="Deklination (Nomen)">
+            <option value="d:1. Dekl.">1. Deklination</option>
+            <option value="d:2. Dekl.">2. Deklination</option>
+            <option value="d:3. Dekl.">3. Deklination</option>
+            <option value="d:4. Dekl.">4. Deklination</option>
+            <option value="d:5. Dekl.">5. Deklination</option>
+          </optgroup>
+          <optgroup label="Konjugation (Verben)">
+            <option value="k:a">a-Konjugation (1.)</option>
+            <option value="k:e">e-Konjugation (2.)</option>
+            <option value="k:kons">konsonantische Konj. (3.)</option>
+            <option value="k:misch">Mischkonjugation (capio)</option>
+            <option value="k:i">i-Konjugation (4.)</option>
+            <option value="k:irr">unregelmäßige Verben</option>
+          </optgroup>
+        </select>
+      <div class="sort-toggle">
+        <button class="sort-btn active" id="sort-btn-lat" onclick="VokSearch.setSortMode('lat')">A–Z Latein</button>
+        <button class="sort-btn" id="sort-btn-de" onclick="VokSearch.setSortMode('de')">A–Z Deutsch</button>
+      </div>
+    </div>
+  </div>
+  <div id="alle-vok-results"></div>
+  <div class="print-btn-row">
+    <button class="print-btn" onclick="Print.alleVokabeln()" title="Als PDF exportieren / Drucken">⎙ Drucken</button>
+  </div>
+</main>
+
+<!-- ══ EINE VOKABEL ══ -->
+<main id="page-vok-detail" class="page">
+  <div class="back-row">
+    <button class="back-btn" id="vok-detail-back">← Zurück</button>
+    <button class="report-float-btn" onclick="VokDetail.reportCurrent()" title="Fehler melden">⚑ Melden</button>
+    <button class="draft-btn hidden" id="vok-detail-edit-btn" data-admin onclick="VokDetail.openBasicEdit()">Bearbeiten</button>
+    <button class="draft-btn hidden" id="vok-detail-forms-btn" data-admin onclick="VokDetail.openForms()">Formen</button>
+  </div>
+  <div id="vok-detail-content"></div>
+</main>
+
+<!-- ══ LISTE BEARBEITEN (Admin) ══ -->
+<main id="page-vokabel-editor" class="page">
+  <div class="back-row">
+    <button class="back-btn" onclick="App.goHome()">← Abbrechen</button>
+    <div class="editor-page-title" id="vokabel-editor-title">Neue Vokabel-Tabelle</div>
+  </div>
+  <div class="editor-wrap">
+    <div class="editor-meta">
+      <div class="field-group">
+        <label>Tabellenname</label>
+        <input type="text" id="vt-name" class="modal-input" placeholder="z.B. Lektion 3 – Tiere" />
+      </div>
+      <div class="field-group">
+        <label>Beschreibung (optional)</label>
+        <input type="text" id="vt-desc" class="modal-input" placeholder="z.B. Nomen der a-Deklination" />
+      </div>
+    </div>
+
+    <!-- AI Prompt Note -->
+    <div class="ai-prompt-note">
+      <div class="ai-prompt-note-header">
+        <div class="ai-prompt-note-title">💡 Tipp: Vokabeln mit AI importieren</div>
+        <button class="ai-prompt-copy-btn" id="ai-copy-btn" onclick="Tables.copyAiPrompt(this)">Prompt kopieren</button>
+      </div>
+      <div class="ai-prompt-note-body">
+        Prompt kopieren → Screenshot in ChatGPT oder Claude einfügen → Ausgabe in den Texteditor einfügen → „Importieren" klicken.
+      </div>
+      <div class="ai-prompt-format">
+        <span class="ai-format-label">Format:</span>
+        <code>Latein-2.Fall-Genus-Deklination-Deutsch-Perfekt-GenusDeutsch</code>
+        &nbsp;·&nbsp; Leere Felder als <code>#</code> &nbsp;·&nbsp; Mehrere Übersetzungen mit <code>%</code> &nbsp;·&nbsp; Optionale Teile in <code>(Klammern)</code>
+      </div>
+    </div>
+
+    <!-- Mode switcher -->
+    <div class="vok-mode-bar">
+      <div class="vok-mode-label">Eingabemodus</div>
+      <div class="vok-mode-btns">
+        <button class="vok-mode-btn active" id="vok-mode-form-btn" onclick="Tables.switchVokMode('form')">Formular</button>
+        <button class="vok-mode-btn" id="vok-mode-text-btn" onclick="Tables.switchVokMode('text')">Texteditor</button>
+      </div>
+    </div>
+
+    <!-- Form view -->
+    <div id="vok-form-view">
+      <div class="forms-section-title">Vokabeln</div>
+      <div id="vokabel-rows"></div>
+      <button class="outline-btn btn--mt" onclick="Tables.addVokabelRow()">+ Zeile hinzufügen</button>
+    </div>
+
+    <!-- Text editor view -->
+    <div id="vok-text-view" class="hidden">
+      <div class="forms-section-title forms-section-title--row">
+        <span>AI-Import</span>
+        <button class="outline-btn btn--sm" onclick="Tables.importTextVokabeln()">Importieren →</button>
+      </div>
+      <div class="vok-text-hint">
+        Jede Zeile: <code>Latein-2.Fall-Genus-Deklination-Deutsch-Perfekt-GenusDeutsch</code> &nbsp;·&nbsp; Leere Felder: <code>#</code> &nbsp;·&nbsp; Mehrere Bedeutungen: <code>%</code>
+      </div>
+
+      <textarea id="vok-textarea" autocorrect="off" autocapitalize="off" spellcheck="false" class="vok-textarea" placeholder="aqua-aquae-f.-1. Dekl.-Wasser%Flüssigkeit-#-n.&#10;clamare-clamo-#-#-rufen-clamavi-#&#10;nunc-#-#-#-jetzt-#-#"></textarea>
+    </div>
+
+    <div class="create-error hidden" id="vt-error"></div>
+    <div class="editor-actions">
+      <button class="draft-btn" id="vt-draft-btn" onclick="Tables.saveVokabelDraft()">Als Entwurf speichern</button>
+      <button class="start-btn" id="vt-save-btn" onclick="Tables.saveVokabel()">Veröffentlichen</button>
+      <button class="outline-btn" onclick="App.goHome()">Abbrechen</button>
+    </div>
+  </div>
+</main>
+
+<!-- ══ LERNMODUS WÄHLEN ══ -->
+<main id="page-quiz-mode" class="page">
+  <div class="back-row">
+    <button class="back-btn" onclick="App.goBack()">← Zurück</button>
+    <div class="editor-page-title" id="quiz-mode-title"></div>
+  </div>
+  <div class="qm-grid">
+    <button class="qm-card" onclick="App.selectQuizMode('flashcards')">
+      <div class="qm-name">Karteikarten</div>
+      <div class="qm-desc">Karte umdrehen und Übersetzung entdecken</div>
+    </button>
+    <button class="qm-card" onclick="App.selectQuizMode('matching')">
+      <div class="qm-name">Zuordnen</div>
+      <div class="qm-desc">Latein mit der deutschen Übersetzung verbinden</div>
+    </button>
+    <button class="qm-card" onclick="App.selectQuizMode('quiz')">
+      <div class="qm-name">Eingeben</div>
+      <div class="qm-desc">Antworten selbst eintippen mit Spaced Repetition</div>
+    </button>
+  </div>
+</main>
+
+<!-- ══ KARTEIKARTEN ══ -->
+<main id="page-flashcards" class="page">
+  <div class="back-row">
+    <button class="back-btn" onclick="App.goBack()">← Zurück</button>
+    <div class="editor-page-title" id="fc-title"></div>
+    <div class="fc-progress" id="fc-progress"></div>
+  </div>
+
+  <!-- Setup-Bereich -->
+  <div id="fc-setup-wrap">
+    <div class="setup-card">
+      <div class="setup-title">Einstellungen</div>
+      <div class="fc-setup-section">
+        <div class="phase-label">Richtung</div>
+        <div class="fc-dir-options">
+          <label class="fc-dir-opt">
+            <input type="radio" name="fc-direction" value="lat-de" checked />
+            <span>Latein → Deutsch</span>
+          </label>
+          <label class="fc-dir-opt">
+            <input type="radio" name="fc-direction" value="de-lat" />
+            <span>Deutsch → Latein</span>
+          </label>
+        </div>
+      </div>
+      <div class="shuffle-option" style="margin-top:1rem;">
+        <label class="shuffle-opt">
+          <input type="checkbox" id="fc-shuffle" checked />
+          <span class="shuffle-box">Karten mischen</span>
+        </label>
+      </div>
+      <div class="setup-actions" style="margin-top:1.5rem;">
+        <button class="start-btn" onclick="Flashcards.startWithConfig()">Starten →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Karten-Bereich (initial versteckt) -->
+  <div id="fc-cards-wrap" class="hidden">
+    <div class="fc-scene">
+      <div class="fc-card" id="fc-card" onclick="Flashcards.flip()">
+        <div class="fc-face fc-front">
+          <div class="fc-hint" id="fc-front-hint">Latein</div>
+          <div id="fc-front-content"></div>
+        </div>
+        <div class="fc-face fc-back">
+          <div class="fc-hint" id="fc-back-hint">Deutsch</div>
+          <div id="fc-back-content"></div>
+        </div>
+      </div>
+    </div>
+    <div class="fc-tap-hint">Karte tippen oder Enter zum Umdrehen</div>
+    <div class="fc-buttons">
+      <button class="back-btn fc-nav-btn" id="fc-prev-btn" onclick="Flashcards.prev()">← Zurück</button>
+      <button class="start-btn fc-nav-btn" id="fc-next-btn" onclick="Flashcards.next()">Weiter →</button>
+    </div>
+    <div class="fc-done-overlay hidden" id="fc-done-overlay">
+      <div class="fc-done-card">
+        <div class="fc-done-icon">🏆</div>
+        <div class="fc-done-title">Alle Karten durch!</div>
+        <button class="start-btn" onclick="Flashcards.restart()">Nochmal →</button>
+        <button class="back-btn" onclick="App.goBack()">Zurück</button>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- ══ ZUORDNEN ══ -->
+<main id="page-matching" class="page">
+  <div class="back-row">
+    <button class="back-btn" onclick="App.goBack()">← Zurück</button>
+    <div class="editor-page-title" id="match-title"></div>
+    <div class="match-progress" id="match-progress"></div>
+  </div>
+  <div class="match-grid">
+    <div class="match-col match-col-lat" id="match-col-lat"></div>
+    <div class="match-col match-col-de"  id="match-col-de"></div>
+  </div>
+  <div class="match-result hidden" id="match-result">
+    <div class="match-result-card">
+      <div class="match-result-icon">✅</div>
+      <div class="match-result-title">Alle Paare gefunden!</div>
+      <div class="match-result-stats">
+        <span>Zeit: <strong id="match-result-time"></strong></span>
+        <span>Fehler: <strong id="match-result-errors"></strong></span>
+      </div>
+      <button class="start-btn" onclick="Matching.restart()">Nochmal →</button>
+      <button class="back-btn" onclick="App.goBack()">Zurück</button>
+    </div>
+  </div>
+</main>
+
+<!-- Die Ansichten Quiz-Einstellungen, Quiz und Ergebnis fügt gemeinsam/quiz-views.js ein. -->
+
+<!-- ══ FENSTER ══ -->
+<div class="modal-overlay hidden" id="table-action-overlay" onclick="Tables.closeAction(event)">
+  <div class="modal card-action-modal">
+    <button class="modal-close" onclick="Tables.closeAction()">✕</button>
+    <div class="modal-title" id="table-action-title"></div>
+    <div class="card-action-desc" id="table-action-desc"></div>
+    <div class="card-action-btns">
+      <button class="start-btn" onclick="Tables.editFromAction()">Bearbeiten</button>
+      <button class="danger-btn" onclick="Tables.deleteFromAction()">Löschen</button>
+      <button class="outline-btn" onclick="Tables.closeAction()">Abbrechen</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="alle-quiz-overlay" onclick="App.closeAlleQuiz(event)">
+  <div class="modal modal--sm">
+    <button class="modal-close" onclick="App.closeAlleQuiz()">✕</button>
+    <div class="modal-title">Quiz – Alle Vokabeln</div>
+    <div class="field-group">
+      <label>Wie viele Vokabeln abfragen?</label>
+      <div class="alle-quiz-count-row">
+        <input type="range" id="alle-quiz-count" min="1" max="100" value="20"
+          oninput="document.getElementById('alle-quiz-count-label').textContent=this.value"
+          class="flex-1" />
+        <span id="alle-quiz-count-label" class="alle-quiz-count-label">20</span>
+      </div>
+      <div class="alle-quiz-max-hint" id="alle-quiz-max-hint"></div>
+    </div>
+    <button class="start-btn btn--fullwidth btn--mt-lg" onclick="App.startAlleVokabelQuiz()">Weiter →</button>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="custom-quiz-overlay" onclick="App.closeCustomQuiz(event)">
+  <div class="modal custom-quiz-modal">
+    <button class="modal-close" onclick="App.closeCustomQuiz()">✕</button>
+    <div class="modal-title">Eigenes Quiz</div>
+    <div class="phase-label">Listen auswählen:</div>
+    <div id="custom-quiz-list" class="custom-quiz-list"></div>
+    <button class="start-btn btn--fullwidth btn--mt-lg" onclick="App.startCustomQuiz()">Weiter →</button>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="override-overlay" onclick="VokDetail.closeForms(event)">
+  <div class="modal override-modal">
+    <button class="modal-close" onclick="VokDetail.closeForms()">✕</button>
+    <div class="modal-title" id="override-modal-title">Formen bearbeiten</div>
+    <div class="override-hint">Alle Formen sind änderbar. Nach dem Speichern wird genau das angezeigt, was hier steht – es wird nichts mehr automatisch gebildet. Leere Felder erscheinen als „–“.</div>
+    <div id="override-fields"></div>
+    <div class="create-error hidden" id="override-error"></div>
+    <div class="editor-actions editor-actions--sm">
+      <button class="start-btn" onclick="VokDetail.saveForms()">Speichern</button>
+      <button class="outline-btn" onclick="VokDetail.closeForms()">Abbrechen</button>
+      <button class="danger-btn hidden" id="override-reset-btn" onclick="VokDetail.resetForms()">Wieder automatisch bilden</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="basic-edit-overlay" onclick="VokDetail.closeBasicEdit(event)">
+  <div class="modal modal--md">
+    <button class="modal-close" onclick="VokDetail.closeBasicEdit()">✕</button>
+    <div class="modal-title">Vokabel bearbeiten</div>
+    <div class="field-group">
+      <label>Latein</label>
+      <input type="text" id="basic-edit-lat" class="modal-input" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="z.B. aqua" />
+    </div>
+    <div class="field-group">
+      <label>2. Fall <span class="label-note">(bei Verben: 1. Person Präsens)</span></label>
+      <input type="text" id="basic-edit-fall2" class="modal-input" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="z.B. aquae" />
+    </div>
+    <div class="field-grid-2col">
+      <div class="field-group">
+        <label>Genus</label>
+        <select id="basic-edit-genus" class="modal-input">
+        <option value="–">–</option>
+        <option value="m.">m.</option>
+        <option value="f.">f.</option>
+        <option value="n.">n.</option>
+        </select>
+      </div>
+      <div class="field-group">
+        <label>Deklination</label>
+        <select id="basic-edit-dekl" class="modal-input">
+        <option value="–">–</option>
+        <option value="1. Dekl.">1. Dekl.</option>
+        <option value="2. Dekl.">2. Dekl.</option>
+        <option value="3. Dekl.">3. Dekl.</option>
+        <option value="4. Dekl.">4. Dekl.</option>
+        <option value="5. Dekl.">5. Dekl.</option>
+        </select>
+      </div>
+    </div>
+    <div class="field-group">
+      <label>Geschlecht im Deutschen <span class="label-note">(nur wenn es anders ist: annus m. → das Jahr)</span></label>
+      <select id="basic-edit-degenus" class="modal-input">
+        <option value="">Wie im Lateinischen</option>
+        <option value="m.">m. (der)</option>
+        <option value="f.">f. (die)</option>
+        <option value="n.">n. (das)</option>
+      </select>
+    </div>
+    <div class="field-group">
+      <label>Übersetzung</label>
+      <input type="text" id="basic-edit-de" class="modal-input" autocorrect="off" spellcheck="false" placeholder="z.B. Wasser%Flüssigkeit" />
+    </div>
+    <div class="field-group">
+      <label>1. Person Perfekt <span class="label-note">(nur bei Verben)</span></label>
+      <input type="text" id="basic-edit-perf" class="modal-input" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="z.B. amavi, feci, vidi" />
+    </div>
+    <div class="field-group">
+      <label>Wortart <span class="label-note">(nur ändern, wenn sie falsch erkannt wird)</span></label>
+      <select id="basic-edit-type" class="modal-input">
+        <option value="">Automatisch erkennen</option>
+        <option value="noun">Nomen</option>
+        <option value="verb">Verb</option>
+        <option value="adj">Adjektiv</option>
+        <option value="indecl">Anderes</option>
+      </select>
+    </div>
+    <div class="create-error hidden" id="basic-edit-error"></div>
+    <div class="editor-actions editor-actions--sm">
+      <button class="start-btn" onclick="VokDetail.saveBasicEdit()">Speichern</button>
+      <button class="outline-btn" onclick="VokDetail.closeBasicEdit()">Abbrechen</button>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+
+<!-- Gemeinsame Skripte, danach die Skripte dieses Themas -->
+<script src="../gemeinsam/firebase.js?v=2.3.1"></script>
+<script src="../gemeinsam/constants.js?v=2.3.1"></script>
+<script src="../gemeinsam/state.js?v=2.3.1"></script>
+<script src="../gemeinsam/utils.js?v=2.3.1"></script>
+<script src="../gemeinsam/shell.js?v=2.3.1"></script>
+<script src="../gemeinsam/report.js?v=2.3.1"></script>
+<script src="../gemeinsam/grammar.js?v=2.3.1"></script>
+<script src="../gemeinsam/vok-forms.js?v=2.3.1"></script>
+<script src="../gemeinsam/quiz-engine.js?v=2.3.1"></script>
+<script src="../gemeinsam/quiz-views.js?v=2.3.1"></script>
+<script src="../gemeinsam/tabellen.js?v=2.3.1"></script>
+<script src="../gemeinsam/print.js?v=2.3.1"></script>
+<script src="vokabeln.js?v=2.3.1"></script>
+<script src="vok-detail.js?v=2.3.1"></script>
+<script src="flashcards.js?v=2.3.1"></script>
+<script src="matching.js?v=2.3.1"></script>
+<script>
+QuizViews.mount();
+App.init({
+  title: 'Vokabeln',
+  collections: ['vokabel', 'unregelmaessige'],
+  drafts: ['vokabelDrafts'],
+  onData() { if (App._onHome()) App.renderVokabelHome(); },
+  onAdd()  { Tables.openVokabelEditor(null); }       // Plus-Knopf: neue Vokabelliste
+});
+</script>
+</body>
+</html>

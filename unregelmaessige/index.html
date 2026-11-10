@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Unregelmäßige Verben – Latein</title>
+  <link rel="icon" type="image/x-icon" href="../favicon.ico" />
+  <link rel="icon" type="image/png" sizes="32x32" href="../favicon-32x32.png" />
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+  <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../gemeinsam/style.css?v=2.3.1" />
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-LY0LGYY3GZ"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-LY0LGYY3GZ');
+  </script>
+</head>
+<body>
+<!-- Kopfzeile, Fußzeile, Login und „Melden" fügt gemeinsam/shell.js ein. -->
+
+<!-- ══ ÜBERSICHT ══ -->
+<main id="page-home" class="page active">
+  <div class="back-row">
+    <a class="back-btn" href="../index.html">← Startseite</a>
+  </div>
+  <div class="topic-head">
+    <h1 class="topic-title">Unregelmäßige Verben</h1>
+    <p class="topic-info" id="topic-info"></p>
+  </div>
+  <div class="quiz-grid list-grid" id="irr-grid"></div>
+  <div class="empty-hint hidden" id="irr-empty"></div>
+</main>
+
+<!-- ══ EIN VERB ══ -->
+<main id="page-verb" class="page">
+  <div class="back-row">
+    <button class="back-btn" onclick="App.goHome()">← Zurück</button>
+    <button class="report-float-btn" onclick="Irregular.report()" title="Fehler melden">⚑ Melden</button>
+    <button class="draft-btn hidden" id="irr-edit-btn" data-admin onclick="Irregular.editCurrent()">Bearbeiten</button>
+  </div>
+  <div id="irr-content"></div>
+</main>
+
+<!-- ══ VERB BEARBEITEN (Admin) ══ -->
+<main id="page-verb-editor" class="page">
+  <div class="back-row">
+    <button class="back-btn" onclick="App.goHome()">← Abbrechen</button>
+    <div class="editor-page-title" id="irr-editor-title">Neues unregelmäßiges Verb</div>
+  </div>
+  <div class="editor-wrap">
+    <div class="editor-meta">
+      <div class="field-group">
+        <label>Infinitiv</label>
+        <input type="text" id="irr-ed-inf" class="modal-input" placeholder="z.B. esse" autocorrect="off" autocapitalize="off" spellcheck="false" />
+      </div>
+      <div class="field-group">
+        <label>Übersetzung</label>
+        <input type="text" id="irr-ed-de" class="modal-input" placeholder="z.B. sein" autocorrect="off" spellcheck="false" />
+      </div>
+      <div class="field-group">
+        <label>Stammformen <span class="label-note">(optional)</span></label>
+        <input type="text" id="irr-ed-stamm" class="modal-input" placeholder="z.B. sum, fui" autocorrect="off" autocapitalize="off" spellcheck="false" />
+      </div>
+    </div>
+    <div class="override-hint">Jede Form wird von Hand eingetragen. Leere Felder erscheinen als „–“; Tabellen ohne Eintrag werden nicht angezeigt.</div>
+    <div id="irr-ed-forms"></div>
+    <div class="create-error hidden" id="irr-ed-error"></div>
+    <div class="editor-actions">
+      <button class="start-btn" id="irr-save-btn" onclick="Irregular.save()">Speichern</button>
+      <button class="outline-btn" onclick="App.goHome()">Abbrechen</button>
+      <button class="danger-btn hidden" id="irr-delete-btn" onclick="Irregular.remove()">Verb löschen</button>
+    </div>
+  </div>
+</main>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+
+<!-- Gemeinsame Skripte, danach die Skripte dieses Themas -->
+<script src="../gemeinsam/firebase.js?v=2.3.1"></script>
+<script src="../gemeinsam/constants.js?v=2.3.1"></script>
+<script src="../gemeinsam/state.js?v=2.3.1"></script>
+<script src="../gemeinsam/utils.js?v=2.3.1"></script>
+<script src="../gemeinsam/shell.js?v=2.3.1"></script>
+<script src="../gemeinsam/report.js?v=2.3.1"></script>
+<script src="../gemeinsam/grammar.js?v=2.3.1"></script>
+<script src="../gemeinsam/vok-forms.js?v=2.3.1"></script>
+<script src="unregelmaessige.js?v=2.3.1"></script>
+<script>
+App.init({
+  title: 'Unregelmäßige Verben',
+  collections: ['unregelmaessige'],
+  onData() { if (App._onHome()) Irregular.renderHome(); },
+  onAdd()  { Irregular.openEditor(null); }           // Plus-Knopf: neues Verb
+});
+</script>
+</body>
+</html>
