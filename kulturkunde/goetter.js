@@ -161,7 +161,7 @@ const Goetter = {
         const docRef = await COL.goetter.add(data);
         state.editingGottId = docRef.id;
       }
-      App.goHome();
+      App.showPage('goetter', 'Götter');
     } catch(e) {
       err.textContent = 'Fehler: '+e.message; err.classList.remove('hidden');
     } finally { btn.textContent = 'Speichern'; btn.disabled = false; }

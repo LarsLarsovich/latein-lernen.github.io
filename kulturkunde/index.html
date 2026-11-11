@@ -10,7 +10,7 @@
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="../gemeinsam/style.css?v=2.3.1" />
+  <link rel="stylesheet" href="../gemeinsam/style.css?v=2.4.0" />
   <!-- Google Analytics -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-LY0LGYY3GZ"></script>
   <script>
@@ -23,10 +23,36 @@
 <body>
 <!-- Kopfzeile, Fußzeile, Login und „Melden" fügt gemeinsam/shell.js ein. -->
 
-<!-- ══ ÜBERSICHT ══ -->
+<!-- ══ AUSWAHL ══ -->
 <main id="page-home" class="page active">
   <div class="back-row">
     <a class="back-btn" href="../index.html">← Startseite</a>
+  </div>
+  <div class="topic-head">
+    <h1 class="topic-title">Kulturkunde</h1>
+  </div>
+  <div class="topic-grid topic-grid--two">
+    <div class="quiz-card topic-card" onclick="App.showPage('goetter', 'Götter')">
+      <div class="topic-card-lat" lang="la">di deaeque</div>
+      <div class="quiz-card-name">Götter</div>
+      <div class="quiz-card-desc">Griechische und römische Götter mit ihren Bereichen, Symbolen und dem Stammbaum</div>
+      <div class="topic-card-count" id="kult-count-goetter"></div>
+      <span class="topic-card-arrow">›</span>
+    </div>
+    <div class="quiz-card topic-card" onclick="App.showPage('argonauten', 'Die Argonauten')">
+      <div class="topic-card-lat" lang="la">Argonautae</div>
+      <div class="quiz-card-name">Die Argonauten</div>
+      <div class="quiz-card-desc">Jason, die Argo und die Fahrt nach Kolchis zum Goldenen Vlies</div>
+      <div class="topic-card-count">Die ganze Sage als Video</div>
+      <span class="topic-card-arrow">›</span>
+    </div>
+  </div>
+</main>
+
+<!-- ══ GÖTTER ══ -->
+<main id="page-goetter" class="page">
+  <div class="back-row">
+    <button class="back-btn" onclick="App.goHome()">← Kulturkunde</button>
   </div>
   <div class="topic-head">
     <h1 class="topic-title">Götter</h1>
@@ -56,6 +82,25 @@
     <button class="draft-btn hidden" id="gott-detail-edit-btn" data-admin>Bearbeiten</button>
   </div>
   <div id="gott-detail-content"></div>
+</main>
+
+<!-- ══ DIE ARGONAUTEN ══ -->
+<main id="page-argonauten" class="page">
+  <div class="back-row">
+    <button class="back-btn" onclick="App.goHome()">← Kulturkunde</button>
+  </div>
+  <div class="topic-head">
+    <h1 class="topic-title">Die Argonauten</h1>
+    <p class="topic-info">Jason soll das Goldene Vlies aus Kolchis holen. Mit dem Schiff Argo und den berühmtesten Helden Griechenlands bricht er auf.</p>
+  </div>
+  <!-- YouTube-Video: zum Tauschen nur die Video-ID in der Adresse ändern -->
+  <div class="video-frame">
+    <iframe src="https://www.youtube-nocookie.com/embed/tNUkseW5pjw" title="Die Sage von Jason und den Argonauten"
+      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+      referrerpolicy="strict-origin-when-cross-origin" allowfullscreen loading="lazy"></iframe>
+  </div>
+  <p class="video-credit">Video: „Die Sage von Jason und den Argonauten“ vom Kanal Geschichte und Mythologie Illustriert.
+    <a href="https://www.youtube.com/watch?v=tNUkseW5pjw" target="_blank" rel="noopener">Auf YouTube ansehen</a></p>
 </main>
 
 <!-- ══ GOTT BEARBEITEN (Admin) ══ -->
@@ -144,18 +189,22 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 
 <!-- Gemeinsame Skripte, danach die Skripte dieses Themas -->
-<script src="../gemeinsam/firebase.js?v=2.3.1"></script>
-<script src="../gemeinsam/constants.js?v=2.3.1"></script>
-<script src="../gemeinsam/state.js?v=2.3.1"></script>
-<script src="../gemeinsam/utils.js?v=2.3.1"></script>
-<script src="../gemeinsam/shell.js?v=2.3.1"></script>
-<script src="../gemeinsam/report.js?v=2.3.1"></script>
-<script src="goetter.js?v=2.3.1"></script>
+<script src="../gemeinsam/firebase.js?v=2.4.0"></script>
+<script src="../gemeinsam/constants.js?v=2.4.0"></script>
+<script src="../gemeinsam/state.js?v=2.4.0"></script>
+<script src="../gemeinsam/utils.js?v=2.4.0"></script>
+<script src="../gemeinsam/shell.js?v=2.4.0"></script>
+<script src="../gemeinsam/report.js?v=2.4.0"></script>
+<script src="goetter.js?v=2.4.0"></script>
 <script>
 App.init({
   title: 'Kulturkunde',
   collections: ['goetter'],
-  onData() { Goetter.renderHome(); },
+  onData() {
+    Goetter.renderHome();
+    const n = state.goetter.length;
+    document.getElementById('kult-count-goetter').textContent = n ? n + (n === 1 ? ' Gottheit' : ' Gottheiten') : '';
+  },
   onAdd()  { Goetter.openEditor(null); }             // Plus-Knopf: neuer Gott
 });
 </script>

@@ -22,7 +22,7 @@ const App = {
     { id: 'deklinationen',   title: 'Deklinationen',        lat: 'declinationes', desc: 'Die Endungen aller 5 Deklinationen, mit Erklärvideos' },
     { id: 'konjugationen',   title: 'Konjugationen',        lat: 'coniugationes', desc: 'Die 4 Konjugationen und die Zeiten im Überblick' },
     { id: 'unregelmaessige', title: 'Unregelmäßige Verben', lat: 'verba anomala', desc: 'esse, posse, ire und alle weiteren Formen zum Nachschlagen' },
-    { id: 'kulturkunde',     title: 'Kulturkunde',          lat: 'res divinae',   desc: 'Griechische und römische Götter mit Stammbaum' }
+    { id: 'kulturkunde',     title: 'Kulturkunde',          lat: 'res divinae',   desc: 'Die Götter mit Stammbaum und die Sage der Argonauten' }
   ],
 
 

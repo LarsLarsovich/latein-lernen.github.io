@@ -82,7 +82,7 @@ App.init({
 - Direktlinks: `vokabeln/index.html?vok=<Listen-ID>:<Zeile>`, `unregelmaessige/index.html?verb=<ID>`
 
 ### Cache
-Alle lokalen CSS/JS-Dateien werden mit `?v=2.3.1` geladen. Nach Änderungen die Nummer in allen `index.html` erhöhen (Suchen & Ersetzen).
+Alle lokalen CSS/JS-Dateien werden mit `?v=2.4.0` geladen. Nach Änderungen die Nummer in allen `index.html` erhöhen (Suchen & Ersetzen).
 
 ---
 
@@ -181,7 +181,8 @@ Nicht mehr benutzt: `quizes`, `drafts` (alte Einzel-Quize), `sommerferien_*`.
 
 ## Kulturkunde
 - Sammlung `goetter`: `nameRom`, `nameGre`, `symbol`, `bereiche[]`, `symbole[]`, `beschreibung`, `fakten[]`, `eltern`, `kinder`, `fotoUrl`, `fotoQuelle`
-- Stammbaum: Miro-Embed auf der Übersicht
+- `page-home` ist eine Auswahl: Götter (`page-goetter`, mit Stammbaum als Miro-Embed) oder Die Argonauten (`page-argonauten`, eingebettetes YouTube-Video)
+- Weiteres Kulturkunde-Thema: eine Karte in `page-home` und eine eigene `<main id="page-…">` in `kulturkunde/index.html` ergänzen
 
 ## Grammatik-Tafeln
 - Feste Inhalte in `deklinationen/deklinationen.js` und `konjugationen/konjugationen.js`
