@@ -1574,3 +1574,8 @@ div.topic-card { cursor: pointer; }
 .video-credit { font-size: 13px; color: var(--text3); margin-top: 0.9rem; max-width: 80ch; }
 .video-credit a { color: var(--accent); text-decoration: none; }
 .video-credit a:hover { text-decoration: underline; }
+
+/* Hinweis unter den Konjugations-Tafeln */
+.gt-note { font-size: 14px; color: var(--text2); margin-top: 1.5rem; }
+.gt-note a { color: var(--accent); text-decoration: none; }
+.gt-note a:hover { text-decoration: underline; }

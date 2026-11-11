@@ -82,7 +82,7 @@ App.init({
 - Direktlinks: `vokabeln/index.html?vok=<Listen-ID>:<Zeile>`, `unregelmaessige/index.html?verb=<ID>`
 
 ### Cache
-Alle lokalen CSS/JS-Dateien werden mit `?v=2.4.0` geladen. Nach Änderungen die Nummer in allen `index.html` erhöhen (Suchen & Ersetzen).
+Alle lokalen CSS/JS-Dateien werden mit `?v=2.4.2` geladen. Nach Änderungen die Nummer in allen `index.html` erhöhen (Suchen & Ersetzen).
 
 ---
 
