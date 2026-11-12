@@ -156,7 +156,13 @@ const VokabelQuiz = {
     }
 
     // Grundwort: bei mehreren gültigen Varianten (a%b) die passendste nehmen
-    const variants = (r.lat || '').split('%').map(x => x.trim()).filter(Boolean);
+    // Klammern im lateinischen Wort sind freiwillig: "in (+Abl.)" → "in" reicht.
+    // Hängt die Klammer direkt am Wort ("ne(c)"), gilt auch die Form mit Inhalt ("nec").
+    const variants = [];
+    (r.lat || '').split('%').map(x => x.trim()).filter(Boolean).forEach(v => {
+      variants.push(v);
+      if (/\S\([^)\s]+\)|\([^)\s]+\)\S/.test(v)) variants.push(v.replace(/[()]/g, ''));
+    });
     let lat = null;
     variants.forEach(v => {
       const m = this._matchLat(v, tok);
@@ -241,13 +247,8 @@ const VokabelQuiz = {
     return `✗ Richtig: ${line}<div class="feedback-variants">${escHtml(notes.join(' · '))}</div>`;
   },
 
-  _checkDeAnswer(input, r) {
-    const inp = input.trim().toLowerCase();
-    const answers = parseAnswers(r.de || '');
-    if (answers.includes(inp)) return true;
-    const inpStripped = inp.replace(/\s*\([^)]*\)\s*/g,'').trim();
-    return answers.includes(inpStripped);
-  },
+  // Latein → Deutsch: eine der Bedeutungen genügt; Klammern sind freiwillig (siehe utils.js)
+  _checkDeAnswer(input, r) { return isCorrect(input, r.de || ''); },
 
   // Fragezettel für eine Liste von Vokabelzeilen bauen
   build(rows, modes, shuffle) {

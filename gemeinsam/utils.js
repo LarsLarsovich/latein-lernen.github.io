@@ -6,49 +6,55 @@ function escHtml(s) {
 }
 
 // ── Antwort-Parsing ───────────────────────────────────────────
-// wieder(um)  → ["wieder", "wiederum"]   optionale Endung
-// gehen (+Dat.) → ["gehen"]             Annotation entfernt
-// esse%est    → ["esse", "est"]          mehrere Formen
-// (+Akk.)     → []                       reine Annotation = leer
+// Mehrere gültige Antworten sind mit % getrennt:  esse%est → "esse", "est"
+// Alles in Klammern ist freiwillig – man darf es eingeben, muss aber nicht:
+//   wieder(um)               → "wieder" oder "wiederum"
+//   streben (nach)           → "streben" oder "streben nach"
+//   heiraten (vom Mann aus)  → "heiraten" reicht
+//   durch (+Akk.)            → "durch" reicht
+
+// Kleinbuchstaben, Leerzeichen vereinheitlicht
+function _cleanAnswer(s) { return (s || '').toLowerCase().replace(/\s+/g, ' ').trim(); }
+
+// Die Antworten ohne Klammer-Inhalte – für die Anzeige („Richtig wäre: …")
 function parseAnswers(raw) {
   if (!raw) return [];
-  const variants = new Set();
-
-  const annotationRe     = /^\([+]?[A-ZÄÖÜ][a-zA-ZäöüÄÖÜ.\s+]*\)$/;
-  const stripAnnotationRe = /\s*\([+]?[A-ZÄÖÜ][a-zA-ZäöüÄÖÜ.\s+]*\)\s*/g;
-
+  const out = new Set();
   raw.split('%').forEach(seg => {
-    seg = seg.trim();
-    if (!seg) return;
-
-    if (annotationRe.test(seg)) return;
-
-    const stripped    = seg.replace(stripAnnotationRe, ' ').replace(/\s+/g,' ').trim();
-    const strippedLow = stripped.toLowerCase();
-
-    const optMatch = strippedLow.match(/^(.*?)\(([a-zäöü]+)\)(.*)$/);
-    if (optMatch) {
-      const before  = optMatch[1].trim();
-      const opt     = optMatch[2].trim();
-      const after   = optMatch[3].trim();
-      const without = (before + (after ? ' ' + after : '')).replace(/\s+/g,' ').trim();
-      const withIt  = (before + opt + (after ? ' ' + after : '')).replace(/\s+/g,' ').trim();
-      if (without) variants.add(without);
-      if (withIt)  variants.add(withIt);
-    } else if (strippedLow) {
-      variants.add(strippedLow);
-    }
+    const bare = _cleanAnswer(seg.replace(/\([^)]*\)/g, ' '));
+    if (bare) out.add(bare);
   });
-
-  return [...variants].filter(Boolean);
+  return [...out];
 }
 
+// Alles, was als richtig gilt: jede Klammer einmal mit und einmal ohne ihren Inhalt
+function acceptedAnswers(raw) {
+  if (!raw) return [];
+  const out = new Set();
+  raw.split('%').forEach(seg => {
+    const parts = seg.split(/(\([^)]*\))/);                 // Text und Klammern abwechselnd
+    const groups = parts.filter(p => /^\(.*\)$/.test(p)).length;
+    if (groups > 5) { const bare = _cleanAnswer(seg.replace(/\([^)]*\)/g, ' ')); if (bare) out.add(bare); return; }
+    for (let mask = 0; mask < (1 << groups); mask++) {
+      let g = 0;
+      const text = parts.map(p => {
+        if (!/^\(.*\)$/.test(p)) return p;
+        return (mask >> g++) & 1 ? p.slice(1, -1) : '';      // Inhalt behalten oder weglassen
+      }).join('');
+      const clean = _cleanAnswer(text);
+      if (clean) out.add(clean);
+    }
+  });
+  return [...out];
+}
+
+// Stimmt die Eingabe? Klammern dürfen mitgetippt oder weggelassen werden.
 function isCorrect(input, raw) {
-  const inp = input.trim().toLowerCase();
-  const answers = parseAnswers(raw);
-  if (answers.includes(inp)) return true;
-  const inpStripped = inp.replace(/\s*\([^)]*\)\s*/g,'').trim();
-  return answers.includes(inpStripped);
+  const answers = acceptedAnswers(raw);
+  const typed   = _cleanAnswer(input);
+  return answers.includes(typed)
+      || answers.includes(_cleanAnswer(typed.replace(/[()]/g, '')))          // "streben (nach)" → "streben nach"
+      || answers.includes(_cleanAnswer(typed.replace(/\([^)]*\)/g, ' ')));   // "durch (+Akk.)"  → "durch"
 }
 
 // "(er%sie%es) geht" → "er geht%sie geht%es geht"

@@ -82,7 +82,7 @@ App.init({
 - Direktlinks: `vokabeln/index.html?vok=<Listen-ID>:<Zeile>`, `unregelmaessige/index.html?verb=<ID>`
 
 ### Cache
-Alle lokalen CSS/JS-Dateien werden mit `?v=2.4.2` geladen. Nach Änderungen die Nummer in allen `index.html` erhöhen (Suchen & Ersetzen).
+Alle lokalen CSS/JS-Dateien werden mit `?v=2.4.3` geladen. Nach Änderungen die Nummer in allen `index.html` erhöhen (Suchen & Ersetzen).
 
 ---
 
@@ -132,7 +132,8 @@ Nicht mehr benutzt: `quizes`, `drafts` (alte Einzel-Quize), `sommerferien_*`.
 - `feedbackHtml` markiert falsche (`diff-wrong`) und vergessene Teile (`diff-missing`) einzeln
 
 ### Antwort-Parsing Deutsch (utils.js)
-- `wieder(um)` → `wieder` und `wiederum` · `gehen (+Dat.)` → Anmerkung ignoriert · `%` trennt mehrere gültige Antworten
+- Alles in Klammern ist freiwillig, in beiden Richtungen: `wieder(um)` → `wieder`/`wiederum` · `streben (nach)` → `streben`/`streben nach` · `heiraten (vom Mann aus)`, `durch (+Akk.)`, `in (+Abl.)` → das Wort allein reicht
+- `acceptedAnswers(raw)` liefert alles, was gilt (jede Klammer mit und ohne Inhalt); `parseAnswers(raw)` nur die Formen ohne Klammern für die Anzeige · `%` trennt mehrere gültige Antworten
 
 ---
 
